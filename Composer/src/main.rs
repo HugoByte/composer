@@ -25,7 +25,7 @@ use workflow::*;
 use test_module::*;
 
 fn main() {
-    let content: String = std::fs::read_to_string("./example.star").unwrap();
+    let content: String = std::fs::read_to_string("./config/example.star").unwrap();
 
     let ast = AstModule::parse("name", content.to_owned(), &Dialect::Extended).unwrap();
     // We build our globals adding some functions we wrote
