@@ -1,5 +1,11 @@
+use std::clone;
 use std::{env, fs, path::PathBuf, process::Command};
-
+// use anyhow::Ok;
+use starlark::values::{Heap, StarlarkValue, Value, ProvidesStaticType, NoSerialize, ValueLike};
+use starlark::{starlark_simple_value, values::starlark_value};
+use std::fmt::{ self, Display};
+use serde_derive::{Deserialize, Serialize};
+use std::result::Result::Ok;
 use super::*;
 
 #[derive(Debug, ProvidesStaticType, Default)]
@@ -7,6 +13,7 @@ pub struct Composer {
     pub tasks: RefCell<HashMap<String, Task>>,
     pub workflows: RefCell<Vec<Workflow>>,
 }
+
 
 impl Composer {
     pub fn add_nodes(&self, node: Task) -> Result<bool, ErrorKind> {
@@ -21,10 +28,36 @@ impl Composer {
         }
     }
 
-    fn adds(&self, name: String, version: String) {
-        self.workflows.borrow_mut().push(Workflow { name, version })
+    fn adds(&self, name: String, version: String, task_name: Vec<String>) {
+        self.workflows.borrow_mut().push(Workflow { name, version, task_name });
+    }
+   
+    }
+
+
+starlark_simple_value!(Task);
+
+impl Display for Task {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {} {:?} {:?} {} {:?}", self.kind, self.action_name, self.input_args, self.attributes, self.operation, self.depend_on)
     }
 }
+
+#[starlark_value(type = "user")]
+impl<'v> StarlarkValue<'v> for Task {}
+
+
+// starlark_simple_value!(Workflow);
+
+// impl Display for Workflow {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         write!(f, "{} {} {}", self.name, self.version, self.task_name)
+//     }
+// }
+
+// #[starlark_value(type = "flow")]
+// impl<'v> StarlarkValue<'v> for Workflow{}
+
 
 #[starlark_module]
 pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
@@ -36,10 +69,10 @@ pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
         depend_on: Value,
         operation: Option<String>,
         eval: &mut Evaluator,
-    ) -> anyhow::Result<NoneType> {
-        let ip_args = serde_json::from_str(&input_args.to_json()?).unwrap();
-        let property = serde_json::from_str(&attributes.to_json()?).unwrap();
-        let depnd = serde_json::from_str(&depend_on.to_json()?).unwrap();
+    ) -> anyhow::Result<Task> {
+        let ip_args : HashMap<String, String> = serde_json::from_str(&input_args.to_json()?).unwrap();
+        let property : HashMap<String, String> = serde_json::from_str(&attributes.to_json()?).unwrap();
+        let depnd : HashMap<String, HashMap<String, String>> = serde_json::from_str(&depend_on.to_json()?).unwrap();
 
         let operand = match operation {
             Some(a) => a,
@@ -53,22 +86,34 @@ pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
             .add_nodes(Task::new(
                 &kind,
                 &action_name,
-                ip_args,
-                property,
-                depnd,
-                operand,
+                ip_args.clone(),
+                property.clone(),
+                depnd.clone(),
+                operand.clone(),
             ))
             .unwrap();
+        // Ok(NoneType)
 
-        Ok(NoneType)
+        Ok(Task { kind: kind, action_name: action_name, input_args: ip_args, attributes: property, operation: operand, depend_on: depnd })
+        
     }
 
-    fn workflows(name: String, version: String, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
-        eval.extra
-            .unwrap()
-            .downcast_ref::<Composer>()
-            .unwrap()
-            .adds(name, version);
+    fn workflows(name: String, version: String, task_name: Value, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+
+        // println!("------{:?}-----", task_name);
+
+        let tasks : Vec<Task> = serde_json::from_str(&task_name.to_json()?).unwrap();
+        let delimiter = " , ";
+        // let task : Task = serde_json::from_value(t).unwrap();
+
+        for task_name in tasks {
+            eval.extra
+                .unwrap()
+                .downcast_ref::<Composer>()
+                .unwrap()
+                .adds(name.clone(), version.clone(), task_name.action_name.split(delimiter).map(String::from).collect());
+        }
+
         Ok(NoneType)
     }
 }

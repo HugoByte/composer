@@ -5,7 +5,7 @@ attributes = {
     "namespace" : "guest"   
 }
 
-task(
+T1 = task(
     kind = "openwhisk",
     action_name = "employee_ids",
     input_args = {
@@ -15,7 +15,7 @@ task(
     depend_on = {}
 )
 
-task(
+T2 = task(
     kind = "openwhisk",
     action_name = "getsalaries",
     input_args = {
@@ -31,14 +31,13 @@ task(
     }
 )
 
-task(
+T3 = task(
     kind = "openwhisk",
     action_name = "getaddress",
     input_args = {
         "id" : "i32"
     },
     attributes = attributes,
-    # operation = "true ",
     operation = "map",
     depend_on = {
         "employee_ids" : {
@@ -48,7 +47,7 @@ task(
     
 )
 
-task(
+T4 = task(
     kind = "openwhisk",
     action_name = "salary",
     input_args = {
@@ -65,7 +64,30 @@ task(
     }
 )
 
+T5 = task(
+    kind = "polkadot",
+    action_name = "stakingpayout",
+    input_args = {
+        "url" : "String",
+        "owner_key" : "String",
+        "address" : "String",
+        "era" : "u32"
+    },
+    attributes = {
+        "chain" : "westend",
+        "operation" : "stakingpayout"
+    },
+    depend_on = { }
+)
+
 workflows(
     name = "workflow",
-    version = "0.0.1"
+    version = "0.0.1",
+    task_name = [T1, T2]
 )
+
+# workflows(
+#     name = "workflow",
+#     version = "0.0.1",
+#     task_name = [T1, T2, T3, T4]
+# )

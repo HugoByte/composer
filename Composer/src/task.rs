@@ -1,6 +1,7 @@
 use super::*;
 
-#[derive(Debug, Clone, Deserialize)]
+// #[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, PartialEq, Eq, ProvidesStaticType, Allocative, Clone, Deserialize, Serialize)]
 pub struct Task {
     pub kind: String,
     pub action_name: String,
@@ -30,3 +31,5 @@ impl Task {
         }
     }
 }
+
+
