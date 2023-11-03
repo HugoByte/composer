@@ -5,7 +5,7 @@ attributes = {
     "namespace" : "guest"   
 }
 
-task(
+employee_id = task(
     kind = "openwhisk",
     action_name = "employee_ids",
     input_args = {
@@ -15,7 +15,7 @@ task(
     depend_on = {}
 )
 
-task(
+getsalaries = task(
     kind = "openwhisk",
     action_name = "getsalaries",
     input_args = {
@@ -31,7 +31,7 @@ task(
     }
 )
 
-task(
+getaddress = task(
     kind = "openwhisk",
     action_name = "getaddress",
     input_args = {
@@ -47,7 +47,7 @@ task(
     
 )
 
-task(
+salary = task(
     kind = "openwhisk",
     action_name = "salary",
     input_args = {
@@ -64,7 +64,7 @@ task(
     }
 )
 
-task(
+stakingpayout = task(
     kind = "polkadot",
     action_name = "stakingpayout",
     input_args = {
@@ -80,7 +80,14 @@ task(
     depend_on = { }
 )
 
-workflows(
+workflow_employee = workflows(
     name = "workflow",
-    version = "0.0.1"
+    version = "0.0.1",
+    task_name = [employee_id, getsalaries, getaddress, salary]
+)
+
+workflow_polkadot = workflows(
+    name = "workflow",
+    version = "0.0.1",
+    task_name = [stakingpayout]
 )
