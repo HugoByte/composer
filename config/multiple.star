@@ -54,7 +54,7 @@ salary = task(
         ip_args(name = "details", input_type = "HashMap<i32,(i32,String)>", default_value = "{1:(42,Hello)}")
     ],
     attributes = attributes,
-    operation = "concat"
+    operation = "concat",
     depend_on = {
         "getsalaries" : {
             "details" : "result"
@@ -82,13 +82,13 @@ stakingpayout = task(
 )
 
 workflow_employee = workflows(
-    name = "workflow",
+    name = "workflow_1",
     version = "0.0.1",
     tasks = [employee_id, getsalaries, getaddress, salary]
 )
 
 workflow_polkadot = workflows(
-    name = "workflow",
+    name = "workflow_2",
     version = "0.0.1",
     tasks = [stakingpayout]
 )

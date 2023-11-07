@@ -1,54 +1,59 @@
 use std::clone;
 use std::{env, fs, path::PathBuf, process::Command};
 // use anyhow::Ok;
-use starlark::values::{Heap, StarlarkValue, Value, ProvidesStaticType, NoSerialize, ValueLike};
-use starlark::{starlark_simple_value, values::starlark_value};
-use std::fmt::{ self, Display};
-use serde_derive::{Deserialize, Serialize};
-use std::result::Result::Ok;
 use super::*;
+use anyhow::Error;
+use serde_derive::{Deserialize, Serialize};
+use starlark::values::{Heap, NoSerialize, ProvidesStaticType, StarlarkValue, Value, ValueLike};
+use starlark::{starlark_simple_value, values::starlark_value};
+use std::fmt::{self, Display};
 use std::io::ErrorKind;
+use std::result::Result::Ok;
 
 #[derive(Debug, ProvidesStaticType, Default)]
 pub struct Composer {
-    pub tasks: RefCell<HashMap<String, Task>>,
     pub workflows: RefCell<Vec<Workflow>>,
 }
 
-// #[derive(Debug, ProvidesStaticType, Default)]
-// pub struct Comp {
-//     pub tasks: RefCell<HashMap<String, Task>>,
-// }
-
 impl Composer {
-    fn adds(&self, name: String, version: String, tasks: HashMap<String, Task>)  -> Result<(), ErrorKind>{
+    fn add_workflow(
+        &self,
+        name: String,
+        version: String,
+        tasks: HashMap<String, Task>,
+    ) -> Result<(), Error> {
        
-       if name.is_empty(){
-            Err(ErrorKind::NotFound)
-       }else{
-
-       Ok( self.workflows.borrow_mut().push(Workflow { name, version, tasks }))
-       }
-    }
-}
-
-
-impl Workflow {
-    fn validate(&self) -> Result<(), String>{
-         if self.name.is_empty(){
-            return Err("name cannot be empty".to_string());
+        for i in self.workflows.borrow().iter() {
+            if i.name == name {
+                return Err(Error::msg("Workflows should not have same name"));
+            }
         }
-    
-        Ok(())
+        if name.is_empty() {
+            Err(Error::msg("Workflow name should not be empty"))
+        } else {
+            Ok(self.workflows.borrow_mut().push(Workflow {
+                name,
+                version,
+                tasks,
+            }))
+        }
     }
 }
-
 
 starlark_simple_value!(Task);
 
 impl Display for Task {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {} {:?} {:?} {} {:?}", self.kind, self.action_name, self.input_args, self.attributes, self.operation, self.depend_on)
+        write!(
+            f,
+            "{} {} {:?} {:?} {} {:?}",
+            self.kind,
+            self.action_name,
+            self.input_args,
+            self.attributes,
+            self.operation,
+            self.depend_on
+        )
     }
 }
 
@@ -59,7 +64,11 @@ starlark_simple_value!(Input);
 
 impl Display for Input {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {} {}", self.name, self.input_type, self.default_value)
+        write!(
+            f,
+            "{} {} {}",
+            self.name, self.input_type, self.default_value
+        )
     }
 }
 
@@ -78,58 +87,79 @@ pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
         eval: &mut Evaluator,
     ) -> anyhow::Result<Task> {
         // println!("{:?}", input_args);
-        let ip_args : Vec<Input> = serde_json::from_str(&input_args.to_json()?).unwrap();
-        let property : HashMap<String, String> = serde_json::from_str(&attributes.to_json()?).unwrap();
-        let depnd : HashMap<String, HashMap<String, String>> = serde_json::from_str(&depend_on.to_json()?).unwrap();
+        let ip_args: Vec<Input> = serde_json::from_str(&input_args.to_json()?).unwrap();
+        let property: HashMap<String, String> =
+            serde_json::from_str(&attributes.to_json()?).unwrap();
+        let depnd: HashMap<String, HashMap<String, String>> =
+            serde_json::from_str(&depend_on.to_json()?).unwrap();
 
         let operand = match operation {
             Some(a) => a,
             None => String::default(),
         };
 
-        Ok(Task { kind: kind, action_name: action_name, input_args: ip_args, attributes: property, operation: operand, depend_on: depnd })
+        Ok(Task {
+            kind: kind,
+            action_name: action_name,
+            input_args: ip_args,
+            attributes: property,
+            operation: operand,
+            depend_on: depnd,
+        })
     }
 
-    fn workflows(name: String, version: String, tasks: Value, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
-        let tasks : Vec<Task> = serde_json::from_str(&tasks.to_json()?).unwrap();
-        let delimiter = " , ";
+    fn workflows(
+        name: String,
+        version: String,
+        tasks: Value,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<NoneType> {
+        let tasks: Vec<Task> = serde_json::from_str(&tasks.to_json()?).unwrap();
 
-        let task_hashmap = tasks.iter().map(|te|  (te.action_name.clone(), te.clone() )).collect();
-    
-            eval.extra
-                .unwrap()
-                .downcast_ref::<Composer>()
-                .unwrap()
-                .adds(name.clone(), version.clone(), task_hashmap).unwrap();
+        let task_hashmap = tasks
+            .iter()
+            .map(|te| (te.action_name.clone(), te.clone()))
+            .collect();
+
+        eval.extra
+            .unwrap()
+            .downcast_ref::<Composer>()
+            .unwrap()
+            .add_workflow(name.clone(), version.clone(), task_hashmap)
+            .unwrap();
 
         Ok(NoneType)
     }
 
-    fn ip_args(name : String, input_type : String, default_value : Option<String>, eval : &mut Evaluator,) -> anyhow::Result<Input> {
+    fn ip_args(
+        name: String,
+        input_type: String,
+        default_value: Option<String>,
+        eval: &mut Evaluator,
+    ) -> anyhow::Result<Input> {
         let default = match default_value {
             Some(b) => b,
             None => String::default(),
         };
-        Ok(Input {name: name, input_type: input_type, default_value: default})
+        Ok(Input {
+            name: name,
+            input_type: input_type,
+            default_value: default,
+        })
     }
-
-    // fn datatype(type_1: String) -> anyhow::Result<String> {
-        
-    //     match type_1.as_str(){
-    //         "String" | "i32" | "u32"  => Ok(type_1),
-    //         _ => Err("".to_string()),
-    //     };
-
-    //     Ok("".to_string())
-    // }
-  
 }
 
 impl Composer {
     fn get_dependencies(&self, task_name: &str) -> Option<Vec<String>> {
         let mut deps = Vec::<String>::new();
 
-        for d in self.workflows.borrow()[0].tasks.get(task_name).unwrap().depend_on.iter() {
+        for d in self.workflows.borrow()[0]
+            .tasks
+            .get(task_name)
+            .unwrap()
+            .depend_on
+            .iter()
+        {
             deps.push(d.0.clone());
         }
 
@@ -166,7 +196,11 @@ impl Composer {
     }
 
     pub fn get_task(&self, task_name: &str) -> Task {
-        self.workflows.borrow()[0].tasks.get(task_name).unwrap().clone()
+        self.workflows.borrow()[0]
+            .tasks
+            .get(task_name)
+            .unwrap()
+            .clone()
     }
 
     pub fn get_task_input_data(&self, task_name: &str, task: &HashMap<String, String>) -> String {
@@ -244,7 +278,6 @@ serde_json = \"1.0.81\"
     }
 
     pub fn generate(&self) {
-        
         // Getting the current working directory
         let path = env::current_dir().unwrap().join("./generated_project");
 
