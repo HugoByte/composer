@@ -11,8 +11,14 @@ use std::io::ErrorKind;
 
 #[derive(Debug, ProvidesStaticType, Default)]
 pub struct Composer {
+    pub tasks: RefCell<HashMap<String, Task>>,
     pub workflows: RefCell<Vec<Workflow>>,
 }
+
+// #[derive(Debug, ProvidesStaticType, Default)]
+// pub struct Comp {
+//     pub tasks: RefCell<HashMap<String, Task>>,
+// }
 
 impl Composer {
     fn adds(&self, name: String, version: String, tasks: HashMap<String, Task>)  -> Result<(), ErrorKind>{
@@ -24,8 +30,8 @@ impl Composer {
        Ok( self.workflows.borrow_mut().push(Workflow { name, version, tasks }))
        }
     }
-   
-    }
+}
+
 
 impl Workflow {
     fn validate(&self) -> Result<(), String>{
@@ -49,6 +55,17 @@ impl Display for Task {
 #[starlark_value(type = "task")]
 impl<'v> StarlarkValue<'v> for Task {}
 
+starlark_simple_value!(Input);
+
+impl Display for Input {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {} {}", self.name, self.input_type, self.default_value)
+    }
+}
+
+#[starlark_value(type = "input")]
+impl<'v> StarlarkValue<'v> for Input {}
+
 #[starlark_module]
 pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
     fn task(
@@ -60,7 +77,8 @@ pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
         operation: Option<String>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<Task> {
-        let ip_args : HashMap<String, String> = serde_json::from_str(&input_args.to_json()?).unwrap();
+        // println!("{:?}", input_args);
+        let ip_args : Vec<Input> = serde_json::from_str(&input_args.to_json()?).unwrap();
         let property : HashMap<String, String> = serde_json::from_str(&attributes.to_json()?).unwrap();
         let depnd : HashMap<String, HashMap<String, String>> = serde_json::from_str(&depend_on.to_json()?).unwrap();
 
@@ -70,7 +88,6 @@ pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
         };
 
         Ok(Task { kind: kind, action_name: action_name, input_args: ip_args, attributes: property, operation: operand, depend_on: depnd })
-        
     }
 
     fn workflows(name: String, version: String, tasks: Value, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
@@ -87,6 +104,25 @@ pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
 
         Ok(NoneType)
     }
+
+    fn ip_args(name : String, input_type : String, default_value : Option<String>, eval : &mut Evaluator,) -> anyhow::Result<Input> {
+        let default = match default_value {
+            Some(b) => b,
+            None => String::default(),
+        };
+        Ok(Input {name: name, input_type: input_type, default_value: default})
+    }
+
+    // fn datatype(type_1: String) -> anyhow::Result<String> {
+        
+    //     match type_1.as_str(){
+    //         "String" | "i32" | "u32"  => Ok(type_1),
+    //         _ => Err("".to_string()),
+    //     };
+
+    //     Ok("".to_string())
+    // }
+  
 }
 
 impl Composer {
@@ -162,9 +198,9 @@ impl Composer {
                 }
             }
 
-            for (field, ty) in task.input_args.iter() {
-                if let Err(_) = depend.binary_search(field) {
-                    common.push((String::from(field), String::from(ty)));
+            for input in task.input_args.iter() {
+                if let Err(_) = depend.binary_search(&input.name) {
+                    common.push((input.name.clone(), input.input_type.clone()));
                 };
             }
         }
@@ -208,14 +244,11 @@ serde_json = \"1.0.81\"
     }
 
     pub fn generate(&self) {
-        let project_name = String::from("generated-project");
+        
         // Getting the current working directory
-        let pwd = env::current_dir().unwrap();
-        let proj_path = pwd.join(&project_name);
+        let path = env::current_dir().unwrap().join("./generated_project");
 
-        let content = self.get_code();
-
-        // Generating the Cargo package and writing the main.rs and Cargo.toml files
-        self.generate_cargo(&project_name, &proj_path, &content[0], &content[1]);
+        fs::create_dir_all(&path).unwrap();
+        fs::write(&(path.join("./types.rs")), self.generate_main_file_code()).unwrap();
     }
 }

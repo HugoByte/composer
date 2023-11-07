@@ -7,18 +7,40 @@ use serde_derive::Serialize;
 pub struct Task {
     pub kind: String,
     pub action_name: String,
-    pub input_args: HashMap<String, String>,
+    pub input_args: Vec<Input>,
     pub attributes: HashMap<String, String>,
     #[serde(default)]
     pub operation: String,
     pub depend_on: HashMap<String, HashMap<String, String>>,
 }
 
+#[derive(Debug, PartialEq, Eq, Allocative, ProvidesStaticType,Clone, Deserialize, Serialize)]
+pub struct Input {
+    pub name : String,
+    pub input_type : String,
+    #[serde(default)]
+    pub default_value : String,
+}
+
+// impl Input{
+//     pub fn new(
+//         name : &str,
+//         input_type : &str,
+//         default_value : &str
+//     ) -> Self{
+//         Input {
+//             name : name.to_string(),
+//             input_type: input_type.to_string(),
+//             default_value: default_value.to_string(),
+//         }
+//     }
+// }
+
 impl Task {
     pub fn new(
         kind: &str,
         action_name: &str,
-        input_args: HashMap<String, String>,
+        input_args: Vec<Input>,
         attributes: HashMap<String, String>,
         depend_on: HashMap<String, HashMap<String, String>>,
         operation: String,

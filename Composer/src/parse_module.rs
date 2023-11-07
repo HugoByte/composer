@@ -162,7 +162,7 @@ macro_rules! impl_setter {{
             let mut new = Vec::<String>::new();
 
             for (i, field) in task.input_args.iter().enumerate() {
-                input = format!("{input}{}:{}", field.0, field.1);
+                input = format!("{input}{}:{}", field.name, field.input_type);
 
                 if i != task.input_args.len() - 1 {
                     input = format!("{input},");
@@ -171,9 +171,9 @@ macro_rules! impl_setter {{
                         format!("{input}],\n\t[Debug, Clone, Default, Serialize, Deserialize]);");
                 }
 
-                if let Err(_) = depend.binary_search(field.0) {
-                    common_inputs.insert(String::from(field.0), String::from(field.1));
-                    new.push(format!("{}:{}", field.0, field.1));
+                if let Err(_) = depend.binary_search(&field.name) {
+                    common_inputs.insert(field.name.clone(), field.input_type.clone());
+                    new.push(format!("{}:{}", field.name, field.input_type));
                 }
             }
 

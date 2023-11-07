@@ -11,3 +11,4 @@ pub struct Workflow {
     pub version : String,
     pub tasks : HashMap<String,Task>
 }
+
