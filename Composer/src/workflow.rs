@@ -1,6 +1,7 @@
 
-use anyhow::Ok;
-use thiserror::Error;
+
+use allocative::Allocative;
+use serde_derive::Serialize;
 
 use super::*;
 
@@ -8,5 +9,5 @@ use super::*;
 pub struct Workflow {
     pub name : String,
     pub version : String,
-    pub task_name : Vec<Task>
+    pub tasks : HashMap<String,Task>
 }

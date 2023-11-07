@@ -57,9 +57,6 @@ task(
     depend_on = {
         "getsalaries" : {
             "details" : "result"
-        },
-        "getaddress" : {
-            "details" : "result"
         }
     }
 )
