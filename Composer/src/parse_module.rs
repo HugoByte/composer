@@ -18,13 +18,13 @@ use std::collections::HashMap;
 macro_rules! make_input_struct {{
     (
         $x:ident,
-        // list of derive macros
-        [$($visibality:vis $element:ident : $ty:ty),*],
+        // list of field and it's type
+        [$($visibility:vis $element:ident : $ty:ty),*],
         // list of derive macros
         [$($der:ident),*]
 ) => {{
         #[derive($($der),*)]
-        struct $x {{ $($visibality  $element: $ty),*}}
+        struct $x {{ $($visibility  $element: $ty),*}}
     }}
 }}
 
@@ -109,13 +109,13 @@ macro_rules! impl_setter {{
         )
     }
 
-    pub fn get_attributes(&self, task: &HashMap<String, String>) -> String {
+    pub fn get_attributes(&self, map: &HashMap<String, String>) -> String {
         let mut attributes = String::from("[");
 
-        for (i, (k, v)) in task.iter().enumerate() {
+        for (i, (k, v)) in map.iter().enumerate() {
             attributes = format!("{attributes}{}:\"{}\"", k, v);
 
-            attributes = if i != task.len() - 1 {
+            attributes = if i != map.len() - 1 {
                 format!("{attributes},")
             } else {
                 format!("{attributes}]")
@@ -125,7 +125,23 @@ macro_rules! impl_setter {{
         attributes
     }
 
-    fn get_kind(&self, kind: &str) -> Result<String, ErrorKind> {
+    pub fn parse_hashmap(&self, map: &HashMap<String, String>) -> String {
+        let mut attributes = String::from("[");
+
+        for (i, (k, v)) in map.iter().enumerate() {
+            attributes = format!("{attributes}{}:{}", k, v);
+
+            attributes = if i != map.len() - 1 {
+                format!("{attributes},")
+            } else {
+                format!("{attributes}]")
+            }
+        }
+
+        attributes
+    }
+
+    pub fn get_kind(&self, kind: &str) -> Result<String, ErrorKind> {
         match kind.to_lowercase().as_str() {
             "openwhisk" => Ok(String::from("OpenWhisk")),
             "polkadot" => Ok(String::from("Polkadot")),
@@ -133,9 +149,20 @@ macro_rules! impl_setter {{
         }
     }
 
+    pub fn get_custom_types(&self, workflow_index: usize) -> String {
+        let mut build_string = String::new();
+        let custom_types = self.custom_types.borrow();
+
+        for t in self.workflows.borrow()[workflow_index].custom_types.iter() {
+            let typ = custom_types.get(t).unwrap();
+            build_string = format!("{build_string}{typ}\n");
+        }
+
+        build_string
+    }
+
     pub fn get_custom_structs(&self) -> Vec<String> {
         let mut common_inputs = HashMap::<String, String>::new();
-        let asd = self.workflows.borrow();
 
         let mut constructors = String::new();
         let mut input_structs = String::new();
@@ -258,8 +285,8 @@ impl_setter!({task_name}, [{}]);
             );
 
             execute_code = if i + 1 == flow.len() - 1 {
-                match self
-                    .workflows.borrow()[0].tasks
+                match self.workflows.borrow()[0]
+                    .tasks
                     .get(&flow[i + 1])
                     .unwrap()
                     .depend_on
@@ -297,8 +324,8 @@ impl_setter!({task_name}, [{}]);
 
         let main_file = format!(
             "{}
+{}            
 {}
-
 #[allow(dead_code, unused)]
 pub fn main(args: Value) -> Result<Value, String> {{
     const LIMIT: usize = {};
@@ -312,6 +339,7 @@ pub fn main(args: Value) -> Result<Value, String> {{
 }}
 ",
             self.get_macros(),
+            self.get_custom_types(0),
             structs[0],
             self.workflows.borrow()[0].tasks.len(),
             structs[1],

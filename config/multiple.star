@@ -1,3 +1,20 @@
+type1= typ(
+    name = "struct1",
+    fields = {
+        "field1" : "String",
+        "field2" : "i32",
+        "field3" : "bool"
+    }
+)
+
+type2= typ(
+    name = "struct2",
+    fields = {
+        "field1" : "HashMap<String, String>",
+        "field2" : "Vec<String>",
+    }
+)
+
 attributes = {
     "api_host" : "https://65.20.70.146:31001",
     "auth_token" : "23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",
@@ -9,7 +26,8 @@ employee_id = task(
     kind = "openwhisk",
     action_name = "employee_ids",
     input_args = [
-        ip_args(name = "role", input_type = "String")
+        ip_args(name = "input_field_1", input_type = type1 ),
+        ip_args(name = "input_field_1", input_type = type2 ),  
     ],
     attributes = attributes,
     depend_on = {}
@@ -84,11 +102,13 @@ stakingpayout = task(
 workflow_employee = workflows(
     name = "workflow_1",
     version = "0.0.1",
-    tasks = [employee_id, getsalaries, getaddress, salary]
+    tasks = [employee_id, getsalaries, getaddress, salary],
+    custom_types = [type1, type2]
 )
 
 workflow_polkadot = workflows(
     name = "workflow_2",
     version = "0.0.1",
-    tasks = [stakingpayout]
+    tasks = [stakingpayout],
+    custom_types = []
 )
