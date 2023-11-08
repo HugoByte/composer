@@ -86,7 +86,6 @@ pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
         operation: Option<String>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<Task> {
-        // println!("{:?}", input_args);
         let ip_args: Vec<Input> = serde_json::from_str(&input_args.to_json()?).unwrap();
         let property: HashMap<String, String> =
             serde_json::from_str(&attributes.to_json()?).unwrap();
@@ -222,7 +221,6 @@ impl Composer {
     pub fn get_common_inputs(&self) -> Vec<(String, String)> {
         let mut common = Vec::<(String, String)>::new();
 
-        // HashMap<String, Task
         for (_, task) in self.workflows.borrow()[0].tasks.iter() {
             let mut depend = Vec::<String>::new();
 

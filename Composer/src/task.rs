@@ -2,7 +2,6 @@ use super::*;
 use allocative::Allocative;
 use serde_derive::Serialize;
 
-// #[derive(Debug, Clone, Deserialize)]
 #[derive(Debug, PartialEq, Eq, ProvidesStaticType, Allocative, Clone, Deserialize, Serialize)]
 pub struct Task {
     pub kind: String,
@@ -21,20 +20,6 @@ pub struct Input {
     #[serde(default)]
     pub default_value : String,
 }
-
-// impl Input{
-//     pub fn new(
-//         name : &str,
-//         input_type : &str,
-//         default_value : &str
-//     ) -> Self{
-//         Input {
-//             name : name.to_string(),
-//             input_type: input_type.to_string(),
-//             default_value: default_value.to_string(),
-//         }
-//     }
-// }
 
 impl Task {
     pub fn new(

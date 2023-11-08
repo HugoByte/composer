@@ -37,6 +37,4 @@ fn main() {
     }
 
     composer.generate();
-    // print!("{:?}", composer);
-    // composer.generate_main_file_code();
 }
