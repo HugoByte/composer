@@ -21,7 +21,7 @@ use task::*;
 use workflow::*;
 
 fn main() {
-    let content: String = std::fs::read_to_string("./config/multiple.star").unwrap();
+    let content: String = std::fs::read_to_string("./config/custom_types.star").unwrap();
 
     let ast = AstModule::parse("name", content.to_owned(), &Dialect::Extended).unwrap();
     // We build our globals adding some functions we wrote

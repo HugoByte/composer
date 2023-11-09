@@ -92,7 +92,6 @@ pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
         attributes: Value,
         depend_on: Value,
         operation: Option<String>,
-        eval: &mut Evaluator,
     ) -> anyhow::Result<Task> {
         let ip_args: Vec<Input> = serde_json::from_str(&input_args.to_json()?).unwrap();
         let property: HashMap<String, String> =
@@ -144,7 +143,6 @@ pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
         name: String,
         input_type: String,
         default_value: Option<String>,
-        eval: &mut Evaluator,
     ) -> anyhow::Result<Input> {
         let default = match default_value {
             Some(b) => b,

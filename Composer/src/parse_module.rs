@@ -24,7 +24,7 @@ macro_rules! make_input_struct {{
         [$($der:ident),*]
 ) => {{
         #[derive($($der),*)]
-        struct $x {{ $($visibility  $element: $ty),*}}
+        pub struct $x {{ $($visibility  $element: $ty),*}}
     }}
 }}
 
@@ -40,7 +40,7 @@ macro_rules! make_main_struct {{
         $(
             #[$key = $val]
         )*
-        struct $name {{
+        pub struct $name {{
             action_name: String,
             pub input: $input,
             pub output: Value,
