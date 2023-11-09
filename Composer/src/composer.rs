@@ -13,6 +13,7 @@ use std::result::Result::Ok;
 #[derive(Debug, ProvidesStaticType, Default)]
 pub struct Composer {
     pub workflows: RefCell<Vec<Workflow>>,
+    pub custom_types: RefCell<HashMap<String, String>>,
 }
 
 impl Composer {
@@ -21,8 +22,8 @@ impl Composer {
         name: String,
         version: String,
         tasks: HashMap<String, Task>,
+        custom_types: Vec<String>,
     ) -> Result<(), Error> {
-       
         for i in self.workflows.borrow().iter() {
             if i.name == name {
                 return Err(Error::msg("Workflows should not have same name"));
@@ -35,8 +36,15 @@ impl Composer {
                 name,
                 version,
                 tasks,
+                custom_types,
             }))
         }
+    }
+
+    fn add_custom_type(&self, type_name: &str, build_string: String) {
+        self.custom_types
+            .borrow_mut()
+            .insert(String::from(type_name), String::from(build_string));
     }
 }
 
@@ -84,7 +92,6 @@ pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
         attributes: Value,
         depend_on: Value,
         operation: Option<String>,
-        eval: &mut Evaluator,
     ) -> anyhow::Result<Task> {
         let ip_args: Vec<Input> = serde_json::from_str(&input_args.to_json()?).unwrap();
         let property: HashMap<String, String> =
@@ -111,9 +118,11 @@ pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
         name: String,
         version: String,
         tasks: Value,
+        custom_types: Value,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let tasks: Vec<Task> = serde_json::from_str(&tasks.to_json()?).unwrap();
+        let custom_types: Vec<String> = serde_json::from_str(&custom_types.to_json()?).unwrap();
 
         let task_hashmap = tasks
             .iter()
@@ -124,7 +133,7 @@ pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
             .unwrap()
             .downcast_ref::<Composer>()
             .unwrap()
-            .add_workflow(name.clone(), version.clone(), task_hashmap)
+            .add_workflow(name.clone(), version.clone(), task_hashmap, custom_types)
             .unwrap();
 
         Ok(NoneType)
@@ -134,7 +143,6 @@ pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
         name: String,
         input_type: String,
         default_value: Option<String>,
-        eval: &mut Evaluator,
     ) -> anyhow::Result<Input> {
         let default = match default_value {
             Some(b) => b,
@@ -145,6 +153,25 @@ pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
             input_type: input_type,
             default_value: default,
         })
+    }
+
+    fn typ(name: String, fields: Value, eval: &mut Evaluator) -> anyhow::Result<String> {
+        let fields: HashMap<String, String> = serde_json::from_str(&fields.to_json()?).unwrap();
+
+        let composer = eval.extra.unwrap().downcast_ref::<Composer>().unwrap();
+
+        let name = composer.capitalize(&name);
+
+        composer.add_custom_type(
+            &name,
+            format!(
+                "make_input_struct!(\n\t{},\n\t{},\n\t[Default, Clone, Debug]\n);",
+                &name,
+                composer.parse_hashmap(&fields)
+            ),
+        );
+
+        Ok(name)
     }
 }
 
