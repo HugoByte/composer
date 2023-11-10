@@ -1,17 +1,17 @@
 type1= typ(
     name = "struct1",
     fields = {
-        "field1" : "String",
-        "field2" : "i32",
-        "field3" : "bool"
+        "field1" : string(),
+        "field2" : bool(),
+        "field3" : int()
     }
 )
 
 type2= typ(
     name = "struct2",
     fields = {
-        "field1" : "HashMap<String, String>",
-        "field2" : "Vec<String>",
+        "field1" : map(int(32), string()),
+        "field2" : list(string()),
     }
 )
 
