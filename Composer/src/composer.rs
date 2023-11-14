@@ -41,10 +41,15 @@ pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
         let tasks: Vec<Task> = serde_json::from_str(&tasks.to_json()?).unwrap();
         let custom_types: Vec<String> = serde_json::from_str(&custom_types.to_json()?).unwrap();
 
-        let task_hashmap = tasks
-            .iter()
-            .map(|te| (te.action_name.clone(), te.clone()))
-            .collect();
+        let mut task_hashmap = HashMap::new();
+
+        for task in tasks {
+            if task_hashmap.contains_key(&task.action_name) {
+                return Err(Error::msg("Duplicate tasks, Task names must be unique"));
+            } else {
+                task_hashmap.insert(task.action_name.clone(), task);
+            }
+        }
 
         eval.extra
             .unwrap()
@@ -89,6 +94,34 @@ pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
         );
 
         Ok(name)
+    }
+
+    fn string(eval: &mut Evaluator) -> anyhow::Result<String> {
+        Ok("String".to_string())
+    }
+
+    fn bool(eval: &mut Evaluator) -> anyhow::Result<String> {
+        Ok("String".to_string())
+    }
+
+    fn int(size: Option<i32>) -> anyhow::Result<String> {
+        let q: i32 = match size {
+            Some(x) => match x {
+                8 | 16 | 32 | 64 | 128 => x,
+                _ => return Err(Error::msg("Size is invalid")),
+            },
+            None => i32::default(),
+        };
+
+        Ok("".to_string())
+    }
+
+    fn map(field1: String, field2: String, eval: &mut Evaluator) -> anyhow::Result<String> {
+        Ok(format!("HashMap<{}, {}>", field1, field2))
+    }
+
+    fn list(field1: String, eval: &mut Evaluator) -> anyhow::Result<String> {
+        Ok(format!("Vec<{}>", field1))
     }
 }
 

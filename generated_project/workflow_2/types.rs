@@ -95,12 +95,12 @@ macro_rules! impl_setter {{
 }}
 make_input_struct!(
 	Struct1,
-	[field2:i32,field3:bool,field1:String],
+	[field1:String,field2:String,field3:],
 	[Default, Clone, Debug]
 );
 make_input_struct!(
 	Struct2,
-	[field1:HashMap<String, String>,field2:Vec<String>],
+	[field1:HashMap<, String>,field2:Vec<String>],
 	[Default, Clone, Debug]
 );
             
@@ -125,7 +125,7 @@ impl_setter!(Stakingpayout, []);
 
 make_input_struct!(
 	Input,
-	[address:String,era:String,owner_key:String,url:String],
+	[address:String,era:String,url:String,owner_key:String],
 	[Debug, Clone, Default, Serialize, Deserialize]);
 #[allow(dead_code, unused)]
 pub fn main(args: Value) -> Result<Value, String> {
