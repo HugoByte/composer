@@ -1,14 +1,16 @@
-use std::clone;
+use std::{clone, default};
 use std::{env, fs, path::PathBuf, process::Command};
 // use anyhow::Ok;
 use super::*;
-use anyhow::Error;
+use anyhow::{Error};
 use serde_derive::{Deserialize, Serialize};
-use starlark::values::{Heap, NoSerialize, ProvidesStaticType, StarlarkValue, Value, ValueLike};
+use starlark::eval;
+use starlark::values::{Heap, NoSerialize, ProvidesStaticType, StarlarkValue, Value, ValueLike, record};
 use starlark::{starlark_simple_value, values::starlark_value};
-use std::fmt::{self, Display};
+use std::fmt::{self, Display, format};
 use std::io::ErrorKind;
 use std::result::Result::Ok;
+// use core::result::Result::Ok;
 
 #[derive(Debug, ProvidesStaticType, Default)]
 pub struct Composer {
@@ -157,7 +159,7 @@ pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
 
     fn typ(name: String, fields: Value, eval: &mut Evaluator) -> anyhow::Result<String> {
         let fields: HashMap<String, String> = serde_json::from_str(&fields.to_json()?).unwrap();
-
+       
         let composer = eval.extra.unwrap().downcast_ref::<Composer>().unwrap();
 
         let name = composer.capitalize(&name);
@@ -173,6 +175,39 @@ pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
 
         Ok(name)
     }
+    
+    fn string( eval: &mut Evaluator) -> anyhow::Result<String>{
+        Ok("String".to_string())
+    }
+
+    fn bool( eval: &mut Evaluator) -> anyhow::Result<String>{
+        Ok("String".to_string())
+    }
+
+    fn int( size: Option<i32>) -> anyhow::Result<String>{
+       let q : i32 = match size {
+        Some(x) => {
+            match x {
+                8 | 16 | 32 | 64 | 128 => { x },
+                _ => return Err(Error::msg("Size is invalid"))
+            }
+        },
+        None => i32::default(),
+       
+       }; 
+       
+        Ok("".to_string())
+        }
+
+    fn map( field1 : String, field2 : String, eval: &mut Evaluator) -> anyhow::Result<String>{
+        Ok(format!("HashMap<{}, {}>",field1, field2))
+    }
+
+    fn list( field1 : String ,eval: &mut Evaluator) -> anyhow::Result<String> {
+        
+        Ok(format!("Vec<{}>", field1))
+    }
+
 }
 
 impl Composer {
