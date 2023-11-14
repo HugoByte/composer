@@ -10,7 +10,6 @@ impl Composer {
     }
 
     pub fn get_macros(&self) -> String {
-        format!(
             "use serde_json::Value;
 use serde_derive::{{Serialize, Deserialize}};
 use std::collections::HashMap;
@@ -105,12 +104,11 @@ macro_rules! impl_setter {{
             }}
         }}
     }}
-}}"
-        )
+}}".to_string()
     }
 
     pub fn get_attributes(&self, map: &HashMap<String, String>) -> String {
-        let mut attributes = String::from("[");
+        let mut attributes = "[".to_string();
 
         for (i, (k, v)) in map.iter().enumerate() {
             attributes = format!("{attributes}{}:\"{}\"", k, v);
@@ -126,7 +124,7 @@ macro_rules! impl_setter {{
     }
 
     pub fn parse_hashmap(&self, map: &HashMap<String, String>) -> String {
-        let mut attributes = String::from("[");
+        let mut attributes = "[".to_string();
 
         for (i, (k, v)) in map.iter().enumerate() {
             attributes = format!("{attributes}{}:{}", k, v);
@@ -143,8 +141,8 @@ macro_rules! impl_setter {{
 
     pub fn get_kind(&self, kind: &str) -> Result<String, ErrorKind> {
         match kind.to_lowercase().as_str() {
-            "openwhisk" => Ok(String::from("OpenWhisk")),
-            "polkadot" => Ok(String::from("Polkadot")),
+            "openwhisk" => Ok("OpenWhisk".to_string()),
+            "polkadot" => Ok("Polkadot".to_string()),
             _ => Err(ErrorKind::NotFound),
         }
     }
@@ -161,13 +159,13 @@ macro_rules! impl_setter {{
         build_string
     }
 
-    pub fn get_custom_structs(&self) -> Vec<String> {
+    pub fn get_custom_structs(&self, workflow_index: usize) -> Vec<String> {
         let mut common_inputs = HashMap::<String, String>::new();
 
         let mut constructors = String::new();
         let mut input_structs = String::new();
 
-        for (task_name, task) in self.workflows.borrow()[0].tasks.iter() {
+        for (task_name, task) in self.workflows.borrow()[workflow_index].tasks.iter() {
             let task_name = self.capitalize(&task_name);
 
             let mut depend = Vec::<String>::new();
@@ -175,7 +173,7 @@ macro_rules! impl_setter {{
 
             for fields in task.depend_on.values() {
                 let x = fields.iter().next().unwrap();
-                depend.push(String::from(x.0));
+                depend.push(x.0.to_string());
 
                 setter.push(format!("{}:\"{}\"", x.0, x.1));
             }
@@ -198,7 +196,7 @@ macro_rules! impl_setter {{
                         format!("{input}],\n\t[Debug, Clone, Default, Serialize, Deserialize]);");
                 }
 
-                if let Err(_) = depend.binary_search(&field.name) {
+                if depend.binary_search(&field.name).is_err() {
                     common_inputs.insert(field.name.clone(), field.input_type.clone());
                     new.push(format!("{}:{}", field.name, field.input_type));
                 }
@@ -255,7 +253,7 @@ impl_setter!({task_name}, [{}]);
             );
         }
 
-        let mut input = String::from("\nmake_input_struct!(\n\tInput,\n\t[");
+        let mut input = "\nmake_input_struct!(\n\tInput,\n\t[".to_string();
 
         for (i, field) in common_inputs.iter().enumerate() {
             input = format!("{input}{}:{}", field.0, field.1);
@@ -271,11 +269,11 @@ impl_setter!({task_name}, [{}]);
         vec![input_structs, constructors]
     }
 
-    pub fn get_workflow_execute_code(&self) -> String {
+    pub fn get_workflow_execute_code(&self, workflow_index: usize) -> String {
         let mut execute_code = format!("\tlet result = workflow\n\t\t.int()?\n");
 
-        let mut add_edges_code = String::from("\tworkflow.add_edges(&[\n");
-        let flow: Vec<String> = self.get_flow();
+        let mut add_edges_code = "\tworkflow.add_edges(&[\n".to_string();
+        let flow: Vec<String> = self.get_flow(workflow_index);
 
         for i in 0..flow.len() - 1 {
             add_edges_code = format!(
@@ -285,7 +283,7 @@ impl_setter!({task_name}, [{}]);
             );
 
             execute_code = if i + 1 == flow.len() - 1 {
-                match self.workflows.borrow()[0]
+                match self.workflows.borrow()[workflow_index]
                     .tasks
                     .get(&flow[i + 1])
                     .unwrap()
@@ -319,8 +317,8 @@ impl_setter!({task_name}, [{}]);
         add_edges_code
     }
 
-    pub fn generate_main_file_code(&self) -> String {
-        let structs = self.get_custom_structs();
+    pub fn generate_main_file_code(&self, workflow_index: usize) -> String {
+        let structs = self.get_custom_structs(workflow_index);
 
         let main_file = format!(
             "{}
@@ -343,7 +341,7 @@ pub fn main(args: Value) -> Result<Value, String> {{
             structs[0],
             self.workflows.borrow()[0].tasks.len(),
             structs[1],
-            self.get_workflow_execute_code()
+            self.get_workflow_execute_code(workflow_index)
         );
 
         main_file
