@@ -240,7 +240,7 @@ impl Composer {
             } else {
                 input = format!("{input}]");
             }
-        }
+        } 
 
         input
     }

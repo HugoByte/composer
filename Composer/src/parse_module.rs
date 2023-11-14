@@ -125,6 +125,21 @@ macro_rules! impl_setter {{
         attributes
     }
 
+    pub fn get_operation(&self, op: &str) -> Result<String, String>{
+        match op {
+            "map" => Ok(String::from("map")),
+            "concat" => Ok(String::from("concat")),
+            _=> Ok("".to_string())
+        }
+    }
+
+    // pub fn map(&self, op: &str) -> String{
+    //     let mut s = String::new();
+    //     for maps in self.workflows.borrow()[0].tasks.iter(){
+
+    //     }
+    // }
+
     pub fn parse_hashmap(&self, map: &HashMap<String, String>) -> String {
         let mut attributes = String::from("[");
 
@@ -209,11 +224,13 @@ macro_rules! impl_setter {{
 {input}
 make_main_struct!(
     {task_name},
+    {task_name},
     {task_name}Input,
     [Debug, Clone, Default, Serialize, Deserialize, {}],
-    {}
+    {} {:?}
 );
 impl_new!(
+    {task_name},
     {task_name},
     {task_name}Input,
     [{}]
@@ -222,6 +239,7 @@ impl_setter!({task_name}, [{}]);
 ",
                 self.get_kind(&task.kind).unwrap(),
                 self.get_attributes(&task.attributes),
+                self.get_operation(&task.operation),
                 new.join(","),
                 setter.join(",")
             );
