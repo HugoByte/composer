@@ -37,7 +37,7 @@ getsalaries = task(
     kind = "openwhisk",
     action_name = "getsalaries",
     input_args = [
-        ip_args(name = "id", input_type = "i32", default_value = "23" )
+        ip_args(name = "id", input_type = type1, default_value = "23" )
     ],
     attributes = attributes,
     operation = "map",

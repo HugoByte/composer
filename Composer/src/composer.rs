@@ -185,7 +185,6 @@ pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
     }
 
     fn int( size: Option<i32>) -> anyhow::Result<String>{
-        // let asd = serde_json::from_value(&size.to_json()?).unwrap();
        let q : i32 = match size {
         Some(x) => {
             match x {
