@@ -95,12 +95,12 @@ macro_rules! impl_setter {{
 }}
 make_input_struct!(
 	Struct1,
-	[field1:String,field2:String,field3:],
+	[field3:i16,field1:String,field2:String],
 	[Default, Clone, Debug]
 );
 make_input_struct!(
 	Struct2,
-	[field1:HashMap<, String>,field2:Vec<String>],
+	[field2:Vec<String>,field1:HashMap<i8, String>],
 	[Default, Clone, Debug]
 );
             

@@ -1,139 +1,45 @@
 use super::*;
 
-#[starlark_module]
-pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
-    fn task(
-        kind: String,
-        action_name: String,
-        input_args: Value,
-        attributes: Value,
-        depend_on: Value,
-        operation: Option<String>,
-    ) -> anyhow::Result<Task> {
-        let ip_args: Vec<Input> = serde_json::from_str(&input_args.to_json()?).unwrap();
-        let property: HashMap<String, String> =
-            serde_json::from_str(&attributes.to_json()?).unwrap();
-        let depnd: HashMap<String, HashMap<String, String>> =
-            serde_json::from_str(&depend_on.to_json()?).unwrap();
-
-        let operand = match operation {
-            Some(a) => a,
-            None => String::default(),
-        };
-
-        Ok(Task {
-            kind: kind,
-            action_name: action_name,
-            input_args: ip_args,
-            attributes: property,
-            operation: operand,
-            depend_on: depnd,
-        })
-    }
-
-    fn workflows(
-        name: String,
-        version: String,
-        tasks: Value,
-        custom_types: Value,
-        eval: &mut Evaluator,
-    ) -> anyhow::Result<NoneType> {
-        let tasks: Vec<Task> = serde_json::from_str(&tasks.to_json()?).unwrap();
-        let custom_types: Vec<String> = serde_json::from_str(&custom_types.to_json()?).unwrap();
-
-        let mut task_hashmap = HashMap::new();
-
-        for task in tasks {
-            if task_hashmap.contains_key(&task.action_name) {
-                return Err(Error::msg("Duplicate tasks, Task names must be unique"));
-            } else {
-                task_hashmap.insert(task.action_name.clone(), task);
-            }
-        }
-
-        eval.extra
-            .unwrap()
-            .downcast_ref::<Composer>()
-            .unwrap()
-            .add_workflow(name.clone(), version.clone(), task_hashmap, custom_types)
-            .unwrap();
-
-        Ok(NoneType)
-    }
-
-    fn ip_args(
-        name: String,
-        input_type: String,
-        default_value: Option<String>,
-    ) -> anyhow::Result<Input> {
-        let default = match default_value {
-            Some(b) => b,
-            None => String::default(),
-        };
-        Ok(Input {
-            name: name,
-            input_type: input_type,
-            default_value: default,
-        })
-    }
-
-    fn typ(name: String, fields: Value, eval: &mut Evaluator) -> anyhow::Result<String> {
-        let fields: HashMap<String, String> = serde_json::from_str(&fields.to_json()?).unwrap();
-
-        let composer = eval.extra.unwrap().downcast_ref::<Composer>().unwrap();
-
-        let name = composer.capitalize(&name);
-
-        composer.add_custom_type(
-            &name,
-            format!(
-                "make_input_struct!(\n\t{},\n\t{},\n\t[Default, Clone, Debug]\n);",
-                &name,
-                composer.parse_hashmap(&fields)
-            ),
-        );
-
-        Ok(name)
-    }
-
-    fn string(eval: &mut Evaluator) -> anyhow::Result<String> {
-        Ok("String".to_string())
-    }
-
-    fn bool(eval: &mut Evaluator) -> anyhow::Result<String> {
-        Ok("String".to_string())
-    }
-
-    fn int(size: Option<i32>) -> anyhow::Result<String> {
-        let q: i32 = match size {
-            Some(x) => match x {
-                8 | 16 | 32 | 64 | 128 => x,
-                _ => return Err(Error::msg("Size is invalid")),
-            },
-            None => i32::default(),
-        };
-
-        Ok("".to_string())
-    }
-
-    fn map(field1: String, field2: String, eval: &mut Evaluator) -> anyhow::Result<String> {
-        Ok(format!("HashMap<{}, {}>", field1, field2))
-    }
-
-    fn list(field1: String, eval: &mut Evaluator) -> anyhow::Result<String> {
-        Ok(format!("Vec<{}>", field1))
-    }
-}
-
 #[derive(Debug, ProvidesStaticType, Default)]
 pub struct Composer {
+    config_file: String,
     pub workflows: RefCell<Vec<Workflow>>,
     pub custom_types: RefCell<HashMap<String, String>>,
 }
 
 impl Composer {
     
-    fn add_workflow(
+    pub fn new(config_file: &str) -> Self{
+        Composer{
+            config_file: config_file.to_string(),
+            ..Default::default()
+        }
+    }
+
+    pub fn run(&self) {
+
+        let content: String = std::fs::read_to_string(&self.config_file).unwrap();
+        let ast = AstModule::parse("config", content.to_owned(), &Dialect::Extended).unwrap();
+        
+        // We build our globals by adding some functions we wrote
+        let globals = GlobalsBuilder::new()
+            .with(starlark_workflow_module)
+            .with(starlark_datatype_module)
+            .build();
+    
+        let module = Module::new();
+        let composer = Composer::default();
+        {
+            let mut eval = Evaluator::new(&module);
+            // We add a reference to our store
+            eval.extra = Some(&composer);
+            eval.eval_module(ast, &globals).unwrap();
+        }
+    
+        composer.generate();
+    }
+
+    pub fn add_workflow(
         &self,
         name: String,
         version: String,
@@ -157,7 +63,7 @@ impl Composer {
         }
     }
 
-    fn add_custom_type(&self, type_name: &str, build_string: String) {
+    pub fn add_custom_type(&self, type_name: &str, build_string: String) {
         self.custom_types
             .borrow_mut()
             .insert(String::from(type_name), String::from(build_string));
@@ -254,23 +160,8 @@ impl Composer {
         common
     }
 
-    // Function to generate the code for the main.rs file
-    // returns main file and dependencies file
-    fn get_code(&self, workflow_index: usize) -> Vec<String> {
-        let dependencies = "\
-[package]
-name = \"generated-project\"
-version = \"0.1.0\"
-edition = \"2021\"
-
-[dependencies]
-serde_json = \"1.0.81\"
-";
-
-        vec![self.generate_main_file_code(workflow_index), dependencies.to_string()]
-    }
-
     // Function to generate a new Cargo package and write the main.rs and Cargo.toml files
+    #[allow(dead_code)]
     fn generate_cargo(
         &self,
         project_name: &str,
@@ -291,14 +182,12 @@ serde_json = \"1.0.81\"
 
     pub fn generate(&self) {
         // Getting the current working directory
-        let path = env::current_dir().unwrap().join("./generated_project");
+        let path = env::current_dir().unwrap().join("./workflows");
         fs::create_dir_all(&path).unwrap();
 
         for (i, workflow) in self.workflows.borrow().iter().enumerate(){
-            println!("creating");
             fs::create_dir_all(path.join(format!("./{}", workflow.name))).unwrap();
             fs::write(path.join(format!("./{}/types.rs", workflow.name)), self.generate_main_file_code(i)).unwrap();
-            println!("creatied");
         }
     }
 }

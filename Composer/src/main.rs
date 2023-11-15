@@ -16,26 +16,16 @@ pub mod composer;
 pub mod parse_module;
 pub mod task;
 pub mod workflow;
+pub mod starlark_modules;
 
 use composer::*;
 use task::*;
 use workflow::*;
+use starlark_modules::*;
 
 fn main() {
-    let content: String = std::fs::read_to_string("./config/custom_types.star").unwrap();
 
-    let ast = AstModule::parse("name", content.to_owned(), &Dialect::Extended).unwrap();
-    // We build our globals adding some functions we wrote
-    let globals = GlobalsBuilder::new().with(starlark_workflow).build();
-    let module = Module::new();
-    let composer = Composer::default();
-    {
-        let mut eval = Evaluator::new(&module);
-        // We add a reference to our store
-        eval.extra = Some(&composer);
+    let composer = Composer::new("./config/custom_types.star");
+    composer.run();
 
-        eval.eval_module(ast, &globals).unwrap();
-    }
-
-    composer.generate();
 }

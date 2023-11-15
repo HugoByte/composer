@@ -3,14 +3,14 @@ type1= typ(
     fields = {
         "field1" : string(),
         "field2" : bool(),
-        "field3" : int()
+        "field3" : int(16)
     }
 )
 
 type2= typ(
     name = "struct2",
     fields = {
-        "field1" : map(int(32), string()),
+        "field1" : map(int(8), string()),
         "field2" : list(string()),
     }
 )
@@ -98,15 +98,15 @@ stakingpayout = task(
     depend_on = { }
 )
 
-workflow_employee = workflows(
-    name = "workflow_1",
+employee_salary_workflow = workflows(
+    name = "employee_salary",
     version = "0.0.1",
     tasks = [employee_id, getsalaries, getaddress, salary],
     custom_types = [type1, type2]
 )
 
-workflow_polkadot = workflows(
-    name = "workflow_2",
+workflow_polkadot_workflow = workflows(
+    name = "polkadot_payout",
     version = "0.0.1",
     tasks = [stakingpayout],
     custom_types = []
