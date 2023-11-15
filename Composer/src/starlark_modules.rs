@@ -55,7 +55,7 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
             .unwrap()
             .downcast_ref::<Composer>()
             .unwrap()
-            .add_workflow(name.clone(), version.clone(), task_hashmap, custom_types)
+            .add_workflow(name, version, task_hashmap, custom_types)
             .unwrap();
 
         Ok(NoneType)
@@ -79,7 +79,7 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
 }
 
 #[starlark_module]
-pub fn starlark_datatype_module(builder: &mut GlobalsBuilder){
+pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     fn typ(name: String, fields: Value, eval: &mut Evaluator) -> anyhow::Result<String> {
         let fields: HashMap<String, String> = serde_json::from_str(&fields.to_json()?).unwrap();
 
@@ -110,8 +110,8 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder){
     fn int(size: Option<i32>) -> anyhow::Result<String> {
         match size {
             Some(x) => match x {
-                8 | 16 | 32 | 64 | 128 => Ok(format!("i{}",x)),
-                _ => return Err(Error::msg("Size is invalid")),
+                8 | 16 | 32 | 64 | 128 => Ok(format!("i{}", x)),
+                _ => Err(Error::msg("Size is invalid")),
             },
             None => Ok("i32".to_string()),
         }
@@ -125,14 +125,13 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder){
         Ok(format!("Vec<{}>", field1))
     }
 
-    fn Struct(type_name: String, eval: &mut Evaluator) -> anyhow::Result<String>{
-
+    fn Struct(type_name: String, eval: &mut Evaluator) -> anyhow::Result<String> {
         let composer = eval.extra.unwrap().downcast_ref::<Composer>().unwrap();
         let type_name = type_name.to_case(Case::Pascal);
 
-        if !type_name.is_empty() && composer.custom_types.borrow().contains_key(&type_name){
+        if !type_name.is_empty() && composer.custom_types.borrow().contains_key(&type_name) {
             Ok(type_name)
-        }else{
+        } else {
             Err(Error::msg("type {type_name} does not exist"))
         }
     }

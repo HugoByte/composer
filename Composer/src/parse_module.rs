@@ -1,9 +1,8 @@
 use super::*;
 
 impl Composer {
-
     pub fn get_macros(&self) -> String {
-            "use serde_json::Value;
+        "use serde_json::Value;
 use serde_derive::{{Serialize, Deserialize}};
 use std::collections::HashMap;
 
@@ -97,7 +96,8 @@ macro_rules! impl_setter {{
             }}
         }}
     }}
-}}".to_string()
+}}"
+        .to_string()
     }
 
     pub fn get_attributes(&self, map: &HashMap<String, String>) -> String {
@@ -227,7 +227,7 @@ impl_setter!({task_name}, [{}]);
             } else {
                 let commons: Vec<String> = new
                     .iter()
-                    .map(|x| format!("input.{}", x.split(":").collect::<Vec<&str>>()[0]))
+                    .map(|x| format!("input.{}", x.split(':').collect::<Vec<&str>>()[0]))
                     .collect();
 
                 format!(
@@ -263,7 +263,7 @@ impl_setter!({task_name}, [{}]);
     }
 
     pub fn get_workflow_execute_code(&self, workflow_index: usize) -> String {
-        let mut execute_code = format!("\tlet result = workflow\n\t\t.int()?\n");
+        let mut execute_code = "\tlet result = workflow\n\t\t.int()?\n".to_string();
 
         let mut add_edges_code = "\tworkflow.add_edges(&[\n".to_string();
         let flow: Vec<String> = self.get_flow(workflow_index);
