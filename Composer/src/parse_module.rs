@@ -217,7 +217,7 @@ impl_setter!({task_name}, [{}]);
                 setter.join(",")
             );
 
-            constructors = if new.len() == 0 {
+            constructors = if new.is_empty() {
                 format!(
                     "{constructors}\tlet {} = {}::new(\"{}\".to_string());\n",
                     task.action_name.to_case(Case::Snake),
