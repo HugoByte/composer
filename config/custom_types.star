@@ -1,4 +1,4 @@
-type1= typ(
+typ(
     name = "struct1",
     fields = {
         "field1" : string(),
@@ -7,7 +7,7 @@ type1= typ(
     }
 )
 
-type2= typ(
+typ(
     name = "struct2",
     fields = {
         "field1" : map(int(8), string()),
@@ -26,8 +26,8 @@ employee_id = task(
     kind = "openwhisk",
     action_name = "employee_ids",
     input_args = [
-        ip_args(name = "input_field_1", input_type = type1 ),
-        ip_args(name = "input_field_1", input_type = type2 ),  
+        input_args(name = "input_field_1", input_type = Struct("struct1")),
+        input_args(name = "input_field_1", input_type = int() ),  
     ],
     attributes = attributes,
     depend_on = {}
@@ -37,7 +37,7 @@ getsalaries = task(
     kind = "openwhisk",
     action_name = "getsalaries",
     input_args = [
-        ip_args(name = "id", input_type = type1, default_value = "23" )
+        input_args(name = "id", input_type = Struct("struct2"), default_value = "23" )
     ],
     attributes = attributes,
     operation = "map",
@@ -52,7 +52,7 @@ getaddress = task(
     kind = "openwhisk",
     action_name = "getaddress",
     input_args = [
-        ip_args(name = "id", input_type = "i32", default_value = "1")
+        input_args(name = "id", input_type = "i32", default_value = "1")
     ],
     attributes = attributes,
     operation = "map",
@@ -68,7 +68,7 @@ salary = task(
     kind = "openwhisk",
     action_name = "salary",
     input_args = [
-        ip_args(name = "details", input_type = "HashMap<i32,(i32,String)>", default_value = "{1:(42,Hello)}")
+        input_args(name = "details", input_type = "HashMap<i32,(i32,String)>", default_value = "{1:(42,Hello)}")
     ],
     attributes = attributes,
     operation = "concat",
@@ -86,10 +86,10 @@ stakingpayout = task(
     kind = "polkadot",
     action_name = "stakingpayout",
     input_args = [
-        ip_args(name = "url", input_type = "String", default_value = "wss://rpc.polkadot.io"),
-        ip_args(name = "owner_key", input_type = "String", default_value = "caution juice atom organ advance problem want pledge someone senior holiday very"),
-        ip_args(name = "address", input_type = "String", default_value = "15oF4uVJwmo4TdGW7VfQxNLavjCXviqxT9S1MgbjMNHr6Sp5"),
-        ip_args(name = "era", input_type = "String", default_value = "1"),
+        input_args(name = "url", input_type = "String", default_value = "wss://rpc.polkadot.io"),
+        input_args(name = "owner_key", input_type = "String", default_value = "caution juice atom organ advance problem want pledge someone senior holiday very"),
+        input_args(name = "address", input_type = "String", default_value = "15oF4uVJwmo4TdGW7VfQxNLavjCXviqxT9S1MgbjMNHr6Sp5"),
+        input_args(name = "era", input_type = "String", default_value = "1"),
     ],
     attributes = {
         "chain" : "westend",
@@ -102,7 +102,7 @@ employee_salary_workflow = workflows(
     name = "employee_salary",
     version = "0.0.1",
     tasks = [employee_id, getsalaries, getaddress, salary],
-    custom_types = [type1, type2]
+    custom_types = [Struct("struct1"), Struct("struct2")]
 )
 
 workflow_polkadot_workflow = workflows(

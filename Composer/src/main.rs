@@ -11,6 +11,7 @@ use std::fmt::{self, Display};
 use std::io::ErrorKind;
 use std::result::Result::Ok;
 use std::{env, fs, path::PathBuf, process::Command};
+use convert_case::{Case, Casing};
 
 pub mod composer;
 pub mod parse_module;

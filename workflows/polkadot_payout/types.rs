@@ -95,12 +95,12 @@ macro_rules! impl_setter {{
 }}
 make_input_struct!(
 	Struct1,
-	[field3:i16,field1:String,field2:String],
+	[field2:String,field1:String,field3:i16],
 	[Default, Clone, Debug]
 );
 make_input_struct!(
 	Struct2,
-	[field2:Vec<String>,field1:HashMap<i8, String>],
+	[field1:HashMap<i8, String>,field2:Vec<String>],
 	[Default, Clone, Debug]
 );
             
@@ -113,7 +113,7 @@ make_main_struct!(
     Stakingpayout,
     StakingpayoutInput,
     [Debug, Clone, Default, Serialize, Deserialize, Polkadot],
-    [chain:"westend",operation:"stakingpayout"]
+    [operation:"stakingpayout",chain:"westend"]
 );
 impl_new!(
     Stakingpayout,
@@ -125,7 +125,7 @@ impl_setter!(Stakingpayout, []);
 
 make_input_struct!(
 	Input,
-	[address:String,era:String,url:String,owner_key:String],
+	[owner_key:String,era:String,url:String,address:String],
 	[Debug, Clone, Default, Serialize, Deserialize]);
 #[allow(dead_code, unused)]
 pub fn main(args: Value) -> Result<Value, String> {

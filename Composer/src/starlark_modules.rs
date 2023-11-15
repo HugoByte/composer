@@ -61,7 +61,7 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         Ok(NoneType)
     }
 
-    fn ip_args(
+    fn input_args(
         name: String,
         input_type: String,
         default_value: Option<String>,
@@ -85,7 +85,7 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder){
 
         let composer = eval.extra.unwrap().downcast_ref::<Composer>().unwrap();
 
-        let name = composer.capitalize(&name);
+        let name = name.to_case(Case::Pascal);
 
         composer.add_custom_type(
             &name,
@@ -125,4 +125,15 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder){
         Ok(format!("Vec<{}>", field1))
     }
 
+    fn Struct(type_name: String, eval: &mut Evaluator) -> anyhow::Result<String>{
+
+        let composer = eval.extra.unwrap().downcast_ref::<Composer>().unwrap();
+        let type_name = type_name.to_case(Case::Pascal);
+
+        if !type_name.is_empty() && composer.custom_types.borrow().contains_key(&type_name){
+            Ok(type_name)
+        }else{
+            Err(Error::msg("type {type_name} does not exist"))
+        }
+    }
 }

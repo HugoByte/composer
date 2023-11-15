@@ -1,13 +1,6 @@
 use super::*;
 
 impl Composer {
-    pub fn capitalize(&self, s: &str) -> String {
-        let mut c = s.chars();
-        match c.next() {
-            None => String::new(),
-            Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
-        }
-    }
 
     pub fn get_macros(&self) -> String {
             "use serde_json::Value;
@@ -166,7 +159,7 @@ macro_rules! impl_setter {{
         let mut input_structs = String::new();
 
         for (task_name, task) in self.workflows.borrow()[workflow_index].tasks.iter() {
-            let task_name = self.capitalize(&task_name);
+            let task_name = task_name.to_case(Case::Pascal);
 
             let mut depend = Vec::<String>::new();
             let mut setter = Vec::<String>::new();
@@ -227,7 +220,7 @@ impl_setter!({task_name}, [{}]);
             constructors = if new.len() == 0 {
                 format!(
                     "{constructors}\tlet {} = {}::new(\"{}\".to_string());\n",
-                    task_name.to_lowercase(),
+                    task.action_name.to_case(Case::Snake),
                     task_name,
                     task.action_name.clone()
                 )
@@ -239,7 +232,7 @@ impl_setter!({task_name}, [{}]);
 
                 format!(
                     "{constructors}\tlet {} = {}::new({}, \"{}\".to_string());\n",
-                    task_name.to_lowercase(),
+                    task.action_name.to_case(Case::Snake),
                     task_name,
                     commons.join(","),
                     task.action_name.clone()
@@ -248,8 +241,8 @@ impl_setter!({task_name}, [{}]);
 
             constructors = format!(
                 "{constructors}\tlet {}_index = workflow::add_node(Box::new({}));\n",
-                task_name.to_lowercase(),
-                task_name.to_lowercase()
+                task.action_name.to_case(Case::Snake),
+                task.action_name.to_case(Case::Snake)
             );
         }
 
