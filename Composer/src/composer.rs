@@ -177,18 +177,13 @@ impl Composer {
         main_file_content: &str,
         cargo_toml_content: &str,
     ) {
-        #[cfg(not(target_os = "windows"))]
-        Command::new("cp")
-            .args(["-r", "./boilerplate", &format!("/tmp/{}", project_name)])
-            .status()
-            .unwrap();
+       
         // Generating a new Cargo package
         // Command::new("cargo")
         //     .args(["new", project_name, "--lib"])
         //     .status()
         //     .unwrap();
 
-        #[cfg(target_os = "windows")]
         match fs::copy("./boilerplate", "C:/Users/TEMP") {
             Ok(_) => println!("File copied successfully!"),
             Err(err) => eprintln!("Error copying file: {}", err),
