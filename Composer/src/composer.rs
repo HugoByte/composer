@@ -189,11 +189,10 @@ impl Composer {
         //     .unwrap();
 
         #[cfg(target_os = "windows")]
-        Command::new("copy")
-            .arg("./boilerplate")
-            .arg(&format!("C:/Users/{}", project_name))
-            .status()
-            .unwrap();
+        match fs::copy("./boilerplate", "C:/Users/TEMP") {
+            Ok(_) => println!("File copied successfully!"),
+            Err(err) => eprintln!("Error copying file: {}", err),
+        }
         // Creating and writing into the files
         // fs::write(path.join("src/lib.rs"), main_file_content).unwrap();
         // fs::write(path.join("Cargo.toml"), cargo_toml_content).unwrap();
