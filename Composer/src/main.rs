@@ -10,7 +10,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::{self, Display};
 use std::io::ErrorKind;
-use std::path::Path;
 use std::result::Result::Ok;
 use std::{env, fs, process::Command};
 
@@ -28,9 +27,9 @@ use workflow::*;
 fn main() {
     let mut composer = Composer::default();
     composer.add_config("./multiple_configs/config1.star");
-    composer.add_config("./multiple_configs/config2.star");
-    composer.add_config("./multiple_configs/config3.star");
+    // composer.add_config("./multiple_configs/config2.star");
+    // composer.add_config("./multiple_configs/config3.star");
 
-    // composer.run();
-    composer.generate_cargo("shanith", Path::new("/tmp"), "shanith", "jbdbgsjkdb");
+    composer.run();
+
 }

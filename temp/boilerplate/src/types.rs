@@ -106,41 +106,108 @@ make_input_struct!(
             
 
 make_input_struct!(
-    StakingpayoutInput,
-    [url:String,owner_key:String,address:String,era:String],
+    SalaryInput,
+    [details:HashMap<i32,(i32,String)>],
 	[Debug, Clone, Default, Serialize, Deserialize]);
 make_main_struct!(
-    Stakingpayout,
-    StakingpayoutInput,
-    [Debug, Clone, Default, Serialize, Deserialize, Polkadot],
-    [Operation:"stakingpayout",Chain:"westend"]
+    Salary,
+    SalaryInput,
+    [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
+    [AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",Insecure:"true",Namespace:"guest",ApiHost:"https://65.20.70.146:31001"]
 );
 impl_new!(
-    Stakingpayout,
-    StakingpayoutInput,
-    [url:String,owner_key:String,address:String,era:String]
+    Salary,
+    SalaryInput,
+    []
 );
-impl_setter!(Stakingpayout, []);
+impl_setter!(Salary, [details:"result",details:"result"]);
+
+make_input_struct!(
+    EmployeeIdsInput,
+    [input_field_1:Struct1,input_field_1:i32],
+	[Debug, Clone, Default, Serialize, Deserialize]);
+make_main_struct!(
+    EmployeeIds,
+    EmployeeIdsInput,
+    [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
+    [Insecure:"true",Namespace:"guest",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",ApiHost:"https://65.20.70.146:31001"]
+);
+impl_new!(
+    EmployeeIds,
+    EmployeeIdsInput,
+    [input_field_1:Struct1,input_field_1:i32]
+);
+impl_setter!(EmployeeIds, []);
+
+make_input_struct!(
+    GetsalariesInput,
+    [id:Struct2],
+	[Debug, Clone, Default, Serialize, Deserialize]);
+make_main_struct!(
+    Getsalaries,
+    GetsalariesInput,
+    [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
+    [Insecure:"true",Namespace:"guest",ApiHost:"https://65.20.70.146:31001",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP"]
+);
+impl_new!(
+    Getsalaries,
+    GetsalariesInput,
+    []
+);
+impl_setter!(Getsalaries, [id:"id"]);
+
+make_input_struct!(
+    GetaddressInput,
+    [id:i32],
+	[Debug, Clone, Default, Serialize, Deserialize]);
+make_main_struct!(
+    Getaddress,
+    GetaddressInput,
+    [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
+    [ApiHost:"https://65.20.70.146:31001",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",Insecure:"true",Namespace:"guest"]
+);
+impl_new!(
+    Getaddress,
+    GetaddressInput,
+    []
+);
+impl_setter!(Getaddress, [id:"id"]);
 
 
 make_input_struct!(
 	Input,
-	[url:String,owner_key:String,address:String,era:String],
+	[input_field_1:i32],
 	[Debug, Clone, Default, Serialize, Deserialize]);
+impl_execute_trait!(Salary,EmployeeIds,Getsalaries,Getaddress);
+
+
 #[allow(dead_code, unused)]
 pub fn main(args: Value) -> Result<Value, String> {
     const LIMIT: usize = 4;
     let mut workflow = WorkflowGraph::new(LIMIT);
     let input: Input = serde_json::from_value(args).map_err(|e| e.to_string())?;
 
-	let stakingpayout = Stakingpayout::new(input.url,input.owner_key,input.address,input.era, "stakingpayout".to_string());
-	let stakingpayout_index = workflow.add_node(Box::new(stakingpayout));
+	let salary = Salary::new("salary".to_string());
+	let salary_index = workflow.add_node(Box::new(salary));
+	let employee_ids = EmployeeIds::new(input.input_field_1,input.input_field_1, "employee_ids".to_string());
+	let employee_ids_index = workflow.add_node(Box::new(employee_ids));
+	let getsalaries = Getsalaries::new("getsalaries".to_string());
+	let getsalaries_index = workflow.add_node(Box::new(getsalaries));
+	let getaddress = Getaddress::new("getaddress".to_string());
+	let getaddress_index = workflow.add_node(Box::new(getaddress));
 
 	workflow.add_edges(&[
+		(employee_ids_index, getaddress_index),
+		(getaddress_index, getsalaries_index),
+		(getsalaries_index, salary_index),
 	]);
 
 	let result = workflow
 		.init()?
+		.pipe(getaddress_index)?
+		.pipe(getsalaries_index)?
+		.pipe(salary_index)?
+		.term(None)?;
 
     let result = serde_json::to_value(result).unwrap();
     Ok(result)

@@ -264,6 +264,25 @@ impl_setter!({task_name}, [{}]);
         vec![input_structs, constructors]
     }
 
+    pub fn get_impl_execute_trait(&self, workflow_index: usize) -> String{
+
+        let mut build_string = String::from("\nimpl_execute_trait!(");
+        let len = self.workflows.borrow()[workflow_index].tasks.len();
+
+        for (i, task) in self.workflows.borrow()[workflow_index].tasks.iter().enumerate(){
+
+            build_string = format!("{build_string}{}", task.1.action_name.to_case(Case::Pascal));
+
+            build_string = if i != len - 1 {
+                format!("{build_string},")
+            } else {
+                format!("{build_string});\n")
+            }
+        }
+
+        return build_string
+    }
+
     pub fn get_workflow_execute_code(&self, workflow_index: usize) -> String {
         let mut execute_code = "\tlet result = workflow\n\t\t.init()?\n".to_string();
 
@@ -319,6 +338,7 @@ impl_setter!({task_name}, [{}]);
             "{}
 {}            
 {}
+{}
 #[allow(dead_code, unused)]
 pub fn main(args: Value) -> Result<Value, String> {{
     const LIMIT: usize = {};
@@ -332,9 +352,10 @@ pub fn main(args: Value) -> Result<Value, String> {{
 }}
 ",
             self.get_macros(),
-            self.get_custom_types(0),
+            self.get_custom_types(workflow_index),
             structs[0],
-            self.workflows.borrow()[0].tasks.len(),
+            self.get_impl_execute_trait(workflow_index),
+            self.workflows.borrow()[workflow_index].tasks.len(),
             structs[1],
             self.get_workflow_execute_code(workflow_index)
         );

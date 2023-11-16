@@ -13,7 +13,7 @@ impl Composer {
     }
 
     pub fn run(&self) {
-        for (index, config) in self.config_files.iter().enumerate() {
+        for config in self.config_files.iter() {
             let content: String = std::fs::read_to_string(config).unwrap();
             let ast = AstModule::parse("config", content, &Dialect::Extended).unwrap();
 
@@ -32,7 +32,7 @@ impl Composer {
                 eval.eval_module(ast, &globals).unwrap();
             }
 
-            composer.generate(index + 1);
+            composer.generate();
         }
     }
 
@@ -168,47 +168,45 @@ impl Composer {
         common
     }
 
-    // Function to generate a new Cargo package and write the main.rs and Cargo.toml files
-    #[allow(dead_code)]
-    pub fn generate_cargo(
-        &self,
-        project_name: &str,
-        path: &Path,
-        main_file_content: &str,
-        cargo_toml_content: &str,
-    ) {
-       
-        // Generating a new Cargo package
-        // Command::new("cargo")
-        //     .args(["new", project_name, "--lib"])
-        //     .status()
-        //     .unwrap();
+    pub fn generate(&self) {
+        // Getting the current working directory
+        let current_path = env::current_dir().unwrap();
 
-        match fs::copy("./boilerplate", "C:/Users/TEMP") {
+        let temp_path = current_path.join("temp");
+        let workflow_wasm = current_path.join("workflow_wasm");
+
+        // creates temp directory to build the workflow
+        fs::create_dir_all(&temp_path).expect("not able to create workflow directory");
+        // creates the wasm_workflow directory were the workflow wasm binaries are stored
+        fs::create_dir_all(workflow_wasm.clone()).expect("not able to create workflow directory");
+
+        match fs::copy("boilerplate", &temp_path) {
             Ok(_) => println!("File copied successfully!"),
             Err(err) => eprintln!("Error copying file: {}", err),
         }
-        // Creating and writing into the files
-        // fs::write(path.join("src/lib.rs"), main_file_content).unwrap();
-        // fs::write(path.join("Cargo.toml"), cargo_toml_content).unwrap();
-    }
 
-    pub fn generate(&self, index: usize) {
-        // Getting the current working directory
-        let path = env::current_dir()
-            .unwrap()
-            .join(format!("./workflows/config_{}_workflows", index));
-
-        fs::create_dir_all(&path).expect("not able to create workflow directory");
-
-        for (i, workflow) in self.workflows.borrow().iter().enumerate() {
-            fs::create_dir_all(path.join(format!("./{}", workflow.name))).unwrap();
-
+        for (i, _workflow) in self.workflows.borrow().iter().enumerate() {
             fs::write(
-                path.join(format!("./{}/types.rs", workflow.name)),
+                temp_path.join("boilerplate/src/types.rs"),
                 self.generate_main_file_code(i),
             )
             .unwrap();
+
+            //  code to build&copy the wasm, and store it within workflow_wasm directory
+
+            Command::new("cd").arg("temp").arg("").status().unwrap();
+
+            match fs::copy(temp_path.join("boilerplate/<wasm>"), workflow_wasm.clone()) {
+                Ok(_) => println!("File copied successfully!"),
+                Err(err) => eprintln!("Error copying file: {}", err),
+            }
+
+            std::fs::remove_file(temp_path.join("boilerplate/type.rs"))
+                .expect("not able to delete temp folder");
+            std::fs::remove_file(temp_path.join("boilerplate/<wasm>"))
+                .expect("not able to delete temp folder");
         }
+
+        std::fs::remove_dir(temp_path).expect("not able to delete temp folder");
     }
 }
