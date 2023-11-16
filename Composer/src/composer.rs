@@ -1,27 +1,42 @@
-use std::{clone, default};
-use std::{env, fs, path::PathBuf, process::Command};
-// use anyhow::Ok;
 use super::*;
-use anyhow::Error;
-use serde_derive::{Deserialize, Serialize};
-use starlark::eval;
-use starlark::values::{
-    record, Heap, NoSerialize, ProvidesStaticType, StarlarkValue, Value, ValueLike,
-};
-use starlark::{starlark_simple_value, values::starlark_value};
-use std::fmt::{self, format, Display};
-use std::io::ErrorKind;
-use std::result::Result::Ok;
-// use core::result::Result::Ok;
 
 #[derive(Debug, ProvidesStaticType, Default)]
 pub struct Composer {
+    config_files: Vec<String>,
     pub workflows: RefCell<Vec<Workflow>>,
     pub custom_types: RefCell<HashMap<String, String>>,
 }
 
 impl Composer {
-    fn add_workflow(
+    pub fn add_config(&mut self, config: &str) {
+        self.config_files.push(config.to_string());
+    }
+
+    pub fn run(&self) {
+        for (index, config) in self.config_files.iter().enumerate() {
+            let content: String = std::fs::read_to_string(config).unwrap();
+            let ast = AstModule::parse("config", content, &Dialect::Extended).unwrap();
+
+            // We build our globals by adding some functions we wrote
+            let globals = GlobalsBuilder::new()
+                .with(starlark_workflow_module)
+                .with(starlark_datatype_module)
+                .build();
+
+            let module = Module::new();
+            let composer = Composer::default();
+            {
+                let mut eval = Evaluator::new(&module);
+                // We add a reference to our store
+                eval.extra = Some(&composer);
+                eval.eval_module(ast, &globals).unwrap();
+            }
+
+            composer.generate(index + 1);
+        }
+    }
+
+    pub fn add_workflow(
         &self,
         name: String,
         version: String,
@@ -36,187 +51,26 @@ impl Composer {
         if name.is_empty() {
             Err(Error::msg("Workflow name should not be empty"))
         } else {
-            Ok(self.workflows.borrow_mut().push(Workflow {
+            self.workflows.borrow_mut().push(Workflow {
                 name,
                 version,
                 tasks,
                 custom_types,
-            }))
+            });
+            Ok(())
         }
     }
 
-    fn add_custom_type(&self, type_name: &str, build_string: String) {
+    pub fn add_custom_type(&self, type_name: &str, build_string: String) {
         self.custom_types
             .borrow_mut()
-            .insert(String::from(type_name), String::from(build_string));
-    }
-}
-
-starlark_simple_value!(Task);
-
-impl Display for Task {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{} {} {:?} {:?} {} {:?}",
-            self.kind,
-            self.action_name,
-            self.input_args,
-            self.attributes,
-            self.operation,
-            self.depend_on
-        )
-    }
-}
-
-#[starlark_value(type = "task")]
-impl<'v> StarlarkValue<'v> for Task {}
-
-starlark_simple_value!(Input);
-
-impl Display for Input {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{} {} {}",
-            self.name, self.input_type, self.default_value
-        )
-    }
-}
-
-#[starlark_value(type = "input")]
-impl<'v> StarlarkValue<'v> for Input {}
-
-#[starlark_module]
-pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
-    fn task(
-        kind: String,
-        action_name: String,
-        input_args: Value,
-        attributes: Value,
-        depend_on: Value,
-        operation: Option<String>,
-    ) -> anyhow::Result<Task> {
-        let ip_args: Vec<Input> = serde_json::from_str(&input_args.to_json()?).unwrap();
-        let property: HashMap<String, String> =
-            serde_json::from_str(&attributes.to_json()?).unwrap();
-        let depnd: HashMap<String, HashMap<String, String>> =
-            serde_json::from_str(&depend_on.to_json()?).unwrap();
-
-        let operand = match operation {
-            Some(a) => a,
-            None => String::default(),
-        };
-
-        Ok(Task {
-            kind: kind,
-            action_name: action_name,
-            input_args: ip_args,
-            attributes: property,
-            operation: operand,
-            depend_on: depnd,
-        })
+            .insert(type_name.to_string(), build_string);
     }
 
-    fn workflows(
-        name: String,
-        version: String,
-        tasks: Value,
-        custom_types: Value,
-        eval: &mut Evaluator,
-    ) -> anyhow::Result<NoneType> {
-        let tasks: Vec<Task> = serde_json::from_str(&tasks.to_json()?).unwrap();
-        let custom_types: Vec<String> = serde_json::from_str(&custom_types.to_json()?).unwrap();
-
-        let mut task_hashmap = HashMap::new();
-
-        for task in tasks {
-            if task_hashmap.contains_key(&task.action_name) {
-                return Err(Error::msg("Duplicate tasks, Task names must be unique"));
-            } else {
-                task_hashmap.insert(task.action_name.clone(), task);
-            }
-        }
-
-        eval.extra
-            .unwrap()
-            .downcast_ref::<Composer>()
-            .unwrap()
-            .add_workflow(name.clone(), version.clone(), task_hashmap, custom_types)
-            .unwrap();
-
-        Ok(NoneType)
-    }
-
-    fn ip_args(
-        name: String,
-        input_type: String,
-        default_value: Option<String>,
-    ) -> anyhow::Result<Input> {
-        let default = match default_value {
-            Some(b) => b,
-            None => String::default(),
-        };
-        Ok(Input {
-            name: name,
-            input_type: input_type,
-            default_value: default,
-        })
-    }
-
-    fn typ(name: String, fields: Value, eval: &mut Evaluator) -> anyhow::Result<String> {
-        let fields: HashMap<String, String> = serde_json::from_str(&fields.to_json()?).unwrap();
-
-        let composer = eval.extra.unwrap().downcast_ref::<Composer>().unwrap();
-
-        let name = composer.capitalize(&name);
-
-        composer.add_custom_type(
-            &name,
-            format!(
-                "make_input_struct!(\n\t{},\n\t{},\n\t[Default, Clone, Debug]\n);",
-                &name,
-                composer.parse_hashmap(&fields)
-            ),
-        );
-
-        Ok(name)
-    }
-
-    fn string(eval: &mut Evaluator) -> anyhow::Result<String> {
-        Ok("String".to_string())
-    }
-
-    fn bool(eval: &mut Evaluator) -> anyhow::Result<String> {
-        Ok("String".to_string())
-    }
-
-    fn int(size: Option<i32>) -> anyhow::Result<String> {
-        let q: i32 = match size {
-            Some(x) => match x {
-                8 | 16 | 32 | 64 | 128 => x,
-                _ => return Err(Error::msg("Size is invalid")),
-            },
-            None => i32::default(),
-        };
-
-        Ok("".to_string())
-    }
-
-    fn map(field1: String, field2: String, eval: &mut Evaluator) -> anyhow::Result<String> {
-        Ok(format!("HashMap<{}, {}>", field1, field2))
-    }
-
-    fn list(field1: String, eval: &mut Evaluator) -> anyhow::Result<String> {
-        Ok(format!("Vec<{}>", field1))
-    }
-}
-
-impl Composer {
-    fn get_dependencies(&self, task_name: &str) -> Option<Vec<String>> {
+    fn get_dependencies(&self, task_name: &str, workflow_index: usize) -> Option<Vec<String>> {
         let mut deps = Vec::<String>::new();
 
-        for d in self.workflows.borrow()[0]
+        for d in self.workflows.borrow()[workflow_index]
             .tasks
             .get(task_name)
             .unwrap()
@@ -229,37 +83,47 @@ impl Composer {
         Some(deps)
     }
 
-    fn dfs(&self, task_name: &str, visited: &mut HashMap<String, bool>, flow: &mut Vec<String>) {
-        visited.insert(String::from(task_name), true);
+    fn dfs(
+        &self,
+        task_name: &str,
+        visited: &mut HashMap<String, bool>,
+        flow: &mut Vec<String>,
+        workflow_index: usize,
+    ) {
+        visited.insert(task_name.to_string(), true);
 
-        for d in self.get_dependencies(task_name).unwrap().iter() {
+        for d in self
+            .get_dependencies(task_name, workflow_index)
+            .unwrap()
+            .iter()
+        {
             if !visited[d] {
-                self.dfs(d, visited, flow);
+                self.dfs(d, visited, flow, workflow_index);
             }
         }
 
-        flow.push(String::from(task_name));
+        flow.push(task_name.to_string());
     }
 
-    pub fn get_flow(&self) -> Vec<String> {
+    pub fn get_flow(&self, workflow_index: usize) -> Vec<String> {
         let mut visited = HashMap::<String, bool>::new();
         let mut flow = Vec::<String>::new();
 
-        for t in self.workflows.borrow()[0].tasks.iter() {
-            visited.insert(String::from(t.0), false);
+        for t in self.workflows.borrow()[workflow_index].tasks.iter() {
+            visited.insert(t.0.to_string(), false);
         }
 
-        for t in self.workflows.borrow()[0].tasks.iter() {
+        for t in self.workflows.borrow()[workflow_index].tasks.iter() {
             if !visited[t.0] {
-                self.dfs(t.0, &mut visited, &mut flow)
+                self.dfs(t.0, &mut visited, &mut flow, workflow_index)
             }
         }
 
         flow
     }
 
-    pub fn get_task(&self, task_name: &str) -> Task {
-        self.workflows.borrow()[0]
+    pub fn get_task(&self, task_name: &str, workflow_index: usize) -> Task {
+        self.workflows.borrow()[workflow_index]
             .tasks
             .get(task_name)
             .unwrap()
@@ -282,20 +146,20 @@ impl Composer {
         input
     }
 
-    pub fn get_common_inputs(&self) -> Vec<(String, String)> {
+    pub fn get_common_inputs(&self, workflow_index: usize) -> Vec<(String, String)> {
         let mut common = Vec::<(String, String)>::new();
 
-        for (_, task) in self.workflows.borrow()[0].tasks.iter() {
+        for (_, task) in self.workflows.borrow()[workflow_index].tasks.iter() {
             let mut depend = Vec::<String>::new();
 
             for (_, fields) in task.depend_on.iter() {
                 for k in fields.keys() {
-                    depend.push(String::from(k));
+                    depend.push(k.to_string());
                 }
             }
 
             for input in task.input_args.iter() {
-                if let Err(_) = depend.binary_search(&input.name) {
+                if depend.binary_search(&input.name).is_err() {
                     common.push((input.name.clone(), input.input_type.clone()));
                 };
             }
@@ -304,46 +168,42 @@ impl Composer {
         common
     }
 
-    // Function to generate the code for the main.rs file
-    // returns main file and dependencies file
-    fn get_code(&self) -> Vec<String> {
-        let dependencies = "\
-[package]
-name = \"generated-project\"
-version = \"0.1.0\"
-edition = \"2021\"
-
-[dependencies]
-serde_json = \"1.0.81\"
-";
-
-        vec![self.generate_main_file_code(), dependencies.to_string()]
-    }
-
     // Function to generate a new Cargo package and write the main.rs and Cargo.toml files
+    #[allow(dead_code)]
     fn generate_cargo(
         &self,
         project_name: &str,
-        path: &PathBuf,
+        path: &Path,
         main_file_content: &str,
         cargo_toml_content: &str,
     ) {
         // Generating a new Cargo package
         Command::new("cargo")
-            .args(&["new", &project_name])
+            .args(["new", project_name, "--lib"])
             .status()
             .unwrap();
 
         // Creating and writing into the files
-        fs::write(&(path.join("src/main.rs")), main_file_content).unwrap();
-        fs::write(&(path.join("Cargo.toml")), cargo_toml_content).unwrap();
+        fs::write(path.join("src/lib.rs"), main_file_content).unwrap();
+        fs::write(path.join("Cargo.toml"), cargo_toml_content).unwrap();
     }
 
-    pub fn generate(&self) {
+    pub fn generate(&self, index: usize) {
         // Getting the current working directory
-        let path = env::current_dir().unwrap().join("./generated_project");
+        let path = env::current_dir()
+            .unwrap()
+            .join(format!("./workflows/config_{}_workflows", index));
 
-        fs::create_dir_all(&path).unwrap();
-        fs::write(&(path.join("./types.rs")), self.generate_main_file_code()).unwrap();
+        fs::create_dir_all(&path).expect("not able to create workflow directory");
+
+        for (i, workflow) in self.workflows.borrow().iter().enumerate() {
+            fs::create_dir_all(path.join(format!("./{}", workflow.name))).unwrap();
+
+            fs::write(
+                path.join(format!("./{}/types.rs", workflow.name)),
+                self.generate_main_file_code(i),
+            )
+            .unwrap();
+        }
     }
 }

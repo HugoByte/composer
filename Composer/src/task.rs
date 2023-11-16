@@ -41,4 +41,37 @@ impl Task {
     }
 }
 
+starlark_simple_value!(Task);
 
+impl Display for Task {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{} {} {:?} {:?} {} {:?}",
+            self.kind,
+            self.action_name,
+            self.input_args,
+            self.attributes,
+            self.operation,
+            self.depend_on
+        )
+    }
+}
+
+#[starlark_value(type = "task")]
+impl<'v> StarlarkValue<'v> for Task {}
+
+starlark_simple_value!(Input);
+
+impl Display for Input {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{} {} {}",
+            self.name, self.input_type, self.default_value
+        )
+    }
+}
+
+#[starlark_value(type = "input")]
+impl<'v> StarlarkValue<'v> for Input {}

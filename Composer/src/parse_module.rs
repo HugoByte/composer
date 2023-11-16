@@ -1,118 +1,111 @@
 use super::*;
 
 impl Composer {
-    pub fn capitalize(&self, s: &str) -> String {
-        let mut c = s.chars();
-        match c.next() {
-            None => String::new(),
-            Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
-        }
-    }
-
     pub fn get_macros(&self) -> String {
-        format!(
-            "use serde_json::Value;
-use serde_derive::{{Serialize, Deserialize}};
+        "use serde_json::Value;
+use serde_derive::{Serialize, Deserialize};
 use std::collections::HashMap;
 
-macro_rules! make_input_struct {{
+macro_rules! make_input_struct {
     (
         $x:ident,
         // list of field and it's type
         [$($visibility:vis $element:ident : $ty:ty),*],
         // list of derive macros
         [$($der:ident),*]
-) => {{
+) => {
         #[derive($($der),*)]
-        pub struct $x {{ $($visibility  $element: $ty),*}}
-    }}
-}}
+        pub struct $x { $($visibility  $element: $ty),*}
+    }
+}
 
-macro_rules! make_main_struct {{
+macro_rules! make_main_struct {
     (
         $name:ident,
         $input:ty,
         [$($der:ident),*],
         // list of attributes
         [$($key:ident : $val:expr),*]
-) => {{
+) => {
         #[derive($($der),*)]
         $(
             #[$key = $val]
         )*
-        pub struct $name {{
+        pub struct $name {
             action_name: String,
             pub input: $input,
             pub output: Value,
-        }}
-        impl $name{{
-            pub fn output(&self) -> Value {{
+        }
+        impl $name{
+            pub fn output(&self) -> Value {
                 self.output.clone()
-            }}
-        }}
-    }}
-}}
+            }
+        }
+    }
+}
 
-macro_rules! impl_new {{
+macro_rules! impl_new {
     (
         $name:ident,
         $input:ident,
         []
-    ) => {{
-        impl $name{{
-            pub fn new(action_name:String) -> Self{{
-                Self{{
+    ) => {
+        impl $name{
+            pub fn new(action_name:String) -> Self{
+                Self{
                     action_name,
-                    input: $input{{
+                    input: $input{
                         ..Default::default()
-                    }},
+                    },
                     ..Default::default()
-                }}      
-            }}
-        }}
-    }};
+                }      
+            }
+        }
+    };
     (
         $name:ident,
         $input:ident,
         [$($element:ident : $ty:ty),*]
-    ) => {{
-        impl $name{{
-            pub fn new($( $element: $ty),*, action_name:String) -> Self{{
-                Self{{
+    ) => {
+        impl $name{
+            pub fn new($( $element: $ty),*, action_name:String) -> Self{
+                Self{
                     action_name,
-                    input: $input{{
+                    input: $input{
                         $($element),*,
                         ..Default::default()
-                    }},
+                    },
                     ..Default::default()
-                }}      
-            }}
-        }}
-    }}
-}}
+                }      
+            }
+        }
+    }
+}
 
-macro_rules! impl_setter {{
+macro_rules! impl_setter {
     (
         $name:ty,
         [$($element:ident : $key:expr),*]
-    ) => {{
-        impl $name{{
-            pub fn setter(&mut self, val: Value) {{
+    ) => {
+        impl $name{
+            pub fn setter(&mut self, val: Value) {
                 $(
                 let value = val.get($key).unwrap();
                 self.input.$element = serde_json::from_value(value.clone()).unwrap();
                 )*
-            }}
-        }}
-    }}
-}}"
-        )
+            }
+        }
+    }
+}"
+        .to_string()
     }
 
     pub fn get_attributes(&self, map: &HashMap<String, String>) -> String {
-        let mut attributes = String::from("[");
+        let mut attributes = "[".to_string();
 
         for (i, (k, v)) in map.iter().enumerate() {
+            let k = k.to_case(Case::Pascal);
+
             attributes = format!("{attributes}{}:\"{}\"", k, v);
 
             attributes = if i != map.len() - 1 {
@@ -126,7 +119,7 @@ macro_rules! impl_setter {{
     }
 
     pub fn parse_hashmap(&self, map: &HashMap<String, String>) -> String {
-        let mut attributes = String::from("[");
+        let mut attributes = "[".to_string();
 
         for (i, (k, v)) in map.iter().enumerate() {
             attributes = format!("{attributes}{}:{}", k, v);
@@ -143,8 +136,8 @@ macro_rules! impl_setter {{
 
     pub fn get_kind(&self, kind: &str) -> Result<String, ErrorKind> {
         match kind.to_lowercase().as_str() {
-            "openwhisk" => Ok(String::from("OpenWhisk")),
-            "polkadot" => Ok(String::from("Polkadot")),
+            "openwhisk" => Ok("OpenWhisk".to_string()),
+            "polkadot" => Ok("Polkadot".to_string()),
             _ => Err(ErrorKind::NotFound),
         }
     }
@@ -161,21 +154,21 @@ macro_rules! impl_setter {{
         build_string
     }
 
-    pub fn get_custom_structs(&self) -> Vec<String> {
+    pub fn get_custom_structs(&self, workflow_index: usize) -> Vec<String> {
         let mut common_inputs = HashMap::<String, String>::new();
 
         let mut constructors = String::new();
         let mut input_structs = String::new();
 
-        for (task_name, task) in self.workflows.borrow()[0].tasks.iter() {
-            let task_name = self.capitalize(&task_name);
+        for (task_name, task) in self.workflows.borrow()[workflow_index].tasks.iter() {
+            let task_name = task_name.to_case(Case::Pascal);
 
             let mut depend = Vec::<String>::new();
             let mut setter = Vec::<String>::new();
 
             for fields in task.depend_on.values() {
                 let x = fields.iter().next().unwrap();
-                depend.push(String::from(x.0));
+                depend.push(x.0.to_string());
 
                 setter.push(format!("{}:\"{}\"", x.0, x.1));
             }
@@ -198,7 +191,7 @@ macro_rules! impl_setter {{
                         format!("{input}],\n\t[Debug, Clone, Default, Serialize, Deserialize]);");
                 }
 
-                if let Err(_) = depend.binary_search(&field.name) {
+                if depend.binary_search(&field.name).is_err() {
                     common_inputs.insert(field.name.clone(), field.input_type.clone());
                     new.push(format!("{}:{}", field.name, field.input_type));
                 }
@@ -226,22 +219,22 @@ impl_setter!({task_name}, [{}]);
                 setter.join(",")
             );
 
-            constructors = if new.len() == 0 {
+            constructors = if new.is_empty() {
                 format!(
                     "{constructors}\tlet {} = {}::new(\"{}\".to_string());\n",
-                    task_name.to_lowercase(),
+                    task.action_name.to_case(Case::Snake),
                     task_name,
                     task.action_name.clone()
                 )
             } else {
                 let commons: Vec<String> = new
                     .iter()
-                    .map(|x| format!("input.{}", x.split(":").collect::<Vec<&str>>()[0]))
+                    .map(|x| format!("input.{}", x.split(':').collect::<Vec<&str>>()[0]))
                     .collect();
 
                 format!(
                     "{constructors}\tlet {} = {}::new({}, \"{}\".to_string());\n",
-                    task_name.to_lowercase(),
+                    task.action_name.to_case(Case::Snake),
                     task_name,
                     commons.join(","),
                     task.action_name.clone()
@@ -249,13 +242,13 @@ impl_setter!({task_name}, [{}]);
             };
 
             constructors = format!(
-                "{constructors}\tlet {}_index = workflow::add_node(Box::new({}));\n",
-                task_name.to_lowercase(),
-                task_name.to_lowercase()
+                "{constructors}\tlet {}_index = workflow.add_node(Box::new({}));\n",
+                task.action_name.to_case(Case::Snake),
+                task.action_name.to_case(Case::Snake)
             );
         }
 
-        let mut input = String::from("\nmake_input_struct!(\n\tInput,\n\t[");
+        let mut input = "\nmake_input_struct!(\n\tInput,\n\t[".to_string();
 
         for (i, field) in common_inputs.iter().enumerate() {
             input = format!("{input}{}:{}", field.0, field.1);
@@ -271,11 +264,11 @@ impl_setter!({task_name}, [{}]);
         vec![input_structs, constructors]
     }
 
-    pub fn get_workflow_execute_code(&self) -> String {
-        let mut execute_code = format!("\tlet result = workflow\n\t\t.int()?\n");
+    pub fn get_workflow_execute_code(&self, workflow_index: usize) -> String {
+        let mut execute_code = "\tlet result = workflow\n\t\t.init()?\n".to_string();
 
-        let mut add_edges_code = String::from("\tworkflow.add_edges(&[\n");
-        let flow: Vec<String> = self.get_flow();
+        let mut add_edges_code = "\tworkflow.add_edges(&[\n".to_string();
+        let flow: Vec<String> = self.get_flow(workflow_index);
 
         for i in 0..flow.len() - 1 {
             add_edges_code = format!(
@@ -285,7 +278,7 @@ impl_setter!({task_name}, [{}]);
             );
 
             execute_code = if i + 1 == flow.len() - 1 {
-                match self.workflows.borrow()[0]
+                match self.workflows.borrow()[workflow_index]
                     .tasks
                     .get(&flow[i + 1])
                     .unwrap()
@@ -319,8 +312,8 @@ impl_setter!({task_name}, [{}]);
         add_edges_code
     }
 
-    pub fn generate_main_file_code(&self) -> String {
-        let structs = self.get_custom_structs();
+    pub fn generate_main_file_code(&self, workflow_index: usize) -> String {
+        let structs = self.get_custom_structs(workflow_index);
 
         let main_file = format!(
             "{}
@@ -343,7 +336,7 @@ pub fn main(args: Value) -> Result<Value, String> {{
             structs[0],
             self.workflows.borrow()[0].tasks.len(),
             structs[1],
-            self.get_workflow_execute_code()
+            self.get_workflow_execute_code(workflow_index)
         );
 
         main_file

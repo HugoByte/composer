@@ -95,66 +95,15 @@ macro_rules! impl_setter {
 }
 make_input_struct!(
 	Struct1,
-	[field3:,field1:String,field2:String],
+	[field2:String,field1:String,field3:i16],
 	[Default, Clone, Debug]
 );
 make_input_struct!(
 	Struct2,
-	[field1:HashMap<, String>,field2:Vec<String>],
+	[field1:HashMap<i8, String>,field2:Vec<String>],
 	[Default, Clone, Debug]
 );
             
-
-make_input_struct!(
-    GetsalariesInput,
-    [id:i32],
-	[Debug, Clone, Default, Serialize, Deserialize]);
-make_main_struct!(
-    Getsalaries,
-    GetsalariesInput,
-    [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [namespace:"guest",api_host:"https://65.20.70.146:31001",auth_token:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",insecure:"true"]
-);
-impl_new!(
-    Getsalaries,
-    GetsalariesInput,
-    []
-);
-impl_setter!(Getsalaries, [id:"id"]);
-
-make_input_struct!(
-    GetaddressInput,
-    [id:i32],
-	[Debug, Clone, Default, Serialize, Deserialize]);
-make_main_struct!(
-    Getaddress,
-    GetaddressInput,
-    [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [insecure:"true",auth_token:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",api_host:"https://65.20.70.146:31001",namespace:"guest"]
-);
-impl_new!(
-    Getaddress,
-    GetaddressInput,
-    []
-);
-impl_setter!(Getaddress, [id:"id"]);
-
-make_input_struct!(
-    Employee_idsInput,
-    [input_field_1:Struct1,input_field_1:Struct2],
-	[Debug, Clone, Default, Serialize, Deserialize]);
-make_main_struct!(
-    Employee_ids,
-    Employee_idsInput,
-    [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [namespace:"guest",api_host:"https://65.20.70.146:31001",insecure:"true",auth_token:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP"]
-);
-impl_new!(
-    Employee_ids,
-    Employee_idsInput,
-    [input_field_1:Struct1,input_field_1:Struct2]
-);
-impl_setter!(Employee_ids, []);
 
 make_input_struct!(
     SalaryInput,
@@ -164,7 +113,7 @@ make_main_struct!(
     Salary,
     SalaryInput,
     [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [insecure:"true",namespace:"guest",auth_token:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",api_host:"https://65.20.70.146:31001"]
+    [Insecure:"true",Namespace:"guest",ApiHost:"https://65.20.70.146:31001",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP"]
 );
 impl_new!(
     Salary,
@@ -173,10 +122,61 @@ impl_new!(
 );
 impl_setter!(Salary, [details:"result",details:"result"]);
 
+make_input_struct!(
+    GetaddressInput,
+    [id:i32],
+	[Debug, Clone, Default, Serialize, Deserialize]);
+make_main_struct!(
+    Getaddress,
+    GetaddressInput,
+    [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
+    [Namespace:"guest",Insecure:"true",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",ApiHost:"https://65.20.70.146:31001"]
+);
+impl_new!(
+    Getaddress,
+    GetaddressInput,
+    []
+);
+impl_setter!(Getaddress, [id:"id"]);
+
+make_input_struct!(
+    GetsalariesInput,
+    [id:Struct2],
+	[Debug, Clone, Default, Serialize, Deserialize]);
+make_main_struct!(
+    Getsalaries,
+    GetsalariesInput,
+    [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
+    [Namespace:"guest",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",Insecure:"true",ApiHost:"https://65.20.70.146:31001"]
+);
+impl_new!(
+    Getsalaries,
+    GetsalariesInput,
+    []
+);
+impl_setter!(Getsalaries, [id:"id"]);
+
+make_input_struct!(
+    EmployeeIdsInput,
+    [input_field_1:Struct1,input_field_1:i32],
+	[Debug, Clone, Default, Serialize, Deserialize]);
+make_main_struct!(
+    EmployeeIds,
+    EmployeeIdsInput,
+    [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
+    [ApiHost:"https://65.20.70.146:31001",Namespace:"guest",Insecure:"true",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP"]
+);
+impl_new!(
+    EmployeeIds,
+    EmployeeIdsInput,
+    [input_field_1:Struct1,input_field_1:i32]
+);
+impl_setter!(EmployeeIds, []);
+
 
 make_input_struct!(
 	Input,
-	[input_field_1:Struct2],
+	[input_field_1:i32],
 	[Debug, Clone, Default, Serialize, Deserialize]);
 #[allow(dead_code, unused)]
 pub fn main(args: Value) -> Result<Value, String> {
@@ -184,14 +184,14 @@ pub fn main(args: Value) -> Result<Value, String> {
     let mut workflow = WorkflowGraph::new(LIMIT);
     let input: Input = serde_json::from_value(args).map_err(|e| e.to_string())?;
 
-	let getsalaries = Getsalaries::new("getsalaries".to_string());
-	let getsalaries_index = workflow::add_node(Box::new(getsalaries));
-	let getaddress = Getaddress::new("getaddress".to_string());
-	let getaddress_index = workflow::add_node(Box::new(getaddress));
-	let employee_ids = Employee_ids::new(input.input_field_1,input.input_field_1, "employee_ids".to_string());
-	let employee_ids_index = workflow::add_node(Box::new(employee_ids));
 	let salary = Salary::new("salary".to_string());
-	let salary_index = workflow::add_node(Box::new(salary));
+	let salary_index = workflow.add_node(Box::new(salary));
+	let getaddress = Getaddress::new("getaddress".to_string());
+	let getaddress_index = workflow.add_node(Box::new(getaddress));
+	let getsalaries = Getsalaries::new("getsalaries".to_string());
+	let getsalaries_index = workflow.add_node(Box::new(getsalaries));
+	let employee_ids = EmployeeIds::new(input.input_field_1,input.input_field_1, "employee_ids".to_string());
+	let employee_ids_index = workflow.add_node(Box::new(employee_ids));
 
 	workflow.add_edges(&[
 		(employee_ids_index, getsalaries_index),
@@ -200,7 +200,7 @@ pub fn main(args: Value) -> Result<Value, String> {
 	]);
 
 	let result = workflow
-		.int()?
+		.init()?
 		.pipe(getsalaries_index)?
 		.pipe(getaddress_index)?
 		.pipe(salary_index)?
