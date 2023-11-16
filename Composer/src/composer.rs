@@ -170,22 +170,33 @@ impl Composer {
 
     // Function to generate a new Cargo package and write the main.rs and Cargo.toml files
     #[allow(dead_code)]
-    fn generate_cargo(
+    pub fn generate_cargo(
         &self,
         project_name: &str,
         path: &Path,
         main_file_content: &str,
         cargo_toml_content: &str,
     ) {
-        // Generating a new Cargo package
-        Command::new("cargo")
-            .args(["new", project_name, "--lib"])
+        #[cfg(not(target_os = "windows"))]
+        Command::new("cp")
+            .args(["-r", "./boilerplate", &format!("/tmp/{}", project_name)])
             .status()
             .unwrap();
+        // Generating a new Cargo package
+        // Command::new("cargo")
+        //     .args(["new", project_name, "--lib"])
+        //     .status()
+        //     .unwrap();
 
+        #[cfg(target_os = "windows")]
+        Command::new("copy")
+            .arg("./boilerplate")
+            .arg(&format!("C:/Users/{}", project_name))
+            .status()
+            .unwrap();
         // Creating and writing into the files
-        fs::write(path.join("src/lib.rs"), main_file_content).unwrap();
-        fs::write(path.join("Cargo.toml"), cargo_toml_content).unwrap();
+        // fs::write(path.join("src/lib.rs"), main_file_content).unwrap();
+        // fs::write(path.join("Cargo.toml"), cargo_toml_content).unwrap();
     }
 
     pub fn generate(&self, index: usize) {

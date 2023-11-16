@@ -31,5 +31,6 @@ fn main() {
     composer.add_config("./multiple_configs/config2.star");
     composer.add_config("./multiple_configs/config3.star");
 
-    composer.run();
+    // composer.run();
+    composer.generate_cargo("shanith", Path::new("/tmp"), "shanith", "jbdbgsjkdb");
 }
