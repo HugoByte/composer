@@ -26,7 +26,7 @@ employee_id = task(
     kind = "openwhisk",
     action_name = "employee_ids",
     input_args = [
-        input_args(name = "input_field_1", input_type = Struct("struct1")),
+        input_args(name = "input_field_2", input_type = "String"),
         input_args(name = "input_field_1", input_type = int() ),  
     ],
     attributes = attributes,

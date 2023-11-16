@@ -5,6 +5,8 @@ impl Composer {
         "use serde_json::Value;
 use serde_derive::{Serialize, Deserialize};
 use std::collections::HashMap;
+use super::*;
+use openwhisk_macro::*;
 
 macro_rules! make_input_struct {
     (

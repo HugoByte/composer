@@ -1,3 +1,5 @@
+use std::{io, path::Path};
+
 use super::*;
 
 #[derive(Debug, ProvidesStaticType, Default)]
@@ -168,6 +170,31 @@ impl Composer {
         common
     }
 
+    fn copy_dir(&self, src: &Path, dest: &Path) -> io::Result<()> {
+        // Create the destination directory if it doesn't exist
+        if !dest.exists() {
+            fs::create_dir(dest)?;
+        }
+
+        for entry in fs::read_dir(src)? {
+            let entry = entry?;
+            let entry_path = entry.path();
+            let file_name = entry.file_name();
+
+            let dest_path = dest.join(file_name);
+
+            if entry_path.is_dir() {
+                // Recursively copy subdirectories
+                self.copy_dir(&entry_path, &dest_path)?;
+            } else {
+                // Copy files
+                fs::copy(&entry_path, &dest_path)?;
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn generate(&self) {
         // Getting the current working directory
         let current_path = env::current_dir().unwrap();
@@ -175,38 +202,38 @@ impl Composer {
         let temp_path = current_path.join("temp");
         let workflow_wasm = current_path.join("workflow_wasm");
 
+        let src_path = current_path.join("boilerplate");
         // creates temp directory to build the workflow
-        fs::create_dir_all(&temp_path).expect("not able to create workflow directory");
+        // fs::create_dir_all(&temp_path).expect("not able to create workflow directory");
         // creates the wasm_workflow directory were the workflow wasm binaries are stored
-        fs::create_dir_all(workflow_wasm.clone()).expect("not able to create workflow directory");
+        // fs::create_dir_all(workflow_wasm.clone()).expect("not able to create workflow directory");
 
-        match fs::copy("boilerplate", &temp_path) {
-            Ok(_) => println!("File copied successfully!"),
-            Err(err) => eprintln!("Error copying file: {}", err),
-        }
+        self.copy_dir(&src_path, &temp_path).unwrap();
+
+        println!("{:?}", current_path.join("temp/src"));
 
         for (i, _workflow) in self.workflows.borrow().iter().enumerate() {
             fs::write(
-                temp_path.join("boilerplate/src/types.rs"),
+                current_path.join("temp/src/types.rs"),
                 self.generate_main_file_code(i),
             )
             .unwrap();
 
             //  code to build&copy the wasm, and store it within workflow_wasm directory
 
-            Command::new("cd").arg("temp").arg("").status().unwrap();
+            // Command::new("cd /Users/shanithkk/Hugobyte/work/macos/workspace-aurras/internal-research-and-sample-code/temp/ && CC=/opt/homebrew/opt/llvm/bin/clang AR=/opt/homebrew/opt/llvm/bin/llvm-ar cargo build --release --target wasm32-wasi").status().unwrap();
 
-            match fs::copy(temp_path.join("boilerplate/<wasm>"), workflow_wasm.clone()) {
-                Ok(_) => println!("File copied successfully!"),
-                Err(err) => eprintln!("Error copying file: {}", err),
-            }
+            // match fs::copy(temp_path.join("boilerplate/<wasm>"), workflow_wasm.clone()) {
+            //     Ok(_) => println!("File copied successfully!"),
+            //     Err(err) => eprintln!("Error copying file: {}", err),
+            // }
 
-            std::fs::remove_file(temp_path.join("boilerplate/type.rs"))
-                .expect("not able to delete temp folder");
-            std::fs::remove_file(temp_path.join("boilerplate/<wasm>"))
-                .expect("not able to delete temp folder");
+            // std::fs::remove_file(temp_path.join("boilerplate/type.rs"))
+            //     .expect("not able to delete temp folder");
+            // std::fs::remove_file(temp_path.join("boilerplate/<wasm>"))
+            //     .expect("not able to delete temp folder");
         }
 
-        std::fs::remove_dir(temp_path).expect("not able to delete temp folder");
+        // std::fs::remove_dir(temp_path).expect("not able to delete temp folder");
     }
 }

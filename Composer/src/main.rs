@@ -26,7 +26,7 @@ use workflow::*;
 
 fn main() {
     let mut composer = Composer::default();
-    composer.add_config("./multiple_configs/config1.star");
+    composer.add_config("./config/car_market_place.star");
     // composer.add_config("./multiple_configs/config2.star");
     // composer.add_config("./multiple_configs/config3.star");
 
