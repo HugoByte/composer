@@ -10,24 +10,24 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         depend_on: Value,
         operation: Option<String>,
     ) -> anyhow::Result<Task> {
-        let ip_args: Vec<Input> = serde_json::from_str(&input_args.to_json()?).unwrap();
-        let property: HashMap<String, String> =
+        let input_args: Vec<Input> = serde_json::from_str(&input_args.to_json()?).unwrap();
+        let attributes: HashMap<String, String> =
             serde_json::from_str(&attributes.to_json()?).unwrap();
-        let depnd: HashMap<String, HashMap<String, String>> =
+        let depend_on: HashMap<String, HashMap<String, String>> =
             serde_json::from_str(&depend_on.to_json()?).unwrap();
 
-        let operand = match operation {
+        let operation = match operation {
             Some(a) => a,
             None => String::default(),
         };
 
         Ok(Task {
-            kind: kind,
-            action_name: action_name,
-            input_args: ip_args,
-            attributes: property,
-            operation: operand,
-            depend_on: depnd,
+            kind,
+            action_name,
+            input_args,
+            attributes,
+            operation,
+            depend_on,
         })
     }
 
@@ -66,14 +66,14 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         input_type: String,
         default_value: Option<String>,
     ) -> anyhow::Result<Input> {
-        let default = match default_value {
+        let default_value = match default_value {
             Some(b) => b,
             None => String::default(),
         };
         Ok(Input {
-            name: name,
-            input_type: input_type,
-            default_value: default,
+            name,
+            input_type,
+            default_value,
         })
     }
 }

@@ -2,41 +2,38 @@ use super::*;
 
 #[derive(Debug, ProvidesStaticType, Default)]
 pub struct Composer {
-    config_file: String,
+    config_files: Vec<String>,
     pub workflows: RefCell<Vec<Workflow>>,
     pub custom_types: RefCell<HashMap<String, String>>,
 }
 
 impl Composer {
-    
-    pub fn new(config_file: &str) -> Self{
-        Composer{
-            config_file: config_file.to_string(),
-            ..Default::default()
-        }
+    pub fn add_config(&mut self, config: &str) {
+        self.config_files.push(config.to_string());
     }
 
     pub fn run(&self) {
+        for (index, config) in self.config_files.iter().enumerate() {
+            let content: String = std::fs::read_to_string(config).unwrap();
+            let ast = AstModule::parse("config", content, &Dialect::Extended).unwrap();
 
-        let content: String = std::fs::read_to_string(&self.config_file).unwrap();
-        let ast = AstModule::parse("config", content.to_owned(), &Dialect::Extended).unwrap();
-        
-        // We build our globals by adding some functions we wrote
-        let globals = GlobalsBuilder::new()
-            .with(starlark_workflow_module)
-            .with(starlark_datatype_module)
-            .build();
-    
-        let module = Module::new();
-        let composer = Composer::default();
-        {
-            let mut eval = Evaluator::new(&module);
-            // We add a reference to our store
-            eval.extra = Some(&composer);
-            eval.eval_module(ast, &globals).unwrap();
+            // We build our globals by adding some functions we wrote
+            let globals = GlobalsBuilder::new()
+                .with(starlark_workflow_module)
+                .with(starlark_datatype_module)
+                .build();
+
+            let module = Module::new();
+            let composer = Composer::default();
+            {
+                let mut eval = Evaluator::new(&module);
+                // We add a reference to our store
+                eval.extra = Some(&composer);
+                eval.eval_module(ast, &globals).unwrap();
+            }
+
+            composer.generate(index + 1);
         }
-    
-        composer.generate();
     }
 
     pub fn add_workflow(
@@ -54,19 +51,20 @@ impl Composer {
         if name.is_empty() {
             Err(Error::msg("Workflow name should not be empty"))
         } else {
-            Ok(self.workflows.borrow_mut().push(Workflow {
+            self.workflows.borrow_mut().push(Workflow {
                 name,
                 version,
                 tasks,
                 custom_types,
-            }))
+            });
+            Ok(())
         }
     }
 
     pub fn add_custom_type(&self, type_name: &str, build_string: String) {
         self.custom_types
             .borrow_mut()
-            .insert(String::from(type_name), String::from(build_string));
+            .insert(type_name.to_string(), build_string);
     }
 
     fn get_dependencies(&self, task_name: &str, workflow_index: usize) -> Option<Vec<String>> {
@@ -85,16 +83,26 @@ impl Composer {
         Some(deps)
     }
 
-    fn dfs(&self, task_name: &str, visited: &mut HashMap<String, bool>, flow: &mut Vec<String>, workflow_index: usize) {
-        visited.insert(String::from(task_name), true);
+    fn dfs(
+        &self,
+        task_name: &str,
+        visited: &mut HashMap<String, bool>,
+        flow: &mut Vec<String>,
+        workflow_index: usize,
+    ) {
+        visited.insert(task_name.to_string(), true);
 
-        for d in self.get_dependencies(task_name, workflow_index).unwrap().iter() {
+        for d in self
+            .get_dependencies(task_name, workflow_index)
+            .unwrap()
+            .iter()
+        {
             if !visited[d] {
                 self.dfs(d, visited, flow, workflow_index);
             }
         }
 
-        flow.push(String::from(task_name));
+        flow.push(task_name.to_string());
     }
 
     pub fn get_flow(&self, workflow_index: usize) -> Vec<String> {
@@ -102,7 +110,7 @@ impl Composer {
         let mut flow = Vec::<String>::new();
 
         for t in self.workflows.borrow()[workflow_index].tasks.iter() {
-            visited.insert(String::from(t.0), false);
+            visited.insert(t.0.to_string(), false);
         }
 
         for t in self.workflows.borrow()[workflow_index].tasks.iter() {
@@ -146,12 +154,12 @@ impl Composer {
 
             for (_, fields) in task.depend_on.iter() {
                 for k in fields.keys() {
-                    depend.push(String::from(k));
+                    depend.push(k.to_string());
                 }
             }
 
             for input in task.input_args.iter() {
-                if let Err(_) = depend.binary_search(&input.name) {
+                if depend.binary_search(&input.name).is_err() {
                     common.push((input.name.clone(), input.input_type.clone()));
                 };
             }
@@ -165,29 +173,37 @@ impl Composer {
     fn generate_cargo(
         &self,
         project_name: &str,
-        path: &PathBuf,
+        path: &Path,
         main_file_content: &str,
         cargo_toml_content: &str,
     ) {
         // Generating a new Cargo package
         Command::new("cargo")
-            .args(&["new", &project_name, "--lib"])
+            .args(["new", project_name, "--lib"])
             .status()
             .unwrap();
 
         // Creating and writing into the files
-        fs::write(&(path.join("src/lib.rs")), main_file_content).unwrap();
-        fs::write(&(path.join("Cargo.toml")), cargo_toml_content).unwrap();
+        fs::write(path.join("src/lib.rs"), main_file_content).unwrap();
+        fs::write(path.join("Cargo.toml"), cargo_toml_content).unwrap();
     }
 
-    pub fn generate(&self) {
+    pub fn generate(&self, index: usize) {
         // Getting the current working directory
-        let path = env::current_dir().unwrap().join("./workflows");
-        fs::create_dir_all(&path).unwrap();
+        let path = env::current_dir()
+            .unwrap()
+            .join(format!("./workflows/config_{}_workflows", index));
 
-        for (i, workflow) in self.workflows.borrow().iter().enumerate(){
+        fs::create_dir_all(&path).expect("not able to create workflow directory");
+
+        for (i, workflow) in self.workflows.borrow().iter().enumerate() {
             fs::create_dir_all(path.join(format!("./{}", workflow.name))).unwrap();
-            fs::write(path.join(format!("./{}/types.rs", workflow.name)), self.generate_main_file_code(i)).unwrap();
+
+            fs::write(
+                path.join(format!("./{}/types.rs", workflow.name)),
+                self.generate_main_file_code(i),
+            )
+            .unwrap();
         }
     }
 }

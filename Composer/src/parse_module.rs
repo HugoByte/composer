@@ -3,100 +3,100 @@ use super::*;
 impl Composer {
     pub fn get_macros(&self) -> String {
         "use serde_json::Value;
-use serde_derive::{{Serialize, Deserialize}};
+use serde_derive::{Serialize, Deserialize};
 use std::collections::HashMap;
 
-macro_rules! make_input_struct {{
+macro_rules! make_input_struct {
     (
         $x:ident,
         // list of field and it's type
         [$($visibility:vis $element:ident : $ty:ty),*],
         // list of derive macros
         [$($der:ident),*]
-) => {{
+) => {
         #[derive($($der),*)]
-        pub struct $x {{ $($visibility  $element: $ty),*}}
-    }}
-}}
+        pub struct $x { $($visibility  $element: $ty),*}
+    }
+}
 
-macro_rules! make_main_struct {{
+macro_rules! make_main_struct {
     (
         $name:ident,
         $input:ty,
         [$($der:ident),*],
         // list of attributes
         [$($key:ident : $val:expr),*]
-) => {{
+) => {
         #[derive($($der),*)]
         $(
             #[$key = $val]
         )*
-        pub struct $name {{
+        pub struct $name {
             action_name: String,
             pub input: $input,
             pub output: Value,
-        }}
-        impl $name{{
-            pub fn output(&self) -> Value {{
+        }
+        impl $name{
+            pub fn output(&self) -> Value {
                 self.output.clone()
-            }}
-        }}
-    }}
-}}
+            }
+        }
+    }
+}
 
-macro_rules! impl_new {{
+macro_rules! impl_new {
     (
         $name:ident,
         $input:ident,
         []
-    ) => {{
-        impl $name{{
-            pub fn new(action_name:String) -> Self{{
-                Self{{
+    ) => {
+        impl $name{
+            pub fn new(action_name:String) -> Self{
+                Self{
                     action_name,
-                    input: $input{{
+                    input: $input{
                         ..Default::default()
-                    }},
+                    },
                     ..Default::default()
-                }}      
-            }}
-        }}
-    }};
+                }      
+            }
+        }
+    };
     (
         $name:ident,
         $input:ident,
         [$($element:ident : $ty:ty),*]
-    ) => {{
-        impl $name{{
-            pub fn new($( $element: $ty),*, action_name:String) -> Self{{
-                Self{{
+    ) => {
+        impl $name{
+            pub fn new($( $element: $ty),*, action_name:String) -> Self{
+                Self{
                     action_name,
-                    input: $input{{
+                    input: $input{
                         $($element),*,
                         ..Default::default()
-                    }},
+                    },
                     ..Default::default()
-                }}      
-            }}
-        }}
-    }}
-}}
+                }      
+            }
+        }
+    }
+}
 
-macro_rules! impl_setter {{
+macro_rules! impl_setter {
     (
         $name:ty,
         [$($element:ident : $key:expr),*]
-    ) => {{
-        impl $name{{
-            pub fn setter(&mut self, val: Value) {{
+    ) => {
+        impl $name{
+            pub fn setter(&mut self, val: Value) {
                 $(
                 let value = val.get($key).unwrap();
                 self.input.$element = serde_json::from_value(value.clone()).unwrap();
                 )*
-            }}
-        }}
-    }}
-}}"
+            }
+        }
+    }
+}"
         .to_string()
     }
 
@@ -104,6 +104,8 @@ macro_rules! impl_setter {{
         let mut attributes = "[".to_string();
 
         for (i, (k, v)) in map.iter().enumerate() {
+            let k = k.to_case(Case::Pascal);
+
             attributes = format!("{attributes}{}:\"{}\"", k, v);
 
             attributes = if i != map.len() - 1 {
@@ -240,7 +242,7 @@ impl_setter!({task_name}, [{}]);
             };
 
             constructors = format!(
-                "{constructors}\tlet {}_index = workflow::add_node(Box::new({}));\n",
+                "{constructors}\tlet {}_index = workflow.add_node(Box::new({}));\n",
                 task.action_name.to_case(Case::Snake),
                 task.action_name.to_case(Case::Snake)
             );
@@ -263,7 +265,7 @@ impl_setter!({task_name}, [{}]);
     }
 
     pub fn get_workflow_execute_code(&self, workflow_index: usize) -> String {
-        let mut execute_code = "\tlet result = workflow\n\t\t.int()?\n".to_string();
+        let mut execute_code = "\tlet result = workflow\n\t\t.init()?\n".to_string();
 
         let mut add_edges_code = "\tworkflow.add_edges(&[\n".to_string();
         let flow: Vec<String> = self.get_flow(workflow_index);

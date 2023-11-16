@@ -1,98 +1,98 @@
 use serde_json::Value;
-use serde_derive::{{Serialize, Deserialize}};
+use serde_derive::{Serialize, Deserialize};
 use std::collections::HashMap;
 
-macro_rules! make_input_struct {{
+macro_rules! make_input_struct {
     (
         $x:ident,
         // list of field and it's type
         [$($visibility:vis $element:ident : $ty:ty),*],
         // list of derive macros
         [$($der:ident),*]
-) => {{
+) => {
         #[derive($($der),*)]
-        pub struct $x {{ $($visibility  $element: $ty),*}}
-    }}
-}}
+        pub struct $x { $($visibility  $element: $ty),*}
+    }
+}
 
-macro_rules! make_main_struct {{
+macro_rules! make_main_struct {
     (
         $name:ident,
         $input:ty,
         [$($der:ident),*],
         // list of attributes
         [$($key:ident : $val:expr),*]
-) => {{
+) => {
         #[derive($($der),*)]
         $(
             #[$key = $val]
         )*
-        pub struct $name {{
+        pub struct $name {
             action_name: String,
             pub input: $input,
             pub output: Value,
-        }}
-        impl $name{{
-            pub fn output(&self) -> Value {{
+        }
+        impl $name{
+            pub fn output(&self) -> Value {
                 self.output.clone()
-            }}
-        }}
-    }}
-}}
+            }
+        }
+    }
+}
 
-macro_rules! impl_new {{
+macro_rules! impl_new {
     (
         $name:ident,
         $input:ident,
         []
-    ) => {{
-        impl $name{{
-            pub fn new(action_name:String) -> Self{{
-                Self{{
+    ) => {
+        impl $name{
+            pub fn new(action_name:String) -> Self{
+                Self{
                     action_name,
-                    input: $input{{
+                    input: $input{
                         ..Default::default()
-                    }},
+                    },
                     ..Default::default()
-                }}      
-            }}
-        }}
-    }};
+                }      
+            }
+        }
+    };
     (
         $name:ident,
         $input:ident,
         [$($element:ident : $ty:ty),*]
-    ) => {{
-        impl $name{{
-            pub fn new($( $element: $ty),*, action_name:String) -> Self{{
-                Self{{
+    ) => {
+        impl $name{
+            pub fn new($( $element: $ty),*, action_name:String) -> Self{
+                Self{
                     action_name,
-                    input: $input{{
+                    input: $input{
                         $($element),*,
                         ..Default::default()
-                    }},
+                    },
                     ..Default::default()
-                }}      
-            }}
-        }}
-    }}
-}}
+                }      
+            }
+        }
+    }
+}
 
-macro_rules! impl_setter {{
+macro_rules! impl_setter {
     (
         $name:ty,
         [$($element:ident : $key:expr),*]
-    ) => {{
-        impl $name{{
-            pub fn setter(&mut self, val: Value) {{
+    ) => {
+        impl $name{
+            pub fn setter(&mut self, val: Value) {
                 $(
                 let value = val.get($key).unwrap();
                 self.input.$element = serde_json::from_value(value.clone()).unwrap();
                 )*
-            }}
-        }}
-    }}
-}}
+            }
+        }
+    }
+}
 make_input_struct!(
 	Struct1,
 	[field2:String,field1:String,field3:i16],
@@ -113,7 +113,7 @@ make_main_struct!(
     Stakingpayout,
     StakingpayoutInput,
     [Debug, Clone, Default, Serialize, Deserialize, Polkadot],
-    [operation:"stakingpayout",chain:"westend"]
+    [Operation:"stakingpayout",Chain:"westend"]
 );
 impl_new!(
     Stakingpayout,
@@ -125,7 +125,7 @@ impl_setter!(Stakingpayout, []);
 
 make_input_struct!(
 	Input,
-	[owner_key:String,era:String,url:String,address:String],
+	[url:String,owner_key:String,address:String,era:String],
 	[Debug, Clone, Default, Serialize, Deserialize]);
 #[allow(dead_code, unused)]
 pub fn main(args: Value) -> Result<Value, String> {
@@ -134,13 +134,13 @@ pub fn main(args: Value) -> Result<Value, String> {
     let input: Input = serde_json::from_value(args).map_err(|e| e.to_string())?;
 
 	let stakingpayout = Stakingpayout::new(input.url,input.owner_key,input.address,input.era, "stakingpayout".to_string());
-	let stakingpayout_index = workflow::add_node(Box::new(stakingpayout));
+	let stakingpayout_index = workflow.add_node(Box::new(stakingpayout));
 
 	workflow.add_edges(&[
 	]);
 
 	let result = workflow
-		.int()?
+		.init()?
 
     let result = serde_json::to_value(result).unwrap();
     Ok(result)
