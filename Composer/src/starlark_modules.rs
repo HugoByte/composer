@@ -35,11 +35,15 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         name: String,
         version: String,
         tasks: Value,
-        custom_types: Value,
+        custom_types: Option<Value>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let tasks: Vec<Task> = serde_json::from_str(&tasks.to_json()?).unwrap();
-        let custom_types: Vec<String> = serde_json::from_str(&custom_types.to_json()?).unwrap();
+
+        let custom_types: Option<Vec<String>> = match custom_types {
+            Some(a) => serde_json::from_str(&a.to_json()?).unwrap(),
+            None => None,
+        };
 
         let mut task_hashmap = HashMap::new();
 

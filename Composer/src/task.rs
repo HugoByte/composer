@@ -2,7 +2,9 @@ use super::*;
 use allocative::Allocative;
 use serde_derive::Serialize;
 
-#[derive(Debug, PartialEq, Eq, ProvidesStaticType, Allocative, Clone, Deserialize, Serialize)]
+#[derive(
+    Debug, Default, PartialEq, Eq, ProvidesStaticType, Allocative, Clone, Deserialize, Serialize,
+)]
 pub struct Task {
     pub kind: String,
     pub action_name: String,
@@ -13,12 +15,14 @@ pub struct Task {
     pub depend_on: HashMap<String, HashMap<String, String>>,
 }
 
-#[derive(Debug, PartialEq, Eq, Allocative, ProvidesStaticType,Clone, Deserialize, Serialize)]
+#[derive(
+    Debug, Default, PartialEq, Eq, Allocative, ProvidesStaticType, Clone, Deserialize, Serialize,
+)]
 pub struct Input {
-    pub name : String,
-    pub input_type : String,
+    pub name: String,
+    pub input_type: String,
     #[serde(default)]
-    pub default_value : String,
+    pub default_value: String,
 }
 
 impl Task {

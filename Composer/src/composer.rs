@@ -1,5 +1,3 @@
-use std::{io, path::Path};
-
 use super::*;
 
 #[derive(Debug, ProvidesStaticType, Default)]
@@ -15,6 +13,8 @@ impl Composer {
     }
 
     pub fn run(&self) {
+        let current_path = env::current_dir().unwrap();
+
         for config in self.config_files.iter() {
             let content: String = std::fs::read_to_string(config).unwrap();
             let ast = AstModule::parse("config", content, &Dialect::Extended).unwrap();
@@ -34,7 +34,7 @@ impl Composer {
                 eval.eval_module(ast, &globals).unwrap();
             }
 
-            composer.generate();
+            composer.generate(current_path.as_path());
         }
     }
 
@@ -43,7 +43,7 @@ impl Composer {
         name: String,
         version: String,
         tasks: HashMap<String, Task>,
-        custom_types: Vec<String>,
+        custom_types: Option<Vec<String>>,
     ) -> Result<(), Error> {
         for i in self.workflows.borrow().iter() {
             if i.name == name {
@@ -69,7 +69,7 @@ impl Composer {
             .insert(type_name.to_string(), build_string);
     }
 
-    fn get_dependencies(&self, task_name: &str, workflow_index: usize) -> Option<Vec<String>> {
+    pub fn get_dependencies(&self, task_name: &str, workflow_index: usize) -> Option<Vec<String>> {
         let mut deps = Vec::<String>::new();
 
         for d in self.workflows.borrow()[workflow_index]
@@ -195,45 +195,28 @@ impl Composer {
         Ok(())
     }
 
-    pub fn generate(&self) {
+    pub fn generate(&self, current_path: &Path) {
         // Getting the current working directory
-        let current_path = env::current_dir().unwrap();
-
-        let temp_path = current_path.join("temp");
-        let workflow_wasm = current_path.join("workflow_wasm");
-
         let src_path = current_path.join("boilerplate");
-        // creates temp directory to build the workflow
-        // fs::create_dir_all(&temp_path).expect("not able to create workflow directory");
-        // creates the wasm_workflow directory were the workflow wasm binaries are stored
-        // fs::create_dir_all(workflow_wasm.clone()).expect("not able to create workflow directory");
 
-        self.copy_dir(&src_path, &temp_path).unwrap();
+        for (i, workflow) in self.workflows.borrow().iter().enumerate() {
+            if workflow.tasks.is_empty() {
+                continue;
+            }
 
-        println!("{:?}", current_path.join("temp/src"));
+            let dest_path = current_path.join(format!(
+                "temp/{}-{}-workflow",
+                workflow.name, workflow.version
+            ));
+            fs::create_dir_all(&dest_path).unwrap();
 
-        for (i, _workflow) in self.workflows.borrow().iter().enumerate() {
+            self.copy_dir(&src_path, &dest_path).unwrap();
+
             fs::write(
-                current_path.join("temp/src/types.rs"),
+                dest_path.join("src/types.rs"),
                 self.generate_main_file_code(i),
             )
             .unwrap();
-
-            //  code to build&copy the wasm, and store it within workflow_wasm directory
-
-            // Command::new("cd /Users/shanithkk/Hugobyte/work/macos/workspace-aurras/internal-research-and-sample-code/temp/ && CC=/opt/homebrew/opt/llvm/bin/clang AR=/opt/homebrew/opt/llvm/bin/llvm-ar cargo build --release --target wasm32-wasi").status().unwrap();
-
-            // match fs::copy(temp_path.join("boilerplate/<wasm>"), workflow_wasm.clone()) {
-            //     Ok(_) => println!("File copied successfully!"),
-            //     Err(err) => eprintln!("Error copying file: {}", err),
-            // }
-
-            // std::fs::remove_file(temp_path.join("boilerplate/type.rs"))
-            //     .expect("not able to delete temp folder");
-            // std::fs::remove_file(temp_path.join("boilerplate/<wasm>"))
-            //     .expect("not able to delete temp folder");
         }
-
-        // std::fs::remove_dir(temp_path).expect("not able to delete temp folder");
     }
 }

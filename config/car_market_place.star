@@ -62,8 +62,7 @@ purchase = task(
 )
 
 workflows(
-    name = "workflow",
+    name = "car_market_place",
     version = "0.0.1",
     tasks = [cartype, modelavail, modelprice, purchase],
-    custom_types =[]
 )
