@@ -40,7 +40,7 @@ getsalaries = task(
         ip_args(name = "id", input_type = "i32", default_value = "23" )
     ],
     attributes = attributes,
-    operation = "map",
+    operation = map("salary"),
     depend_on = {
         "employee_ids" : {
             "id" : "id"
@@ -55,7 +55,7 @@ getaddress = task(
         ip_args(name = "id", input_type = "i32", default_value = "1")
     ],
     attributes = attributes,
-    operation = "map",
+    operation = map("address"),
     depend_on = {
         "employee_ids" : {
             "id" : "id"

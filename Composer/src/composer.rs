@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::clone;
 use std::{env, fs, path::PathBuf, process::Command};
 // use anyhow::Ok;
@@ -173,6 +174,11 @@ pub fn starlark_workflow(builder: &mut GlobalsBuilder) {
 
         Ok(name)
     }
+ 
+    fn map(name: String) -> anyhow::Result<String> {
+        Ok(name)
+    }
+
 }
 
 impl Composer {
@@ -191,6 +197,7 @@ impl Composer {
 
         Some(deps)
     }
+
 
     fn dfs(&self, task_name: &str, visited: &mut HashMap<String, bool>, flow: &mut Vec<String>) {
         visited.insert(String::from(task_name), true);

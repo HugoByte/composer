@@ -1,3 +1,7 @@
+use std::fmt::{format, Debug};
+
+use starlark::values::AllocValue;
+
 use super::*;
 
 impl Composer {
@@ -10,6 +14,7 @@ impl Composer {
     }
 
     pub fn get_macros(&self) -> String {
+
         format!(
             "use serde_json::Value;
 use serde_derive::{{Serialize, Deserialize}};
@@ -34,7 +39,7 @@ macro_rules! make_main_struct {{
         $input:ty,
         [$($der:ident),*],
         // list of attributes
-        [$($key:ident : $val:expr),*]
+        [$($key:ident : $val:expr),*],
 ) => {{
         #[derive($($der),*)]
         $(
@@ -44,14 +49,17 @@ macro_rules! make_main_struct {{
             action_name: String,
             pub input: $input,
             pub output: Value,
+            pub mapout: Value
         }}
         impl $name{{
             pub fn output(&self) -> Value {{
                 self.output.clone()
             }}
+
         }}
     }}
 }}
+
 
 macro_rules! impl_new {{
     (
@@ -94,18 +102,72 @@ macro_rules! impl_new {{
 macro_rules! impl_setter {{
     (
         $name:ty,
-        [$($element:ident : $key:expr),*]
+        [$($element:ident : $key:expr),*], 
     ) => {{
         impl $name{{
             pub fn setter(&mut self, val: Value) {{
                 $(
                 let value = val.get($key).unwrap();
-                self.input.$element = serde_json::from_value(value.clone()).unwrap();
+                self.input.$key = serde_json::from_value(value.clone()).unwrap();
+                )*
+
+            }}
+        }}
+    }}
+ 
+}}
+
+macro_rules! impl_setter {{
+    (
+        $name:ty,
+        $element:ident,
+        $key:expr ,  
+        $typ1 : ty  
+    ) => {{
+        impl $name{{
+            pub fn setter(&mut self, val: Value) {{
+                
+                    let value = val.get($key).unwrap();
+                    let value = serde_json::from_value::<Vec<$typ1>>(value.clone()).unwrap();
+                    let mut map: HashMap<_, _> = value
+                        .iter()
+                        .map(|x| {{
+                            self.input.$element = x.to_owned() as $typ1;
+                            self.run();
+                            (x.to_owned(), self.output.get($element).unwrap().to_owned())
+                        }})
+                        .collect();
+                    self.mapout = to_value(map).unwrap();
+                
+            }}
+        }}
+    }}
+ 
+}}
+
+macro_rules! impl_concat_setter {{
+    (
+        $name:ty,
+        [$($element:ident : $key:expr), *]
+    ) => {{
+        impl $name{{
+            pub fn setter(&mut self, val: Value) {{
+                $(
+                    self.input.$element = serde_json::from_value(val.clone()).unwrap();
+                    let res = join_hashmap(
+                        serde_json::from_value(value[0].to_owned()).unwrap(),
+                        serde_json::from_value(value[1].to_owned()).unwrap(),
+                    );
+                    self.input.$element = res;
+
                 )*
             }}
         }}
     }}
+        
+ 
 }}"
+
         )
     }
 
@@ -127,18 +189,12 @@ macro_rules! impl_setter {{
 
     pub fn get_operation(&self, op: &str) -> Result<String, String>{
         match op {
-            "map" => Ok(String::from("map")),
-            "concat" => Ok(String::from("concat")),
+            "map" => Ok("map".to_string()),
+            "concat" => Ok("concat".to_string()),
             _=> Ok("".to_string())
         }
     }
 
-    // pub fn map(&self, op: &str) -> String{
-    //     let mut s = String::new();
-    //     for maps in self.workflows.borrow()[0].tasks.iter(){
-
-    //     }
-    // }
 
     pub fn parse_hashmap(&self, map: &HashMap<String, String>) -> String {
         let mut attributes = String::from("[");
@@ -164,6 +220,7 @@ macro_rules! impl_setter {{
         }
     }
 
+
     pub fn get_custom_types(&self, workflow_index: usize) -> String {
         let mut build_string = String::new();
         let custom_types = self.custom_types.borrow();
@@ -187,19 +244,35 @@ macro_rules! impl_setter {{
 
             let mut depend = Vec::<String>::new();
             let mut setter = Vec::<String>::new();
+            let mut map_setter = String::new();
+            let mut concat_setter = Vec::<String>::new();
+
 
             for fields in task.depend_on.values() {
                 let x = fields.iter().next().unwrap();
                 depend.push(String::from(x.0));
 
-                setter.push(format!("{}:\"{}\"", x.0, x.1));
+                let mut input ="".to_string();
+                for i in task.input_args.iter(){
+                    if i.name.as_str() == x.0{
+                        input = i.input_type.to_string(); 
+                    }
+                }
+
+                setter.push(format!("{},\"{}\", {}", x.0, x.1, input ));
+
             }
+
+            let field = &task.operation;
+            map_setter.push_str(&field);
+            
 
             let mut input = format!(
                 "make_input_struct!(
     {task_name}Input,
     ["
             );
+
 
             let mut new = Vec::<String>::new();
 
@@ -219,29 +292,43 @@ macro_rules! impl_setter {{
                 }
             }
 
+        let setter_macro = if !task.operation.is_empty() {
+            format!("impl_map_setter!({}, [{}], [{}])", task_name, setter.join(","), map_setter)
+        } else  {
+            format!("impl_setter!({}, [{}])", task_name, setter.join(","))
+        };
+
+       
+        let setter : String = if task.operation == "concat"{
+            format!("impl_concat_setter!({}, [{}])", task_name, setter.join(","))
+        }else {
+            setter_macro
+        };
+        
+       
             input_structs = format!(
                 "{input_structs}
 {input}
 make_main_struct!(
     {task_name},
-    {task_name},
     {task_name}Input,
     [Debug, Clone, Default, Serialize, Deserialize, {}],
-    {} {:?}
+    {}
 );
 impl_new!(
-    {task_name},
     {task_name},
     {task_name}Input,
     [{}]
 );
-impl_setter!({task_name}, [{}]);
+{setter}
 ",
+    
+
                 self.get_kind(&task.kind).unwrap(),
                 self.get_attributes(&task.attributes),
-                self.get_operation(&task.operation),
                 new.join(","),
-                setter.join(",")
+            
+                
             );
 
             constructors = if new.len() == 0 {

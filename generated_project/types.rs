@@ -21,7 +21,7 @@ macro_rules! make_main_struct {
         $input:ty,
         [$($der:ident),*],
         // list of attributes
-        [$($key:ident : $val:expr),*]
+        [$($key:ident : $val:expr),*],
 ) => {
         #[derive($($der),*)]
         $(
@@ -31,14 +31,17 @@ macro_rules! make_main_struct {
             action_name: String,
             pub input: $input,
             pub output: Value,
+            pub mapout: Value
         }
         impl $name{
             pub fn output(&self) -> Value {
                 self.output.clone()
             }
+
         }
     }
 }
+
 
 macro_rules! impl_new {
     (
@@ -81,26 +84,79 @@ macro_rules! impl_new {
 macro_rules! impl_setter {
     (
         $name:ty,
-        [$($element:ident : $key:expr),*]
+        [$($element:ident : $key:expr),*], 
     ) => {
         impl $name{
             pub fn setter(&mut self, val: Value) {
                 $(
                 let value = val.get($key).unwrap();
-                self.input.$element = serde_json::from_value(value.clone()).unwrap();
+                self.input.$key = serde_json::from_value(value.clone()).unwrap();
+                )*
+
+            }
+        }
+    }
+ 
+}
+
+macro_rules! impl_setter {
+    (
+        $name:ty,
+        $element:ident,
+        $key:expr ,  
+        $typ1 : ty  
+    ) => {
+        impl $name{
+            pub fn setter(&mut self, val: Value) {
+                
+                    let value = val.get($key).unwrap();
+                    let value = serde_json::from_value::<Vec<$typ1>>(value.clone()).unwrap();
+                    let mut map: HashMap<_, _> = value
+                        .iter()
+                        .map(|x| {
+                            self.input.$element = x.to_owned() as $typ1;
+                            self.run();
+                            (x.to_owned(), self.output.get($element).unwrap().to_owned())
+                        })
+                        .collect();
+                    self.mapout = to_value(map).unwrap();
+                
+            }
+        }
+    }
+ 
+}
+
+macro_rules! impl_concat_setter {
+    (
+        $name:ty,
+        [$($element:ident : $key:expr), *]
+    ) => {
+        impl $name{
+            pub fn setter(&mut self, val: Value) {
+                $(
+                    self.input.$element = serde_json::from_value(val.clone()).unwrap();
+                    let res = join_hashmap(
+                        serde_json::from_value(value[0].to_owned()).unwrap(),
+                        serde_json::from_value(value[1].to_owned()).unwrap(),
+                    );
+                    self.input.$element = res;
+
                 )*
             }
         }
     }
+        
+ 
 }
 make_input_struct!(
 	Struct1,
-	[field3:bool,field1:String,field2:i32],
+	[field1:String,field3:bool,field2:i32],
 	[Default, Clone, Debug]
 );
 make_input_struct!(
 	Struct2,
-	[field2:Vec<String>,field1:HashMap<String, String>],
+	[field1:HashMap<String, String>,field2:Vec<String>],
 	[Default, Clone, Debug]
 );
             
@@ -113,14 +169,48 @@ make_main_struct!(
     Employee_ids,
     Employee_idsInput,
     [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [insecure:"true",auth_token:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",namespace:"guest",api_host:"https://65.20.70.146:31001"]
+    [auth_token:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",insecure:"true",namespace:"guest",api_host:"https://65.20.70.146:31001"]
 );
 impl_new!(
     Employee_ids,
     Employee_idsInput,
     [input_field_1:Struct1,input_field_1:Struct2]
 );
-impl_setter!(Employee_ids, []);
+impl_setter!(Employee_ids, [])
+
+make_input_struct!(
+    GetsalariesInput,
+    [id:i32],
+	[Debug, Clone, Default, Serialize, Deserialize]);
+make_main_struct!(
+    Getsalaries,
+    GetsalariesInput,
+    [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
+    [api_host:"https://65.20.70.146:31001",auth_token:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",insecure:"true",namespace:"guest"]
+);
+impl_new!(
+    Getsalaries,
+    GetsalariesInput,
+    []
+);
+impl_map_setter!(Getsalaries, [id,"id", i32], [salary])
+
+make_input_struct!(
+    GetaddressInput,
+    [id:i32],
+	[Debug, Clone, Default, Serialize, Deserialize]);
+make_main_struct!(
+    Getaddress,
+    GetaddressInput,
+    [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
+    [insecure:"true",namespace:"guest",auth_token:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",api_host:"https://65.20.70.146:31001"]
+);
+impl_new!(
+    Getaddress,
+    GetaddressInput,
+    []
+);
+impl_map_setter!(Getaddress, [id,"id", i32], [address])
 
 make_input_struct!(
     SalaryInput,
@@ -130,48 +220,14 @@ make_main_struct!(
     Salary,
     SalaryInput,
     [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [insecure:"true",namespace:"guest",auth_token:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",api_host:"https://65.20.70.146:31001"]
+    [namespace:"guest",insecure:"true",auth_token:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",api_host:"https://65.20.70.146:31001"]
 );
 impl_new!(
     Salary,
     SalaryInput,
     []
 );
-impl_setter!(Salary, [details:"result",details:"result"]);
-
-make_input_struct!(
-    GetsalariesInput,
-    [id:i32],
-	[Debug, Clone, Default, Serialize, Deserialize]);
-make_main_struct!(
-    Getsalaries,
-    GetsalariesInput,
-    [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [auth_token:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",api_host:"https://65.20.70.146:31001",insecure:"true",namespace:"guest"]
-);
-impl_new!(
-    Getsalaries,
-    GetsalariesInput,
-    []
-);
-impl_setter!(Getsalaries, [id:"id"]);
-
-make_input_struct!(
-    GetaddressInput,
-    [id:i32],
-	[Debug, Clone, Default, Serialize, Deserialize]);
-make_main_struct!(
-    Getaddress,
-    GetaddressInput,
-    [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [auth_token:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",insecure:"true",namespace:"guest",api_host:"https://65.20.70.146:31001"]
-);
-impl_new!(
-    Getaddress,
-    GetaddressInput,
-    []
-);
-impl_setter!(Getaddress, [id:"id"]);
+impl_concat_setter!(Salary, [details,"result", HashMap<i32,(i32,String)>,details,"result", HashMap<i32,(i32,String)>])
 
 
 make_input_struct!(
@@ -186,12 +242,12 @@ pub fn main(args: Value) -> Result<Value, String> {
 
 	let employee_ids = Employee_ids::new(input.input_field_1,input.input_field_1, "employee_ids".to_string());
 	let employee_ids_index = workflow::add_node(Box::new(employee_ids));
-	let salary = Salary::new("salary".to_string());
-	let salary_index = workflow::add_node(Box::new(salary));
 	let getsalaries = Getsalaries::new("getsalaries".to_string());
 	let getsalaries_index = workflow::add_node(Box::new(getsalaries));
 	let getaddress = Getaddress::new("getaddress".to_string());
 	let getaddress_index = workflow::add_node(Box::new(getaddress));
+	let salary = Salary::new("salary".to_string());
+	let salary_index = workflow::add_node(Box::new(salary));
 
 	workflow.add_edges(&[
 		(employee_ids_index, getsalaries_index),
