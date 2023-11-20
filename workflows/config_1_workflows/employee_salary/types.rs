@@ -89,38 +89,70 @@ macro_rules! impl_setter {
                 let value = val.get($key).unwrap();
                 self.input.$element = serde_json::from_value(value.clone()).unwrap();
                 )*
+
+            }
+        }
+    }
+ 
+}
+
+macro_rules! impl_map_setter {
+    (
+        $name:ty,
+        $element:ident,
+        $key:expr ,  
+        $typ_name : ty  
+    ) => {
+        impl $name
+            pub fn setter(&mut self, val: Value) {
+                
+                    let value = val.get($key).unwrap();
+                    let value = serde_json::from_value::<Vec<$typ_name>>(value.clone()).unwrap();
+                    let mut map: HashMap<_, _> = value
+                        .iter()
+                        .map(|x| {
+                            self.input.$element = x.to_owned() as $typ1;
+                            self.run();
+                            (x.to_owned(), self.output.get($element).unwrap().to_owned())
+                        })
+                        .collect();
+                    self.mapout = to_value(map).unwrap();
+                
+            }
+        }
+    }
+
+macro_rules! impl_concat_setter {
+    (
+        $name:ty,
+        $element:ident,
+    ) => {
+        impl $name{
+            pub fn setter(&mut self, val: Value) {
+                $(
+                    let val: Vec<Value> = serde_json::from_value(val).unwrap();
+                    let res = join_hashmap(
+                        serde_json::from_value(val[0].to_owned()).unwrap(),
+                        serde_json::from_value(val[1].to_owned()).unwrap(),
+                    );
+                    self.input.$element = res;
+
+                )*
             }
         }
     }
 }
 make_input_struct!(
 	Struct1,
-	[field2:String,field1:String,field3:i16],
+	[field2:String,field3:i16,field1:String],
 	[Default, Clone, Debug]
 );
 make_input_struct!(
 	Struct2,
-	[field2:Vec<String>,field1:HashMap<i8, String>],
+	[field1:HashMap<i8, String>,field2:Vec<String>],
 	[Default, Clone, Debug]
 );
             
-
-make_input_struct!(
-    GetaddressInput,
-    [id:i32],
-	[Debug, Clone, Default, Serialize, Deserialize]);
-make_main_struct!(
-    Getaddress,
-    GetaddressInput,
-    [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [Namespace:"guest",Insecure:"true",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",ApiHost:"https://65.20.70.146:31001"]
-);
-impl_new!(
-    Getaddress,
-    GetaddressInput,
-    []
-);
-impl_setter!(Getaddress, [id:"id"]);
 
 make_input_struct!(
     GetsalariesInput,
@@ -130,14 +162,31 @@ make_main_struct!(
     Getsalaries,
     GetsalariesInput,
     [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [Insecure:"true",ApiHost:"https://65.20.70.146:31001",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",Namespace:"guest"]
+    [Namespace:"guest",Insecure:"true",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",ApiHost:"https://65.20.70.146:31001"]
 );
 impl_new!(
     Getsalaries,
     GetsalariesInput,
     []
 );
-impl_setter!(Getsalaries, [id:"id"]);
+impl_map_setter!(Getsalaries, [id,"id", Struct2], [map])
+
+make_input_struct!(
+    GetaddressInput,
+    [id:i32],
+	[Debug, Clone, Default, Serialize, Deserialize]);
+make_main_struct!(
+    Getaddress,
+    GetaddressInput,
+    [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
+    [Insecure:"true",ApiHost:"https://65.20.70.146:31001",Namespace:"guest",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP"]
+);
+impl_new!(
+    Getaddress,
+    GetaddressInput,
+    []
+);
+impl_map_setter!(Getaddress, [id,"id", i32], [map])
 
 make_input_struct!(
     EmployeeIdsInput,
@@ -147,14 +196,14 @@ make_main_struct!(
     EmployeeIds,
     EmployeeIdsInput,
     [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [Insecure:"true",Namespace:"guest",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",ApiHost:"https://65.20.70.146:31001"]
+    [Namespace:"guest",Insecure:"true",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",ApiHost:"https://65.20.70.146:31001"]
 );
 impl_new!(
     EmployeeIds,
     EmployeeIdsInput,
     [input_field_1:Struct1,input_field_1:i32]
 );
-impl_setter!(EmployeeIds, []);
+impl_setter!(EmployeeIds, [])
 
 make_input_struct!(
     SalaryInput,
@@ -164,14 +213,14 @@ make_main_struct!(
     Salary,
     SalaryInput,
     [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [ApiHost:"https://65.20.70.146:31001",Namespace:"guest",Insecure:"true",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP"]
+    [Insecure:"true",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",ApiHost:"https://65.20.70.146:31001",Namespace:"guest"]
 );
 impl_new!(
     Salary,
     SalaryInput,
     []
 );
-impl_setter!(Salary, [details:"result",details:"result"]);
+impl_map_setter!(Salary, [details,"result", HashMap<i32,(i32,String)>,details,"result", HashMap<i32,(i32,String)>], [concat])
 
 
 make_input_struct!(
@@ -184,25 +233,25 @@ pub fn main(args: Value) -> Result<Value, String> {
     let mut workflow = WorkflowGraph::new(LIMIT);
     let input: Input = serde_json::from_value(args).map_err(|e| e.to_string())?;
 
-	let getaddress = Getaddress::new("getaddress".to_string());
-	let getaddress_index = workflow.add_node(Box::new(getaddress));
 	let getsalaries = Getsalaries::new("getsalaries".to_string());
 	let getsalaries_index = workflow.add_node(Box::new(getsalaries));
+	let getaddress = Getaddress::new("getaddress".to_string());
+	let getaddress_index = workflow.add_node(Box::new(getaddress));
 	let employee_ids = EmployeeIds::new(input.input_field_1,input.input_field_1, "employee_ids".to_string());
 	let employee_ids_index = workflow.add_node(Box::new(employee_ids));
 	let salary = Salary::new("salary".to_string());
 	let salary_index = workflow.add_node(Box::new(salary));
 
 	workflow.add_edges(&[
-		(employee_ids_index, getaddress_index),
-		(getaddress_index, getsalaries_index),
-		(getsalaries_index, salary_index),
+		(employee_ids_index, getsalaries_index),
+		(getsalaries_index, getaddress_index),
+		(getaddress_index, salary_index),
 	]);
 
 	let result = workflow
 		.init()?
-		.pipe(getaddress_index)?
 		.pipe(getsalaries_index)?
+		.pipe(getaddress_index)?
 		.pipe(salary_index)?
 		.term(None)?;
 

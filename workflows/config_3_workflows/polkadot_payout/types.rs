@@ -89,18 +89,67 @@ macro_rules! impl_setter {
                 let value = val.get($key).unwrap();
                 self.input.$element = serde_json::from_value(value.clone()).unwrap();
                 )*
+
+            }
+        }
+    }
+ 
+}
+
+macro_rules! impl_map_setter {
+    (
+        $name:ty,
+        $element:ident,
+        $key:expr ,  
+        $typ_name : ty  
+    ) => {
+        impl $name
+            pub fn setter(&mut self, val: Value) {
+                
+                    let value = val.get($key).unwrap();
+                    let value = serde_json::from_value::<Vec<$typ_name>>(value.clone()).unwrap();
+                    let mut map: HashMap<_, _> = value
+                        .iter()
+                        .map(|x| {
+                            self.input.$element = x.to_owned() as $typ1;
+                            self.run();
+                            (x.to_owned(), self.output.get($element).unwrap().to_owned())
+                        })
+                        .collect();
+                    self.mapout = to_value(map).unwrap();
+                
+            }
+        }
+    }
+
+macro_rules! impl_concat_setter {
+    (
+        $name:ty,
+        $element:ident,
+    ) => {
+        impl $name{
+            pub fn setter(&mut self, val: Value) {
+                $(
+                    let val: Vec<Value> = serde_json::from_value(val).unwrap();
+                    let res = join_hashmap(
+                        serde_json::from_value(val[0].to_owned()).unwrap(),
+                        serde_json::from_value(val[1].to_owned()).unwrap(),
+                    );
+                    self.input.$element = res;
+
+                )*
             }
         }
     }
 }
 make_input_struct!(
 	Struct1,
-	[field2:String,field1:String,field3:i16],
+	[field1:String,field2:String,field3:i16],
 	[Default, Clone, Debug]
 );
 make_input_struct!(
 	Struct2,
-	[field1:HashMap<i8, String>,field2:Vec<String>],
+	[field2:Vec<String>,field1:HashMap<i8, String>],
 	[Default, Clone, Debug]
 );
             
@@ -113,19 +162,19 @@ make_main_struct!(
     Stakingpayout,
     StakingpayoutInput,
     [Debug, Clone, Default, Serialize, Deserialize, Polkadot],
-    [Operation:"stakingpayout",Chain:"westend"]
+    [Chain:"westend",Operation:"stakingpayout"]
 );
 impl_new!(
     Stakingpayout,
     StakingpayoutInput,
     [url:String,owner_key:String,address:String,era:String]
 );
-impl_setter!(Stakingpayout, []);
+impl_setter!(Stakingpayout, [])
 
 
 make_input_struct!(
 	Input,
-	[url:String,owner_key:String,address:String,era:String],
+	[owner_key:String,url:String,era:String,address:String],
 	[Debug, Clone, Default, Serialize, Deserialize]);
 #[allow(dead_code, unused)]
 pub fn main(args: Value) -> Result<Value, String> {

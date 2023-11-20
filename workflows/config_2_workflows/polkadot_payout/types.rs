@@ -89,6 +89,55 @@ macro_rules! impl_setter {
                 let value = val.get($key).unwrap();
                 self.input.$element = serde_json::from_value(value.clone()).unwrap();
                 )*
+
+            }
+        }
+    }
+ 
+}
+
+macro_rules! impl_map_setter {
+    (
+        $name:ty,
+        $element:ident,
+        $key:expr ,  
+        $typ_name : ty  
+    ) => {
+        impl $name
+            pub fn setter(&mut self, val: Value) {
+                
+                    let value = val.get($key).unwrap();
+                    let value = serde_json::from_value::<Vec<$typ_name>>(value.clone()).unwrap();
+                    let mut map: HashMap<_, _> = value
+                        .iter()
+                        .map(|x| {
+                            self.input.$element = x.to_owned() as $typ1;
+                            self.run();
+                            (x.to_owned(), self.output.get($element).unwrap().to_owned())
+                        })
+                        .collect();
+                    self.mapout = to_value(map).unwrap();
+                
+            }
+        }
+    }
+
+macro_rules! impl_concat_setter {
+    (
+        $name:ty,
+        $element:ident,
+    ) => {
+        impl $name{
+            pub fn setter(&mut self, val: Value) {
+                $(
+                    let val: Vec<Value> = serde_json::from_value(val).unwrap();
+                    let res = join_hashmap(
+                        serde_json::from_value(val[0].to_owned()).unwrap(),
+                        serde_json::from_value(val[1].to_owned()).unwrap(),
+                    );
+                    self.input.$element = res;
+
+                )*
             }
         }
     }
@@ -120,12 +169,12 @@ impl_new!(
     StakingpayoutInput,
     [url:String,owner_key:String,address:String,era:String]
 );
-impl_setter!(Stakingpayout, []);
+impl_setter!(Stakingpayout, [])
 
 
 make_input_struct!(
 	Input,
-	[url:String,address:String,era:String,owner_key:String],
+	[url:String,owner_key:String,address:String,era:String],
 	[Debug, Clone, Default, Serialize, Deserialize]);
 #[allow(dead_code, unused)]
 pub fn main(args: Value) -> Result<Value, String> {

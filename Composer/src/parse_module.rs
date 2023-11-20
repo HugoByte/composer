@@ -95,55 +95,53 @@ macro_rules! impl_setter {
             pub fn setter(&mut self, val: Value) {
                 $(
                 let value = val.get($key).unwrap();
-                self.input.$key = serde_json::from_value(value.clone()).unwrap();
+                self.input.$element = serde_json::from_value(value.clone()).unwrap();
                 )*
 
-            }}
-        }}
-    }}
+            }
+        }
+    }
  
-}}
+}
 
-macro_rules! impl_setter {{
+macro_rules! impl_map_setter {
     (
         $name:ty,
         $element:ident,
         $key:expr ,  
-        $typ1 : ty  
-    ) => {{
-        impl $name{{
-            pub fn setter(&mut self, val: Value) {{
+        $typ_name : ty  
+    ) => {
+        impl $name
+            pub fn setter(&mut self, val: Value) {
                 
                     let value = val.get($key).unwrap();
-                    let value = serde_json::from_value::<Vec<$typ1>>(value.clone()).unwrap();
+                    let value = serde_json::from_value::<Vec<$typ_name>>(value.clone()).unwrap();
                     let mut map: HashMap<_, _> = value
                         .iter()
-                        .map(|x| {{
+                        .map(|x| {
                             self.input.$element = x.to_owned() as $typ1;
                             self.run();
                             (x.to_owned(), self.output.get($element).unwrap().to_owned())
-                        }})
+                        })
                         .collect();
                     self.mapout = to_value(map).unwrap();
                 
-            }}
-        }}
-    }}
- 
-}}
+            }
+        }
+    }
 
-macro_rules! impl_concat_setter {{
+macro_rules! impl_concat_setter {
     (
         $name:ty,
-        [$($element:ident : $key:expr), *]
-    ) => {{
-        impl $name{{
-            pub fn setter(&mut self, val: Value) {{
+        $element:ident,
+    ) => {
+        impl $name{
+            pub fn setter(&mut self, val: Value) {
                 $(
-                    self.input.$element = serde_json::from_value(val.clone()).unwrap();
+                    let val: Vec<Value> = serde_json::from_value(val).unwrap();
                     let res = join_hashmap(
-                        serde_json::from_value(value[0].to_owned()).unwrap(),
-                        serde_json::from_value(value[1].to_owned()).unwrap(),
+                        serde_json::from_value(val[0].to_owned()).unwrap(),
+                        serde_json::from_value(val[1].to_owned()).unwrap(),
                     );
                     self.input.$element = res;
 
@@ -231,8 +229,6 @@ macro_rules! impl_concat_setter {{
             let mut depend = Vec::<String>::new();
             let mut setter = Vec::<String>::new();
             let mut map_setter = String::new();
-            let mut concat_setter = Vec::<String>::new();
-
 
             for fields in task.depend_on.values() {
                 let x = fields.iter().next().unwrap();
@@ -251,7 +247,6 @@ macro_rules! impl_concat_setter {{
 
             let field = &task.operation;
             map_setter.push_str(&field);
-            
 
             let mut input = format!(
                 "make_input_struct!(
@@ -285,7 +280,7 @@ macro_rules! impl_concat_setter {{
         };
 
        
-        let setter : String = if task.operation == "concat"{
+        let setter : String = if task.operation.trim().contains(","){
             format!("impl_concat_setter!({}, [{}])", task_name, setter.join(","))
         }else {
             setter_macro

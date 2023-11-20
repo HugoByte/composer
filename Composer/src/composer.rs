@@ -1,6 +1,5 @@
-use std::borrow::Borrow;
-use std::clone;
-use std::{env, fs, path::PathBuf, process::Command};
+
+use std::{env, fs, process::Command};
 // use anyhow::Ok;
 use super::*;
 
@@ -35,7 +34,6 @@ impl Composer {
                 eval.extra = Some(&composer);
                 eval.eval_module(ast, &globals).unwrap();
             }
-
             composer.generate(index + 1);
         }
     }

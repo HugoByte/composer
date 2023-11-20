@@ -30,6 +30,8 @@ fn main() {
     composer.add_config("./multiple_configs/config1.star");
     composer.add_config("./multiple_configs/config2.star");
     composer.add_config("./multiple_configs/config3.star");
+    composer.add_config("./config/custom_types.star");
+
 
     composer.run();
 }
