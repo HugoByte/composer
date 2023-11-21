@@ -95,6 +95,55 @@ macro_rules! impl_setter {
                 let value = val.get($key).unwrap();
                 self.input.$element = serde_json::from_value(value.clone()).unwrap();
                 )*
+
+            }
+        }
+    }
+ 
+}
+
+macro_rules! impl_map_setter {
+    (
+        $name:ty,
+        $element:ident,
+        $key:expr ,  
+        $typ_name : ty  
+    ) => {
+        impl $name
+            pub fn setter(&mut self, val: Value) {
+                
+                    let value = val.get($key).unwrap();
+                    let value = serde_json::from_value::<Vec<$typ_name>>(value.clone()).unwrap();
+                    let mut map: HashMap<_, _> = value
+                        .iter()
+                        .map(|x| {
+                            self.input.$element = x.to_owned() as $typ1;
+                            self.run();
+                            (x.to_owned(), self.output.get($element).unwrap().to_owned())
+                        })
+                        .collect();
+                    self.mapout = to_value(map).unwrap();
+                
+            }
+        }
+    }
+
+macro_rules! impl_concat_setter {
+    (
+        $name:ty,
+        $element:ident,
+    ) => {
+        impl $name{
+            pub fn setter(&mut self, val: Value) {
+                $(
+                    let val: Vec<Value> = serde_json::from_value(val).unwrap();
+                    let res = join_hashmap(
+                        serde_json::from_value(val[0].to_owned()).unwrap(),
+                        serde_json::from_value(val[1].to_owned()).unwrap(),
+                    );
+                    self.input.$element = res;
+
+                )*
             }
         }
     }
@@ -120,6 +169,15 @@ macro_rules! impl_setter {
         format!("{attributes}]")
     }
 
+    pub fn get_operation(&self, op: &str) -> Result<String, String>{
+        match op {
+            "map" => Ok("map".to_string()),
+            "concat" => Ok("concat".to_string()),
+            _=> Ok("".to_string())
+        }
+    }
+
+
     pub fn parse_hashmap(&self, map: &HashMap<String, String>) -> String {
         let mut attributes = "[".to_string();
 
@@ -143,6 +201,7 @@ macro_rules! impl_setter {
             _ => Err(ErrorKind::NotFound),
         }
     }
+
 
     pub fn get_custom_types(&self, workflow_index: usize) -> String {
         let mut build_string = String::new();
@@ -172,19 +231,36 @@ macro_rules! impl_setter {
 
             let mut depend = Vec::<String>::new();
             let mut setter = Vec::<String>::new();
+            let mut map_setter = String::new();
 
             for fields in task.depend_on.values() {
                 let x = fields.iter().next().unwrap();
                 depend.push(x.0.to_string());
 
-                setter.push(format!("{}:\"{}\"", x.0, x.1));
+                let mut input ="".to_string();
+                for i in task.input_args.iter(){
+                    if i.name.as_str() == x.0{
+                        input = i.input_type.to_string(); 
+                    }
+                }
+
+                setter.push(format!("{},\"{}\", {}", x.0, x.1, input ));
+
             }
+
+            let field = match &task.operation{
+                Operation::Map(_) => "map",
+                _ => "",
+            };
+
+            map_setter.push_str(&field);
 
             let mut input = format!(
                 "make_input_struct!(
     {task_name}Input,
     ["
             );
+
 
             let mut new = Vec::<String>::new();
 
@@ -204,6 +280,21 @@ macro_rules! impl_setter {
                 }
             }
 
+        // let setter_macro = if !task.operation.is_empty() {
+        //     format!("impl_map_setter!({}, [{}], [{}])", task_name, setter.join(","), map_setter)
+        // } else  {
+        //     format!("impl_setter!({}, [{}])", task_name, setter.join(","))
+        // };
+
+        let setter_macro = match &task.operation{
+            Operation::Map(field) => 
+                format!("impl_map_setter!({}, [{}], [{}])", task_name, setter.join(","), field),
+            Operation::Cat => 
+                format!("impl_concat_setter!({}, [{}])", task_name, setter.join(",")),
+            _ =>  format!("impl_setter!({}, [{}])", task_name, setter.join(","))
+        };
+        
+       
             input_structs = format!(
                 "{input_structs}
 {input}
@@ -218,12 +309,15 @@ impl_new!(
     {task_name}Input,
     [{}]
 );
-impl_setter!({task_name}, [{}]);
+{setter_macro}
 ",
+    
+
                 self.get_kind(&task.kind).unwrap(),
                 self.get_attributes(&task.attributes),
                 new.join(","),
-                setter.join(",")
+            
+                
             );
 
             constructors = if new.is_empty() {

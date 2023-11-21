@@ -230,7 +230,7 @@ mod tests {
             input_args,
             attributes,
             HashMap::default(),
-            String::new(),
+            Operation::Normal,
         );
 
         let mut tasks = HashMap::new();

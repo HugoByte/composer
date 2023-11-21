@@ -1,6 +1,4 @@
 use super::*;
-use allocative::Allocative;
-use serde_derive::Serialize;
 
 #[derive(
     Debug, Default, PartialEq, Eq, ProvidesStaticType, Allocative, Clone, Deserialize, Serialize,
@@ -11,7 +9,7 @@ pub struct Task {
     pub input_args: Vec<Input>,
     pub attributes: HashMap<String, String>,
     #[serde(default)]
-    pub operation: String,
+    pub operation: Operation,
     pub depend_on: HashMap<String, HashMap<String, String>>,
 }
 
@@ -25,6 +23,19 @@ pub struct Input {
     pub default_value: String,
 }
 
+#[derive( Debug, PartialEq, Eq, ProvidesStaticType, Allocative, Clone, Deserialize, Serialize)]
+pub enum Operation{
+    Normal,
+    Cat,
+    Map(String)
+}
+
+impl Default for Operation {
+    fn default() -> Operation {
+        Self::Normal
+    }
+}
+
 impl Task {
     pub fn new(
         kind: &str,
@@ -32,7 +43,7 @@ impl Task {
         input_args: Vec<Input>,
         attributes: HashMap<String, String>,
         depend_on: HashMap<String, HashMap<String, String>>,
-        operation: String,
+        operation: Operation,
     ) -> Self {
         Task {
             kind: kind.to_string(),
@@ -62,7 +73,7 @@ impl Display for Task {
     }
 }
 
-#[starlark_value(type = "task")]
+#[starlark_value(type = "Task")]
 impl<'v> StarlarkValue<'v> for Task {}
 
 starlark_simple_value!(Input);
@@ -77,5 +88,16 @@ impl Display for Input {
     }
 }
 
-#[starlark_value(type = "input")]
+#[starlark_value(type = "Input")]
 impl<'v> StarlarkValue<'v> for Input {}
+
+starlark_simple_value!(Operation);
+
+#[starlark_value(type = "Operation")]
+impl<'v> StarlarkValue<'v> for Operation {}
+
+impl Display for Operation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+       write!(f, "{:?}", self)
+    }
+}

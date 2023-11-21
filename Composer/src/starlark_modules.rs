@@ -8,7 +8,7 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         input_args: Value,
         attributes: Value,
         depend_on: Value,
-        operation: Option<String>,
+        operation: Option<Value>,
     ) -> anyhow::Result<Task> {
         let input_args: Vec<Input> = serde_json::from_str(&input_args.to_json()?).unwrap();
         let attributes: HashMap<String, String> =
@@ -16,9 +16,9 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         let depend_on: HashMap<String, HashMap<String, String>> =
             serde_json::from_str(&depend_on.to_json()?).unwrap();
 
-        let operation = match operation {
-            Some(a) => a,
-            None => String::default(),
+        let operation: Operation =  match operation{
+            Some(op) => serde_json::from_str(&op.to_json()?).unwrap(),
+            _ => Operation::Normal
         };
 
         Ok(Task {
@@ -80,6 +80,20 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
             default_value,
         })
     }
+
+    fn operation(operation: Option<String>, field: Option<String>) -> anyhow::Result<Operation> {
+        match operation {
+            Some(op) => match op.as_str() {
+                "cat" => return Ok(Operation::Cat),
+                "map" => match field {
+                    Some(field_name) => return Ok(Operation::Map(field_name)),
+                    None => Err(Error::msg("field for the map operation does not mentioned")),
+                },
+                _ => Err(Error::msg("operation is invalid")),
+            },
+            None => Ok(Operation::Normal),
+        }
+    }
 }
 
 #[starlark_module]
@@ -121,7 +135,7 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
         }
     }
 
-    fn map(field1: String, field2: String) -> anyhow::Result<String> {
+    fn hashmap(field1: String, field2: String) -> anyhow::Result<String> {
         Ok(format!("HashMap<{}, {}>", field1, field2))
     }
 

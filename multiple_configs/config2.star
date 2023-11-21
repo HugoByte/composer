@@ -10,7 +10,7 @@ typ(
 typ(
     name = "struct2",
     fields = {
-        "field1" : map(int(8), string()),
+        "field1" : hashmap(int(8), string()),
         "field2" : list(string()),
     }
 )
