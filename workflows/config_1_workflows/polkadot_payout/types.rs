@@ -31,6 +31,7 @@ macro_rules! make_main_struct {
             action_name: String,
             pub input: $input,
             pub output: Value,
+            pub mapout: Value,
         }
         impl $name{
             pub fn output(&self) -> Value {
@@ -111,9 +112,9 @@ macro_rules! impl_map_setter {
                     let mut map: HashMap<_, _> = value
                         .iter()
                         .map(|x| {
-                            self.input.$element = x.to_owned() as $typ1;
+                            self.input.$element = x.to_owned() as $typ_name;
                             self.run();
-                            (x.to_owned(), self.output.get($element).unwrap().to_owned())
+                            (x.to_owned(), self.output.get("$element").unwrap().to_owned())
                         })
                         .collect();
                     self.mapout = to_value(map).unwrap();
@@ -144,7 +145,7 @@ macro_rules! impl_concat_setter {
 }
 make_input_struct!(
 	Struct1,
-	[field2:String,field3:i16,field1:String],
+	[field3:i16,field2:String,field1:String],
 	[Default, Clone, Debug]
 );
 make_input_struct!(
@@ -174,7 +175,7 @@ impl_setter!(Stakingpayout, [])
 
 make_input_struct!(
 	Input,
-	[address:String,url:String,owner_key:String,era:String],
+	[url:String,owner_key:String,address:String,era:String],
 	[Debug, Clone, Default, Serialize, Deserialize]);
 #[allow(dead_code, unused)]
 pub fn main(args: Value) -> Result<Value, String> {

@@ -31,6 +31,7 @@ macro_rules! make_main_struct {
             action_name: String,
             pub input: $input,
             pub output: Value,
+            pub mapout: Value,
         }
         impl $name{
             pub fn output(&self) -> Value {
@@ -111,9 +112,9 @@ macro_rules! impl_map_setter {
                     let mut map: HashMap<_, _> = value
                         .iter()
                         .map(|x| {
-                            self.input.$element = x.to_owned() as $typ1;
+                            self.input.$element = x.to_owned() as $typ_name;
                             self.run();
-                            (x.to_owned(), self.output.get($element).unwrap().to_owned())
+                            (x.to_owned(), self.output.get("$element").unwrap().to_owned())
                         })
                         .collect();
                     self.mapout = to_value(map).unwrap();
@@ -144,7 +145,7 @@ macro_rules! impl_concat_setter {
 }
 make_input_struct!(
 	Struct1,
-	[field2:String,field3:i16,field1:String],
+	[field3:i16,field2:String,field1:String],
 	[Default, Clone, Debug]
 );
 make_input_struct!(
@@ -155,21 +156,21 @@ make_input_struct!(
             
 
 make_input_struct!(
-    GetsalariesInput,
-    [id:i32],
+    EmployeeIdsInput,
+    [role:String],
 	[Debug, Clone, Default, Serialize, Deserialize]);
 make_main_struct!(
-    Getsalaries,
-    GetsalariesInput,
+    EmployeeIds,
+    EmployeeIdsInput,
     [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [Namespace:"guest",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",Insecure:"true",ApiHost:"https://65.20.70.146:31001"]
+    [AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",Namespace:"guest",ApiHost:"https://65.20.70.146:31001",Insecure:"true"]
 );
 impl_new!(
-    Getsalaries,
-    GetsalariesInput,
-    []
+    EmployeeIds,
+    EmployeeIdsInput,
+    [role:String]
 );
-impl_map_setter!(Getsalaries, [id,"ids", i32], [salary])
+impl_setter!(EmployeeIds, [])
 
 make_input_struct!(
     SalaryInput,
@@ -179,7 +180,7 @@ make_main_struct!(
     Salary,
     SalaryInput,
     [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",Namespace:"guest",Insecure:"true",ApiHost:"https://65.20.70.146:31001"]
+    [Insecure:"true",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",ApiHost:"https://65.20.70.146:31001",Namespace:"guest"]
 );
 impl_new!(
     Salary,
@@ -189,6 +190,23 @@ impl_new!(
 impl_concat_setter!(Salary, [details,"result", HashMap<i32, Detailtype>,details,"result", HashMap<i32, Detailtype>])
 
 make_input_struct!(
+    GetsalariesInput,
+    [id:i32],
+	[Debug, Clone, Default, Serialize, Deserialize]);
+make_main_struct!(
+    Getsalaries,
+    GetsalariesInput,
+    [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
+    [Namespace:"guest",Insecure:"true",ApiHost:"https://65.20.70.146:31001",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP"]
+);
+impl_new!(
+    Getsalaries,
+    GetsalariesInput,
+    []
+);
+impl_map_setter!(Getsalaries, [id,"ids", i32], [salary])
+
+make_input_struct!(
     GetaddressInput,
     [id:i32],
 	[Debug, Clone, Default, Serialize, Deserialize]);
@@ -196,7 +214,7 @@ make_main_struct!(
     Getaddress,
     GetaddressInput,
     [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",Namespace:"guest",Insecure:"true",ApiHost:"https://65.20.70.146:31001"]
+    [Namespace:"guest",Insecure:"true",ApiHost:"https://65.20.70.146:31001",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP"]
 );
 impl_new!(
     Getaddress,
@@ -204,23 +222,6 @@ impl_new!(
     []
 );
 impl_map_setter!(Getaddress, [id,"ids", i32], [address])
-
-make_input_struct!(
-    EmployeeIdsInput,
-    [role:String],
-	[Debug, Clone, Default, Serialize, Deserialize]);
-make_main_struct!(
-    EmployeeIds,
-    EmployeeIdsInput,
-    [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",ApiHost:"https://65.20.70.146:31001",Namespace:"guest",Insecure:"true"]
-);
-impl_new!(
-    EmployeeIds,
-    EmployeeIdsInput,
-    [role:String]
-);
-impl_setter!(EmployeeIds, [])
 
 
 make_input_struct!(
@@ -233,14 +234,14 @@ pub fn main(args: Value) -> Result<Value, String> {
     let mut workflow = WorkflowGraph::new(LIMIT);
     let input: Input = serde_json::from_value(args).map_err(|e| e.to_string())?;
 
-	let getsalaries = Getsalaries::new("getsalaries".to_string());
-	let getsalaries_index = workflow.add_node(Box::new(getsalaries));
-	let salary = Salary::new("salary".to_string());
-	let salary_index = workflow.add_node(Box::new(salary));
-	let getaddress = Getaddress::new("getaddress".to_string());
-	let getaddress_index = workflow.add_node(Box::new(getaddress));
 	let employee_ids = EmployeeIds::new(input.role, "employee_ids".to_string());
 	let employee_ids_index = workflow.add_node(Box::new(employee_ids));
+	let salary = Salary::new("salary".to_string());
+	let salary_index = workflow.add_node(Box::new(salary));
+	let getsalaries = Getsalaries::new("getsalaries".to_string());
+	let getsalaries_index = workflow.add_node(Box::new(getsalaries));
+	let getaddress = Getaddress::new("getaddress".to_string());
+	let getaddress_index = workflow.add_node(Box::new(getaddress));
 
 	workflow.add_edges(&[
 		(employee_ids_index, getsalaries_index),

@@ -39,6 +39,7 @@ macro_rules! make_main_struct {
             action_name: String,
             pub input: $input,
             pub output: Value,
+            pub mapout: Value,
         }
         impl $name{
             pub fn output(&self) -> Value {
@@ -119,7 +120,7 @@ macro_rules! impl_map_setter {
                     let mut map: HashMap<_, _> = value
                         .iter()
                         .map(|x| {
-                            self.input.$element = x.to_owned() as $typ1;
+                            self.input.$element = x.to_owned() as $typ_name;
                             self.run();
                             (x.to_owned(), self.output.get(\"$element\").unwrap().to_owned())
                         })
