@@ -121,7 +121,7 @@ macro_rules! impl_map_setter {
                         .map(|x| {
                             self.input.$element = x.to_owned() as $typ1;
                             self.run();
-                            (x.to_owned(), self.output.get($element).unwrap().to_owned())
+                            (x.to_owned(), self.output.get(\"$element\").unwrap().to_owned())
                         })
                         .collect();
                     self.mapout = to_value(map).unwrap();
@@ -245,7 +245,11 @@ macro_rules! impl_concat_setter {
 
             }
 
-            let field = &task.operation;
+            let field = match &task.operation{
+                Operation::Map(_) => "map",
+                _ => "",
+            };
+
             map_setter.push_str(&field);
 
             let mut input = format!(
@@ -273,18 +277,14 @@ macro_rules! impl_concat_setter {
                 }
             }
 
-        let setter_macro = if !task.operation.is_empty() {
-            format!("impl_map_setter!({}, [{}], [{}])", task_name, setter.join(","), map_setter)
-        } else  {
-            format!("impl_setter!({}, [{}])", task_name, setter.join(","))
+        let setter_macro = match &task.operation{
+            Operation::Map(field) => 
+                format!("impl_map_setter!({}, [{}], [{}])", task_name, setter.join(","), field),
+            Operation::Concat => 
+                format!("impl_concat_setter!({}, [{}])", task_name, setter.join(",")),
+            _ =>  format!("impl_setter!({}, [{}])", task_name, setter.join(","))
         };
 
-       
-        let setter : String = if task.operation.trim().contains(","){
-            format!("impl_concat_setter!({}, [{}])", task_name, setter.join(","))
-        }else {
-            setter_macro
-        };
         
        
             input_structs = format!(
@@ -301,7 +301,7 @@ impl_new!(
     {task_name}Input,
     [{}]
 );
-{setter}
+{setter_macro}
 ",
     
 

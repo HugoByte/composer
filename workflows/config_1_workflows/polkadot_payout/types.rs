@@ -149,7 +149,7 @@ make_input_struct!(
 );
 make_input_struct!(
 	Struct2,
-	[field1:HashMap<i8, String>,field2:Vec<String>],
+	[field2:Vec<String>,field1:HashMap<i8, String>],
 	[Default, Clone, Debug]
 );
             
@@ -162,7 +162,7 @@ make_main_struct!(
     Stakingpayout,
     StakingpayoutInput,
     [Debug, Clone, Default, Serialize, Deserialize, Polkadot],
-    [Operation:"stakingpayout",Chain:"westend"]
+    [Chain:"westend",Operation:"stakingpayout"]
 );
 impl_new!(
     Stakingpayout,
@@ -174,7 +174,7 @@ impl_setter!(Stakingpayout, [])
 
 make_input_struct!(
 	Input,
-	[era:String,url:String,owner_key:String,address:String],
+	[address:String,url:String,owner_key:String,era:String],
 	[Debug, Clone, Default, Serialize, Deserialize]);
 #[allow(dead_code, unused)]
 pub fn main(args: Value) -> Result<Value, String> {
