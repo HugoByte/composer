@@ -1,6 +1,8 @@
 use serde_json::Value;
 use serde_derive::{Serialize, Deserialize};
 use std::collections::HashMap;
+use super::*;
+use openwhisk_macro::*;
 
 macro_rules! make_input_struct {
     (
@@ -93,119 +95,110 @@ macro_rules! impl_setter {
         }
     }
 }
-make_input_struct!(
-	Struct1,
-	[field2:String,field1:String,field3:i16],
-	[Default, Clone, Debug]
-);
-make_input_struct!(
-	Struct2,
-	[field1:HashMap<i8, String>,field2:Vec<String>],
-	[Default, Clone, Debug]
-);
             
 
 make_input_struct!(
-    SalaryInput,
-    [details:HashMap<i32,(i32,String)>],
+    PurchaseInput,
+    [model_price_list:HashMap<String,i32>,model_name:String,price:i32],
 	[Debug, Clone, Default, Serialize, Deserialize]);
 make_main_struct!(
-    Salary,
-    SalaryInput,
+    Purchase,
+    PurchaseInput,
     [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [Insecure:"true",Namespace:"guest",ApiHost:"https://65.20.70.146:31001",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP"]
+    [AuthKey:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",Insecure:"true",Namespace:"guest",ApiHost:"https://65.20.70.146:31001"]
 );
 impl_new!(
-    Salary,
-    SalaryInput,
-    []
+    Purchase,
+    PurchaseInput,
+    [model_name:String,price:i32]
 );
-impl_setter!(Salary, [details:"result",details:"result"]);
+impl_setter!(Purchase, [model_price_list:"model_price_list"]);
 
 make_input_struct!(
-    GetaddressInput,
-    [id:i32],
+    ModelavailInput,
+    [car_company_list:HashMap<String,Vec<String>>,company_name:String],
 	[Debug, Clone, Default, Serialize, Deserialize]);
 make_main_struct!(
-    Getaddress,
-    GetaddressInput,
+    Modelavail,
+    ModelavailInput,
     [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [Namespace:"guest",Insecure:"true",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",ApiHost:"https://65.20.70.146:31001"]
+    [ApiHost:"https://65.20.70.146:31001",Insecure:"true",AuthKey:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",Namespace:"guest"]
 );
 impl_new!(
-    Getaddress,
-    GetaddressInput,
-    []
+    Modelavail,
+    ModelavailInput,
+    [company_name:String]
 );
-impl_setter!(Getaddress, [id:"id"]);
+impl_setter!(Modelavail, [car_company_list:"car_company_list"]);
 
 make_input_struct!(
-    GetsalariesInput,
-    [id:Struct2],
+    CartypeInput,
+    [car_type:String],
 	[Debug, Clone, Default, Serialize, Deserialize]);
 make_main_struct!(
-    Getsalaries,
-    GetsalariesInput,
+    Cartype,
+    CartypeInput,
     [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [Namespace:"guest",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",Insecure:"true",ApiHost:"https://65.20.70.146:31001"]
+    [AuthKey:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",Insecure:"true",Namespace:"guest",ApiHost:"https://65.20.70.146:31001"]
 );
 impl_new!(
-    Getsalaries,
-    GetsalariesInput,
-    []
+    Cartype,
+    CartypeInput,
+    [car_type:String]
 );
-impl_setter!(Getsalaries, [id:"id"]);
+impl_setter!(Cartype, []);
 
 make_input_struct!(
-    EmployeeIdsInput,
-    [input_field_1:Struct1,input_field_1:i32],
+    ModelspriceInput,
+    [models:Vec<String>],
 	[Debug, Clone, Default, Serialize, Deserialize]);
 make_main_struct!(
-    EmployeeIds,
-    EmployeeIdsInput,
+    Modelsprice,
+    ModelspriceInput,
     [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [ApiHost:"https://65.20.70.146:31001",Namespace:"guest",Insecure:"true",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP"]
+    [AuthKey:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",Insecure:"true",Namespace:"guest",ApiHost:"https://65.20.70.146:31001"]
 );
 impl_new!(
-    EmployeeIds,
-    EmployeeIdsInput,
-    [input_field_1:Struct1,input_field_1:i32]
+    Modelsprice,
+    ModelspriceInput,
+    []
 );
-impl_setter!(EmployeeIds, []);
+impl_setter!(Modelsprice, [models:"models"]);
 
 
 make_input_struct!(
 	Input,
-	[input_field_1:i32],
+	[price:i32,model_name:String,car_type:String,company_name:String],
 	[Debug, Clone, Default, Serialize, Deserialize]);
+
+impl_execute_trait!(Purchase,Modelavail,Cartype,Modelsprice);
+
 #[allow(dead_code, unused)]
 pub fn main(args: Value) -> Result<Value, String> {
     const LIMIT: usize = 4;
     let mut workflow = WorkflowGraph::new(LIMIT);
     let input: Input = serde_json::from_value(args).map_err(|e| e.to_string())?;
 
-	let salary = Salary::new("salary".to_string());
-	let salary_index = workflow.add_node(Box::new(salary));
-	let getaddress = Getaddress::new("getaddress".to_string());
-	let getaddress_index = workflow.add_node(Box::new(getaddress));
-	let getsalaries = Getsalaries::new("getsalaries".to_string());
-	let getsalaries_index = workflow.add_node(Box::new(getsalaries));
-	let employee_ids = EmployeeIds::new(input.input_field_1,input.input_field_1, "employee_ids".to_string());
-	let employee_ids_index = workflow.add_node(Box::new(employee_ids));
+	let purchase = Purchase::new(input.model_name,input.price, "purchase".to_string());
+	let purchase_index = workflow.add_node(Box::new(purchase));
+	let modelavail = Modelavail::new(input.company_name, "modelavail".to_string());
+	let modelavail_index = workflow.add_node(Box::new(modelavail));
+	let cartype = Cartype::new(input.car_type, "cartype".to_string());
+	let cartype_index = workflow.add_node(Box::new(cartype));
+	let modelsprice = Modelsprice::new("modelsprice".to_string());
+	let modelsprice_index = workflow.add_node(Box::new(modelsprice));
 
 	workflow.add_edges(&[
-		(employee_ids_index, getsalaries_index),
-		(getsalaries_index, getaddress_index),
-		(getaddress_index, salary_index),
+		(cartype_index, modelavail_index),
+		(modelavail_index, modelsprice_index),
+		(modelsprice_index, purchase_index),
 	]);
 
 	let result = workflow
 		.init()?
-		.pipe(getsalaries_index)?
-		.pipe(getaddress_index)?
-		.pipe(salary_index)?
-		.term(None)?;
-
+		.pipe(modelavail_index)?
+		.pipe(modelsprice_index)?
+		.term(Some(purchase_index))?;
     let result = serde_json::to_value(result).unwrap();
     Ok(result)
 }

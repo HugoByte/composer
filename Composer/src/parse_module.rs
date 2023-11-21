@@ -5,6 +5,8 @@ impl Composer {
         "use serde_json::Value;
 use serde_derive::{Serialize, Deserialize};
 use std::collections::HashMap;
+use super::*;
+use openwhisk_macro::*;
 
 macro_rules! make_input_struct {
     (
@@ -146,15 +148,19 @@ macro_rules! impl_setter {
         let mut build_string = String::new();
         let custom_types = self.custom_types.borrow();
 
-        for t in self.workflows.borrow()[workflow_index].custom_types.iter() {
-            let typ = custom_types.get(t).unwrap();
-            build_string = format!("{build_string}{typ}\n");
-        }
+        if let Some(types) = self.workflows.borrow()[workflow_index].custom_types.as_ref(){
+
+            for t in types.iter() {
+                let typ = custom_types.get(t).unwrap();
+                build_string = format!("{build_string}{typ}\n");
+            }
+
+        };
 
         build_string
     }
 
-    pub fn get_custom_structs(&self, workflow_index: usize) -> Vec<String> {
+    pub fn get_custom_structs(&self, workflow_index: usize) -> [String; 2] {
         let mut common_inputs = HashMap::<String, String>::new();
 
         let mut constructors = String::new();
@@ -259,16 +265,45 @@ impl_setter!({task_name}, [{}]);
                 input = format!("{input}],\n\t[Debug, Clone, Default, Serialize, Deserialize]);");
             }
         }
-
+        
         input_structs = format!("{input_structs}\n{input}");
-        vec![input_structs, constructors]
+
+        [input_structs, constructors]
+    }
+
+    pub fn get_impl_execute_trait(&self, workflow_index: usize) -> String{
+
+        let mut build_string = String::from("\nimpl_execute_trait!(");
+        let len = self.workflows.borrow()[workflow_index].tasks.len();
+
+        for (i, task) in self.workflows.borrow()[workflow_index].tasks.iter().enumerate(){
+
+            build_string = format!("{build_string}{}", task.1.action_name.to_case(Case::Pascal));
+
+            build_string = if i != len - 1 {
+                format!("{build_string},")
+            } else {
+                format!("{build_string});\n")
+            }
+        }
+
+        build_string
     }
 
     pub fn get_workflow_execute_code(&self, workflow_index: usize) -> String {
-        let mut execute_code = "\tlet result = workflow\n\t\t.init()?\n".to_string();
+        let mut execute_code = "\tlet result = workflow\n\t\t.init()?".to_string();
+
+        let flow: Vec<String> = self.get_flow(workflow_index);
+
+        if flow.is_empty(){
+            return "".to_string();
+        }
+
+        if flow.len() == 1{
+            return format!("{}\n\t\t.term(None)?;", execute_code)
+        }
 
         let mut add_edges_code = "\tworkflow.add_edges(&[\n".to_string();
-        let flow: Vec<String> = self.get_flow(workflow_index);
 
         for i in 0..flow.len() - 1 {
             add_edges_code = format!(
@@ -287,21 +322,21 @@ impl_setter!({task_name}, [{}]);
                 {
                     0 | 1 => {
                         format!(
-                            "{execute_code}\t\t.term(Some({}_index))?;\n",
+                            "{execute_code}\n\t\t.term(Some({}_index))?;",
                             flow[i + 1].to_lowercase()
                         )
                     }
 
                     _ => {
                         format!(
-                            "{execute_code}\t\t.pipe({}_index)?\n\t\t.term(None)?;\n",
+                            "{execute_code}\n\t\t.pipe({}_index)?\n\t\t.term(None)?;",
                             flow[i + 1].to_lowercase()
                         )
                     }
                 }
             } else {
                 format!(
-                    "{execute_code}\t\t.pipe({}_index)?\n",
+                    "{execute_code}\n\t\t.pipe({}_index)?",
                     flow[i + 1].to_lowercase()
                 )
             };
@@ -319,6 +354,7 @@ impl_setter!({task_name}, [{}]);
             "{}
 {}            
 {}
+{}
 #[allow(dead_code, unused)]
 pub fn main(args: Value) -> Result<Value, String> {{
     const LIMIT: usize = {};
@@ -332,9 +368,10 @@ pub fn main(args: Value) -> Result<Value, String> {{
 }}
 ",
             self.get_macros(),
-            self.get_custom_types(0),
+            self.get_custom_types(workflow_index),
             structs[0],
-            self.workflows.borrow()[0].tasks.len(),
+            self.get_impl_execute_trait(workflow_index),
+            self.workflows.borrow()[workflow_index].tasks.len(),
             structs[1],
             self.get_workflow_execute_code(workflow_index)
         );

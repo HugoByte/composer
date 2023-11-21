@@ -26,7 +26,7 @@ employee_id = task(
     kind = "openwhisk",
     action_name = "employee_ids",
     input_args = [
-        input_args(name = "input_field_1", input_type = Struct("struct1")),
+        input_args(name = "input_field_2", input_type = "String"),
         input_args(name = "input_field_1", input_type = int() ),  
     ],
     attributes = attributes,
@@ -105,9 +105,9 @@ employee_salary_workflow = workflows(
     custom_types = [Struct("struct1"), Struct("struct2")]
 )
 
-workflow_polkadot_workflow = workflows(
-    name = "polkadot_payout",
-    version = "0.0.1",
-    tasks = [stakingpayout],
-    custom_types = []
-)
+# workflow_polkadot_workflow = workflows(
+#     name = "polkadot_payout",
+#     version = "0.0.1",
+#     tasks = [stakingpayout],
+#     custom_types = []
+# )

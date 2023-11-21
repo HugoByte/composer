@@ -10,14 +10,15 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::{self, Display};
 use std::io::ErrorKind;
-use std::path::Path;
 use std::result::Result::Ok;
-use std::{env, fs, process::Command};
+use std::{env, fs};
+use std::{io, path::Path};
 
 pub mod composer;
 pub mod parse_module;
 pub mod starlark_modules;
 pub mod task;
+pub mod tests;
 pub mod workflow;
 
 use composer::*;
@@ -27,9 +28,6 @@ use workflow::*;
 
 fn main() {
     let mut composer = Composer::default();
-    composer.add_config("./multiple_configs/config1.star");
-    composer.add_config("./multiple_configs/config2.star");
-    composer.add_config("./multiple_configs/config3.star");
-
+    composer.add_config("./config/car_market_place.star");
     composer.run();
 }
