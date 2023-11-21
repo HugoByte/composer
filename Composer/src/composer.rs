@@ -205,8 +205,9 @@ impl Composer {
             }
 
             let dest_path = current_path.join(format!(
-                "temp/{}-{}-workflow",
-                workflow.name, workflow.version
+                "temp/{}-{}",
+                workflow.name.to_case(Case::Snake),
+                workflow.version
             ));
             fs::create_dir_all(&dest_path).unwrap();
 

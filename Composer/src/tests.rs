@@ -238,28 +238,24 @@ mod tests {
 
         composer.generate(composer_path);
 
+        assert!(composer_path.join("temp/test_workflow-0.0.1").exists());
+        assert!(composer_path.join("temp/test_workflow-0.0.1/src").exists());
         assert!(composer_path
-            .join("temp/test_workflow-0.0.1-workflow")
+            .join("temp/test_workflow-0.0.1/Cargo.toml")
             .exists());
         assert!(composer_path
-            .join("temp/test_workflow-0.0.1-workflow/src")
+            .join("temp/test_workflow-0.0.1/src/common.rs")
             .exists());
         assert!(composer_path
-            .join("temp/test_workflow-0.0.1-workflow/Cargo.toml")
+            .join("temp/test_workflow-0.0.1/src/lib.rs")
             .exists());
         assert!(composer_path
-            .join("temp/test_workflow-0.0.1-workflow/src/common.rs")
+            .join("temp/test_workflow-0.0.1/src/traits.rs")
             .exists());
         assert!(composer_path
-            .join("temp/test_workflow-0.0.1-workflow/src/lib.rs")
-            .exists());
-        assert!(composer_path
-            .join("temp/test_workflow-0.0.1-workflow/src/traits.rs")
-            .exists());
-        assert!(composer_path
-            .join("temp/test_workflow-0.0.1-workflow/src/types.rs")
+            .join("temp/test_workflow-0.0.1/src/types.rs")
             .exists());
 
-        fs::remove_dir_all(composer_path.join("temp")).unwrap();
+        fs::remove_dir_all(composer_path.join("temp/test_workflow-0.0.1")).unwrap();
     }
 }
