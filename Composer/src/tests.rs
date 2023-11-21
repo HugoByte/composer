@@ -31,10 +31,6 @@ mod tests {
     fn get_dependencies_test() {
         let composer = Composer::default();
 
-        let mut input_args: HashMap<String, String> = HashMap::new();
-        input_args.insert("field_1".to_string(), "String".to_string());
-        input_args.insert("field_2".to_string(), "i32".to_string());
-
         let mut dependencies: HashMap<String, HashMap<String, String>> = HashMap::new();
         let mut depends: HashMap<String, String> = HashMap::new();
 
@@ -209,20 +205,36 @@ mod tests {
     }
 
     #[test]
-    fn generate_package_test() {
+    fn generate_wasm_test() {
         let composer = Composer::default();
+
+        let mut input_args: Vec<Input> = Vec::new();
+        input_args.push(Input {
+            name: "field_1".to_string(),
+            input_type: "i32".to_string(),
+            ..Default::default()
+        });
+
+        let mut attributes: HashMap<String, String> = HashMap::new();
+        attributes.insert(
+            "api_host".to_string(),
+            "https://65.20.70.146:31001".to_string(),
+        );
+        attributes.insert("auth_key".to_string(), "23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP".to_string());
+        attributes.insert("insecure".to_string(), "true".to_string());
+        attributes.insert("namespace".to_string(), "guest".to_string());
 
         let task = Task::new(
             "OpenWhisk",
             "get_salaries",
-            Vec::default(),
+            input_args,
+            attributes,
             HashMap::default(),
-            HashMap::default(),
-            String::from("map"),
+            String::new(),
         );
 
         let mut tasks = HashMap::new();
-        tasks.insert("test_task".to_string(), task);
+        tasks.insert("get_salaries".to_string(), task);
 
         composer
             .add_workflow(
@@ -238,24 +250,10 @@ mod tests {
 
         composer.generate(composer_path);
 
-        assert!(composer_path.join("temp/test_workflow-0.0.1").exists());
-        assert!(composer_path.join("temp/test_workflow-0.0.1/src").exists());
         assert!(composer_path
-            .join("temp/test_workflow-0.0.1/Cargo.toml")
-            .exists());
-        assert!(composer_path
-            .join("temp/test_workflow-0.0.1/src/common.rs")
-            .exists());
-        assert!(composer_path
-            .join("temp/test_workflow-0.0.1/src/lib.rs")
-            .exists());
-        assert!(composer_path
-            .join("temp/test_workflow-0.0.1/src/traits.rs")
-            .exists());
-        assert!(composer_path
-            .join("temp/test_workflow-0.0.1/src/types.rs")
+            .join("workflow_wasm/test_workflow-0.0.1.wasm")
             .exists());
 
-        fs::remove_dir_all(composer_path.join("temp/test_workflow-0.0.1")).unwrap();
+        fs::remove_file(composer_path.join("workflow_wasm/test_workflow-0.0.1.wasm")).unwrap();
     }
 }

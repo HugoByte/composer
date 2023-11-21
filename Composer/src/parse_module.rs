@@ -110,14 +110,14 @@ macro_rules! impl_setter {
 
             attributes = format!("{attributes}{}:\"{}\"", k, v);
 
-            attributes = if i != map.len() - 1 {
-                format!("{attributes},")
+            if i != map.len() - 1 {
+                attributes = format!("{attributes},")
             } else {
-                format!("{attributes}]")
+                break;
             }
         }
 
-        attributes
+        format!("{attributes}]")
     }
 
     pub fn parse_hashmap(&self, map: &HashMap<String, String>) -> String {
@@ -126,14 +126,14 @@ macro_rules! impl_setter {
         for (i, (k, v)) in map.iter().enumerate() {
             attributes = format!("{attributes}{}:{}", k, v);
 
-            attributes = if i != map.len() - 1 {
-                format!("{attributes},")
+            if i != map.len() - 1 {
+                attributes = format!("{attributes},")
             } else {
-                format!("{attributes}]")
+                break;
             }
         }
 
-        attributes
+        format!("{attributes}]")
     }
 
     pub fn get_kind(&self, kind: &str) -> Result<String, ErrorKind> {
@@ -148,13 +148,14 @@ macro_rules! impl_setter {
         let mut build_string = String::new();
         let custom_types = self.custom_types.borrow();
 
-        if let Some(types) = self.workflows.borrow()[workflow_index].custom_types.as_ref(){
-
+        if let Some(types) = self.workflows.borrow()[workflow_index]
+            .custom_types
+            .as_ref()
+        {
             for t in types.iter() {
                 let typ = custom_types.get(t).unwrap();
                 build_string = format!("{build_string}{typ}\n");
             }
-
         };
 
         build_string
@@ -265,19 +266,21 @@ impl_setter!({task_name}, [{}]);
                 input = format!("{input}],\n\t[Debug, Clone, Default, Serialize, Deserialize]);");
             }
         }
-        
+
         input_structs = format!("{input_structs}\n{input}");
 
         [input_structs, constructors]
     }
 
-    pub fn get_impl_execute_trait(&self, workflow_index: usize) -> String{
-
+    pub fn get_impl_execute_trait(&self, workflow_index: usize) -> String {
         let mut build_string = String::from("\nimpl_execute_trait!(");
         let len = self.workflows.borrow()[workflow_index].tasks.len();
 
-        for (i, task) in self.workflows.borrow()[workflow_index].tasks.iter().enumerate(){
-
+        for (i, task) in self.workflows.borrow()[workflow_index]
+            .tasks
+            .iter()
+            .enumerate()
+        {
             build_string = format!("{build_string}{}", task.1.action_name.to_case(Case::Pascal));
 
             build_string = if i != len - 1 {
@@ -295,12 +298,12 @@ impl_setter!({task_name}, [{}]);
 
         let flow: Vec<String> = self.get_flow(workflow_index);
 
-        if flow.is_empty(){
+        if flow.is_empty() {
             return "".to_string();
         }
 
-        if flow.len() == 1{
-            return format!("{}\n\t\t.term(None)?;", execute_code)
+        if flow.len() == 1 {
+            return format!("{}\n\t\t.term(None)?;", execute_code);
         }
 
         let mut add_edges_code = "\tworkflow.add_edges(&[\n".to_string();

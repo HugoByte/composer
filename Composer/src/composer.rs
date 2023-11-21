@@ -181,7 +181,6 @@ impl Composer {
             let entry_path = entry.path();
             let file_name = entry.file_name();
             let dest_path = dest.join(&file_name);
-
             if file.is_some() && entry_path.is_dir() {
                 continue;
             }
@@ -204,19 +203,26 @@ impl Composer {
         Command::new("rustup")
             .current_dir(pwd.join(format!("temp/{}", workflow_name)))
             .args(["target", "add", "wasm32-wasi"])
-            .spawn()
+            .status()
             .expect("adding wasm32-wasi rust toolchain command failed to start");
 
         Command::new("cargo")
             .current_dir(pwd.join(format!("temp/{}", workflow_name)))
             .args(["build", "--release", "--target", "wasm32-wasi"])
-            .spawn()
+            .status()
             .expect("building wasm32 command failed to start");
 
         let src = pwd.join(format!("temp/{}/target/wasm32-wasi/release", workflow_name));
-        let dest = pwd.join("workflow-wasm");
+        fs::rename(
+            src.join("workflow.wasm"),
+            src.join(format!("{}.wasm", workflow_name)),
+        )
+        .unwrap();
 
-        self.copy_dir(&src, &dest, Some(workflow_name)).unwrap();
+        let dest = pwd.join("workflow_wasm");
+
+        self.copy_dir(&src, &dest, Some(&format!("{}.wasm", workflow_name)))
+            .unwrap();
     }
 
     pub fn generate(&self, current_path: &Path) {
@@ -251,5 +257,7 @@ impl Composer {
                 ),
             );
         }
+
+        fs::remove_dir_all(current_path.join("temp")).unwrap();
     }
 }
