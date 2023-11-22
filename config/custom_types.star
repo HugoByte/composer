@@ -75,7 +75,7 @@ salary = task(
     kind = "openwhisk",
     action_name = "salary",
     input_args = [
-        input_args(name = "details", input_type = hashmap(int(32), Struct("detailtype")))
+        input_args(name = "details", input_type = hashmap(int(32), "(i32, String)"))
     ],
     attributes = attributes,
     operation = operation("concat"),

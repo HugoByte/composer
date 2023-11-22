@@ -172,14 +172,6 @@ macro_rules! impl_concat_setter {
         attributes
     }
 
-    pub fn get_operation(&self, op: &str) -> Result<String, String>{
-        match op {
-            "map" => Ok("map".to_string()),
-            "concat" => Ok("concat".to_string()),
-            _=> Ok("".to_string())
-        }
-    }
-
 
     pub fn parse_hashmap(&self, map: &HashMap<String, String>) -> String {
         let mut attributes = "[".to_string();
@@ -251,6 +243,22 @@ macro_rules! impl_concat_setter {
                 _ => "",
             };
 
+            // for gg in task.input_args.iter(){
+            //     if gg.name.as_str().is_empty(){
+            //         gg
+            //     }
+                   
+            //     }
+            //     setter.push(format!({},))
+            // }
+            
+            // setter.push(asd.clone());
+
+            // let concat_field : &str = match &task.kind{
+            //     Operation::Concat => "concat",
+            //     _ => "",
+            // };
+           
             map_setter.push_str(&field);
 
             let mut input = format!(
@@ -280,9 +288,9 @@ macro_rules! impl_concat_setter {
 
         let setter_macro = match &task.operation{
             Operation::Map(field) => 
-                format!("impl_map_setter!({}, [{}], [{}])", task_name, setter.join(","), field),
+                format!("impl_map_setter!({}, [{}], {})", task_name, setter.join(","), field),
             Operation::Concat => 
-                format!("impl_concat_setter!({}, [{}])", task_name, setter.join(",")),
+                format!("impl_concat_setter!({}, {})", task_name, task.input_args[0].name),
             _ =>  format!("impl_setter!({}, [{}])", task_name, setter.join(","))
         };
 

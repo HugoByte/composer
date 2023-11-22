@@ -145,7 +145,7 @@ macro_rules! impl_concat_setter {
 }
 make_input_struct!(
 	Struct1,
-	[field3:i16,field2:String,field1:String],
+	[field2:String,field1:String,field3:i16],
 	[Default, Clone, Debug]
 );
 make_input_struct!(
@@ -163,7 +163,7 @@ make_main_struct!(
     EmployeeIds,
     EmployeeIdsInput,
     [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",Namespace:"guest",ApiHost:"https://65.20.70.146:31001",Insecure:"true"]
+    [Namespace:"guest",Insecure:"true",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",ApiHost:"https://65.20.70.146:31001"]
 );
 impl_new!(
     EmployeeIds,
@@ -174,37 +174,20 @@ impl_setter!(EmployeeIds, [])
 
 make_input_struct!(
     SalaryInput,
-    [details:HashMap<i32, Detailtype>],
+    [details:HashMap<i32, (i32, String)>],
 	[Debug, Clone, Default, Serialize, Deserialize]);
 make_main_struct!(
     Salary,
     SalaryInput,
     [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [Insecure:"true",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",ApiHost:"https://65.20.70.146:31001",Namespace:"guest"]
+    [AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",Namespace:"guest",ApiHost:"https://65.20.70.146:31001",Insecure:"true"]
 );
 impl_new!(
     Salary,
     SalaryInput,
     []
 );
-impl_concat_setter!(Salary, [details,"result", HashMap<i32, Detailtype>,details,"result", HashMap<i32, Detailtype>])
-
-make_input_struct!(
-    GetsalariesInput,
-    [id:i32],
-	[Debug, Clone, Default, Serialize, Deserialize]);
-make_main_struct!(
-    Getsalaries,
-    GetsalariesInput,
-    [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [Namespace:"guest",Insecure:"true",ApiHost:"https://65.20.70.146:31001",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP"]
-);
-impl_new!(
-    Getsalaries,
-    GetsalariesInput,
-    []
-);
-impl_map_setter!(Getsalaries, [id,"ids", i32], [salary])
+impl_concat_setter!(Salary, details)
 
 make_input_struct!(
     GetaddressInput,
@@ -214,14 +197,31 @@ make_main_struct!(
     Getaddress,
     GetaddressInput,
     [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
-    [Namespace:"guest",Insecure:"true",ApiHost:"https://65.20.70.146:31001",AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP"]
+    [AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",Namespace:"guest",ApiHost:"https://65.20.70.146:31001",Insecure:"true"]
 );
 impl_new!(
     Getaddress,
     GetaddressInput,
     []
 );
-impl_map_setter!(Getaddress, [id,"ids", i32], [address])
+impl_map_setter!(Getaddress, [id,"ids", i32], address)
+
+make_input_struct!(
+    GetsalariesInput,
+    [id:i32],
+	[Debug, Clone, Default, Serialize, Deserialize]);
+make_main_struct!(
+    Getsalaries,
+    GetsalariesInput,
+    [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
+    [AuthToken:"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",ApiHost:"https://65.20.70.146:31001",Namespace:"guest",Insecure:"true"]
+);
+impl_new!(
+    Getsalaries,
+    GetsalariesInput,
+    []
+);
+impl_map_setter!(Getsalaries, [id,"ids", i32], salary)
 
 
 make_input_struct!(
@@ -238,10 +238,10 @@ pub fn main(args: Value) -> Result<Value, String> {
 	let employee_ids_index = workflow.add_node(Box::new(employee_ids));
 	let salary = Salary::new("salary".to_string());
 	let salary_index = workflow.add_node(Box::new(salary));
-	let getsalaries = Getsalaries::new("getsalaries".to_string());
-	let getsalaries_index = workflow.add_node(Box::new(getsalaries));
 	let getaddress = Getaddress::new("getaddress".to_string());
 	let getaddress_index = workflow.add_node(Box::new(getaddress));
+	let getsalaries = Getsalaries::new("getsalaries".to_string());
+	let getsalaries_index = workflow.add_node(Box::new(getsalaries));
 
 	workflow.add_edges(&[
 		(employee_ids_index, getsalaries_index),

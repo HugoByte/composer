@@ -145,7 +145,7 @@ macro_rules! impl_concat_setter {
 }
 make_input_struct!(
 	Struct1,
-	[field3:i16,field2:String,field1:String],
+	[field2:String,field1:String,field3:i16],
 	[Default, Clone, Debug]
 );
 make_input_struct!(
@@ -175,7 +175,7 @@ impl_setter!(Stakingpayout, [])
 
 make_input_struct!(
 	Input,
-	[url:String,owner_key:String,address:String,era:String],
+	[owner_key:String,era:String,url:String,address:String],
 	[Debug, Clone, Default, Serialize, Deserialize]);
 #[allow(dead_code, unused)]
 pub fn main(args: Value) -> Result<Value, String> {
