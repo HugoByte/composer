@@ -9,7 +9,7 @@ use starlark::values::{none::NoneType, ProvidesStaticType, StarlarkValue, Value}
 use starlark::{starlark_module, starlark_simple_value, values::starlark_value};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::fmt::{self, Debug, Display};
+use std::fmt::{self, Display};
 use std::io::ErrorKind;
 use std::process::Command;
 use std::result::Result::Ok;
@@ -30,7 +30,6 @@ use workflow::*;
 
 fn main() {
     let mut composer = Composer::default();
-    composer.add_config("./config/custom_types.star");
-
+    composer.add_config("./config/car_market_place.star");
     composer.run();
 }
