@@ -223,18 +223,18 @@ macro_rules! impl_concat_setter {
             let mut setter = Vec::<String>::new();
             let mut map_setter = String::new();
 
-            for fields in task.depend_on.values() {
-                let x = fields.iter().next().unwrap();
-                depend.push(x.0.to_string());
+            for fields in task.depend_on.iter() {
+                // let x = fields.next().unwrap();
+                // depend.push(x.0.to_string());
 
-                let mut input ="".to_string();
-                for i in task.input_args.iter(){
-                    if i.name.as_str() == x.0{
-                        input = i.input_type.to_string(); 
-                    }
-                }
+                // let mut input ="".to_string();
+                // for i in task.input_args.iter(){
+                //     if i.name.as_str() == x.0{
+                //         input = i.input_type.to_string(); 
+                //     }
+                // }
 
-                setter.push(format!("{},\"{}\", {}", x.0, x.1, input ));
+                // setter.push(format!("{},\"{}\", {}", x.0, x.1, input ));
 
             }
 
@@ -291,7 +291,7 @@ macro_rules! impl_concat_setter {
                 format!("impl_map_setter!({}, [{}], {})", task_name, setter.join(","), field),
             Operation::Concat => 
                 format!("impl_concat_setter!({}, {})", task_name, task.input_args[0].name),
-            _ =>  format!("impl_setter!({}, [{}])", task_name, setter.join(","))
+            _ =>  format!("impl_setter!({}, [{})", task_name, setter.join(","))
         };
 
         

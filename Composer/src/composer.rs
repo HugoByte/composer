@@ -34,7 +34,8 @@ impl Composer {
                 eval.extra = Some(&composer);
                 eval.eval_module(ast, &globals).unwrap();
             }
-            composer.generate(index + 1);
+            // composer.generate(index + 1);
+            print!("{:?}", composer);
         }
     }
 
@@ -79,7 +80,7 @@ impl Composer {
             .depend_on
             .iter()
         {
-            deps.push(d.0.clone());
+            deps.push(d.to_string());
         }
 
         Some(deps)
@@ -154,11 +155,11 @@ impl Composer {
         for (_, task) in self.workflows.borrow()[workflow_index].tasks.iter() {
             let mut depend = Vec::<String>::new();
 
-            for (_, fields) in task.depend_on.iter() {
-                for k in fields.keys() {
-                    depend.push(k.to_string());
-                }
-            }
+            // for fields in task.depend_on.iter() {
+            //     for k in fields.keys() {
+            //         depend.push(k.to_string());
+            //     }
+            // }
 
             for input in task.input_args.iter() {
                 if depend.binary_search(&input.name).is_err() {

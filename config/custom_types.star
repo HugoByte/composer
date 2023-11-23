@@ -15,14 +15,6 @@ typ(
     }
 )
 
-typ(
-    name = "detailtype",
-    fields = {
-        "field1" : int(32),
-        "field2" : string(),
-    }
-)
-
 attributes = {
     "api_host" : "https://65.20.70.146:31001",
     "auth_token" : "23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",
@@ -37,7 +29,8 @@ employee_id = task(
         input_args(name = "role", input_type = string() ),  
     ],
     attributes = attributes,
-    depend_on = {}
+    flow_type = flow("init"),
+    depend_on = []
 )
 
 getsalaries = task(
@@ -48,11 +41,9 @@ getsalaries = task(
     ],
     attributes = attributes,
     operation = operation("map", "salary"),
-    depend_on = {
-        "employee_ids" : {
-            "id" : "ids"
-        }
-    }
+    depend_on = [
+        depend(task_name = "employee_ids", cur_field = "id", prev_field = "ids")
+    ]
 )
 
 getaddress = task(
@@ -63,11 +54,9 @@ getaddress = task(
     ],
     attributes = attributes,
     operation = operation("map", "address"),
-    depend_on = {
-        "employee_ids" : {
-            "id" : "ids"
-        }
-    },
+    depend_on = [
+        depend(task_name = "employee_ids", cur_field = "id", prev_field = "ids")
+    ]
     
 )
 
@@ -79,14 +68,11 @@ salary = task(
     ],
     attributes = attributes,
     operation = operation("concat"),
-    depend_on = {
-        "getsalaries" : {
-            "details" : "result"
-        },
-        "getaddress" : {
-            "details" : "result"
-        }
-    }
+     depend_on = [
+        depend(task_name = "getsalaries", cur_field = "details", prev_field = "result"),
+        depend(task_name = "getaddress", cur_field = "details", prev_field = "result")
+    ]
+
 )
 
 stakingpayout = task(
@@ -102,7 +88,8 @@ stakingpayout = task(
         "chain" : "westend",
         "operation" : "stakingpayout"
     },
-    depend_on = { }
+    flow_type = flow("init"),
+    depend_on = []
 )
 
 employee_salary_workflow = workflows(

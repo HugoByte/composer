@@ -1,3 +1,7 @@
+// use anyhow::Ok;
+
+// use anyhow::Ok;
+
 use super::*;
 
 #[starlark_module]
@@ -9,17 +13,37 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         attributes: Value,
         depend_on: Value,
         operation: Option<Value>,
+        flow_type: Option<Value>,
     ) -> anyhow::Result<Task> {
         let input_args: Vec<Input> = serde_json::from_str(&input_args.to_json()?).unwrap();
         let attributes: HashMap<String, String> =
             serde_json::from_str(&attributes.to_json()?).unwrap();
-        let depend_on: HashMap<String, HashMap<String, String>> =
+        let depend_on: Vec<Depend> =
             serde_json::from_str(&depend_on.to_json()?).unwrap();
 
         let operation: Operation =  match operation{
             Some(op) => serde_json::from_str(&op.to_json()?).unwrap(),
             _ => Operation::Normal
         };
+
+        let flow_type : Flow = match flow_type{
+        Some(f) => serde_json::from_str(&f.to_json()?).unwrap(),
+        None => Flow::Pipe
+        };
+
+        // if let Some(f) = flow_type {
+
+        //     // flow_type is not null
+        // } else {
+        //     // flow_type is null
+        // }
+
+        // if !depend_on.is_empty(){
+             
+        // }else{
+            
+        // }
+
 
         Ok(Task {
             kind,
@@ -28,6 +52,7 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
             attributes,
             operation,
             depend_on,
+            flow_type,
         })
     }
 
@@ -77,6 +102,18 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         })
     }
 
+    fn depend(
+        task_name: String,
+        cur_field: String,
+        prev_field: String
+    ) -> anyhow::Result<Depend>{
+        Ok(Depend {
+            task_name,
+            cur_field,
+            prev_field,
+        })
+    }
+
     fn operation(operation: Option<String>, field: Option<String>) -> anyhow::Result<Operation> {
         match operation {
             Some(op) => match op.as_str() {
@@ -90,8 +127,19 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
             None => Ok(Operation::Normal),
         }
     }
-}
 
+    fn flow(flow : Option<String>) -> anyhow::Result<Option<Flow>> {
+        match flow{
+            Some(f) => match f.as_str() {
+                "pipe" => return Ok(Some(Flow::Pipe)),
+                "init" => return Ok(Some(Flow::Init)),
+                "term" => return Ok(Some(Flow::Term)),
+                _ => Err(Error::msg("flow-type is invalid"))
+            },
+            None => Ok(None),
+        }
+    }
+}
 
 #[starlark_module]
 pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
