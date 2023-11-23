@@ -47,7 +47,7 @@ getsalaries = task(
         input_args(name = "id", input_type = int(32), default_value = "23" )
     ],
     attributes = attributes,
-    operation = operation("map", "salary"),
+    operation = operation(operation = "map", field = "salary"),
     depend_on = {
         "employee_ids" : {
             "id" : "ids"
@@ -62,7 +62,7 @@ getaddress = task(
         input_args(name = "id", input_type = int(32), default_value = "1")
     ],
     attributes = attributes,
-    operation = operation("map", "address"),
+    operation = operation(operation = "map", field = "address"),
     depend_on = {
         "employee_ids" : {
             "id" : "ids"
