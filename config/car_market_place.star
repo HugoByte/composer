@@ -11,7 +11,7 @@ cartype = task(
     input_args = [
         input_args(
             name="car_type",
-            input_type="String"
+            input_type= string()
         ),
     ],
     attributes = attributes,
@@ -24,11 +24,11 @@ modelavail = task(
     input_args = [
         input_args(
             name="car_company_list",
-            input_type="HashMap<String,Vec<String>>"
+            input_type = hashmap(string(), list(string())))
         ),
         input_args(
             name="company_name",
-            input_type="String"
+            input_type=string()
         )
     ],
     attributes = attributes,
@@ -45,7 +45,7 @@ modelprice = task(
     input_args = [
         input_args(
             name="models",
-            input_type="Vec<String>"
+            input_type=list(string())
         ),
     ],
     attributes = attributes,
@@ -62,15 +62,15 @@ purchase = task(
     input_args = [
         input_args(
             name="model_price_list",
-            input_type="HashMap<String,i32>"
+            input_type = hashmap(string(), int(32))
         ),
         input_args(
             name="model_name",
-            input_type="String"
+            input_type=string()
         ),
         input_args(
             name="price",
-            input_type="i32"
+            input_type=int(32)
         ),
     ],
     attributes = attributes,
