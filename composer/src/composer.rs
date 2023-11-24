@@ -235,7 +235,7 @@ impl Composer {
             }
 
             let dest_path = current_path.join(format!(
-                "{}-{}",
+                "temp-{}-{}",
                 workflow.name.to_case(Case::Snake),
                 workflow.version
             ));
