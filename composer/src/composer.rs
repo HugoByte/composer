@@ -201,18 +201,18 @@ impl Composer {
 
     fn fetch_wasm(&self, pwd: &Path, workflow_name: &str) {
         Command::new("rustup")
-            .current_dir(pwd.join(format!("temp/{}", workflow_name)))
+            .current_dir(pwd.join(format!("{}", workflow_name)))
             .args(["target", "add", "wasm32-wasi"])
             .status()
             .expect("adding wasm32-wasi rust toolchain command failed to start");
 
         Command::new("cargo")
-            .current_dir(pwd.join(format!("temp/{}", workflow_name)))
+            .current_dir(pwd.join(format!("{}", workflow_name)))
             .args(["build", "--release", "--target", "wasm32-wasi"])
             .status()
             .expect("building wasm32 command failed to start");
 
-        let src = pwd.join(format!("temp/{}/target/wasm32-wasi/release", workflow_name));
+        let src = pwd.join(format!("{}/target/wasm32-wasi/release", workflow_name));
         fs::rename(
             src.join("workflow.wasm"),
             src.join(format!("{}.wasm", workflow_name)),
@@ -235,7 +235,7 @@ impl Composer {
             }
 
             let dest_path = current_path.join(format!(
-                "temp/{}-{}",
+                "temp-{}-{}",
                 workflow.name.to_case(Case::Snake),
                 workflow.version
             ));
@@ -256,8 +256,12 @@ impl Composer {
                     workflow.version
                 ),
             );
+            fs::remove_dir_all(current_path.join(&format!(
+                "temp-{}-{}",
+                workflow.name.to_case(Case::Snake),
+                workflow.version
+            )))
+            .unwrap();
         }
-
-        fs::remove_dir_all(current_path.join("temp")).unwrap();
     }
 }
