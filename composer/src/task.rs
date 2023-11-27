@@ -19,7 +19,6 @@ pub struct Task {
 pub struct Input {
     pub name: String,
     pub input_type: String,
-    #[serde(default)]
     pub default_value: String,
 }
 
