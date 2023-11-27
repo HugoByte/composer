@@ -1,6 +1,4 @@
 use super::*;
-use allocative::Allocative;
-use serde_derive::Serialize;
 
 #[derive(
     Debug, Default, PartialEq, Eq, ProvidesStaticType, Allocative, Clone, Deserialize, Serialize,

@@ -10,8 +10,16 @@ typ(
 typ(
     name = "struct2",
     fields = {
-        "field1" : map(int(8), string()),
+        "field1" : hashmap(int(8), string()),
         "field2" : list(string()),
+    }
+)
+
+typ(
+    name = "detailtype",
+    fields = {
+        "field1" : int(32),
+        "field2" : string(),
     }
 )
 
@@ -26,8 +34,7 @@ employee_id = task(
     kind = "openwhisk",
     action_name = "employee_ids",
     input_args = [
-        input_args(name = "input_field_2", input_type = "String"),
-        input_args(name = "input_field_1", input_type = int() ),  
+        input_args(name = "role", input_type = string() ),  
     ],
     attributes = attributes,
     depend_on = {}
@@ -37,13 +44,13 @@ getsalaries = task(
     kind = "openwhisk",
     action_name = "getsalaries",
     input_args = [
-        input_args(name = "id", input_type = Struct("struct2"), default_value = "23" )
+        input_args(name = "id", input_type = int(32), default_value = "23" )
     ],
     attributes = attributes,
-    operation = "map",
+    operation = operation("map", "salary"),
     depend_on = {
         "employee_ids" : {
-            "id" : "id"
+            "id" : list("ids")
         }
     }
 )
@@ -52,13 +59,13 @@ getaddress = task(
     kind = "openwhisk",
     action_name = "getaddress",
     input_args = [
-        input_args(name = "id", input_type = "i32", default_value = "1")
+        input_args(name = "id", input_type = int(32), default_value = "1")
     ],
     attributes = attributes,
-    operation = "map",
+    operation = operation("map", "address"),
     depend_on = {
         "employee_ids" : {
-            "id" : "id"
+            "id" : list("ids")
         }
     },
     
@@ -68,10 +75,12 @@ salary = task(
     kind = "openwhisk",
     action_name = "salary",
     input_args = [
-        input_args(name = "details", input_type = "HashMap<i32,(i32,String)>", default_value = "{1:(42,Hello)}")
+        input_args(name = "details", input_type = hashmap(int(32), Struct("detailtype")))
     ],
     attributes = attributes,
-    operation = "concat",
+    # operation = concat(["salaries", "address"]),
+    operation = operation("cat"),
+    
     depend_on = {
         "getsalaries" : {
             "details" : "result"

@@ -110,14 +110,14 @@ macro_rules! impl_setter {
 
             attributes = format!("{attributes}{}:\"{}\"", k, v);
 
-            attributes = if i != map.len() - 1 {
-                format!("{attributes},")
+            if i != map.len() - 1 {
+                attributes = format!("{attributes},")
             } else {
-                format!("{attributes}]")
+                break;
             }
         }
 
-        attributes
+        format!("{attributes}]")
     }
 
     pub fn parse_hashmap(&self, map: &HashMap<String, String>) -> String {
@@ -126,14 +126,14 @@ macro_rules! impl_setter {
         for (i, (k, v)) in map.iter().enumerate() {
             attributes = format!("{attributes}{}:{}", k, v);
 
-            attributes = if i != map.len() - 1 {
-                format!("{attributes},")
+            if i != map.len() - 1 {
+                attributes = format!("{attributes},")
             } else {
-                format!("{attributes}]")
+                break;
             }
         }
 
-        attributes
+        format!("{attributes}]")
     }
 
     pub fn get_kind(&self, kind: &str) -> Result<String, ErrorKind> {
@@ -148,13 +148,14 @@ macro_rules! impl_setter {
         let mut build_string = String::new();
         let custom_types = self.custom_types.borrow();
 
-        if let Some(types) = self.workflows.borrow()[workflow_index].custom_types.as_ref(){
-
+        if let Some(types) = self.workflows.borrow()[workflow_index]
+            .custom_types
+            .as_ref()
+        {
             for t in types.iter() {
                 let typ = custom_types.get(t).unwrap();
                 build_string = format!("{build_string}{typ}\n");
             }
-
         };
 
         build_string
@@ -246,12 +247,6 @@ impl_setter!({task_name}, [{}]);
                     task.action_name.clone()
                 )
             };
-
-            constructors = format!(
-                "{constructors}\tlet {}_index = workflow.add_node(Box::new({}));\n",
-                task.action_name.to_case(Case::Snake),
-                task.action_name.to_case(Case::Snake)
-            );
         }
 
         let mut input = "\nmake_input_struct!(\n\tInput,\n\t[".to_string();
@@ -265,19 +260,21 @@ impl_setter!({task_name}, [{}]);
                 input = format!("{input}],\n\t[Debug, Clone, Default, Serialize, Deserialize]);");
             }
         }
-        
+
         input_structs = format!("{input_structs}\n{input}");
 
         [input_structs, constructors]
     }
 
-    pub fn get_impl_execute_trait(&self, workflow_index: usize) -> String{
-
+    pub fn get_impl_execute_trait(&self, workflow_index: usize) -> String {
         let mut build_string = String::from("\nimpl_execute_trait!(");
         let len = self.workflows.borrow()[workflow_index].tasks.len();
 
-        for (i, task) in self.workflows.borrow()[workflow_index].tasks.iter().enumerate(){
-
+        for (i, task) in self.workflows.borrow()[workflow_index]
+            .tasks
+            .iter()
+            .enumerate()
+        {
             build_string = format!("{build_string}{}", task.1.action_name.to_case(Case::Pascal));
 
             build_string = if i != len - 1 {
@@ -290,26 +287,40 @@ impl_setter!({task_name}, [{}]);
         build_string
     }
 
-    pub fn get_workflow_execute_code(&self, workflow_index: usize) -> String {
+    pub fn get_workflow_nodes_and_edges(&self, workflow_index: usize) -> [String; 2] {
         let mut execute_code = "\tlet result = workflow\n\t\t.init()?".to_string();
 
         let flow: Vec<String> = self.get_flow(workflow_index);
 
-        if flow.is_empty(){
-            return "".to_string();
+        if flow.is_empty() {
+            return ["".to_string(), "".to_string()];
         }
 
-        if flow.len() == 1{
-            return format!("{}\n\t\t.term(None)?;", execute_code)
+        if flow.len() == 1 {
+            return [
+                format!(
+                    "let {}_index = workflow.add_node(Box::new({}));\n",
+                    flow[0].to_case(Case::Snake),
+                    flow[0].to_case(Case::Snake)
+                ),
+                format!("{}\n\t\t.term(None)?;", execute_code),
+            ];
         }
 
+        let mut add_nodes_code = String::new();
         let mut add_edges_code = "\tworkflow.add_edges(&[\n".to_string();
 
         for i in 0..flow.len() - 1 {
+            add_nodes_code = format!(
+                "{add_nodes_code}\tlet {}_index = workflow.add_node(Box::new({}));\n",
+                flow[i].to_case(Case::Snake),
+                flow[i].to_case(Case::Snake)
+            );
+
             add_edges_code = format!(
                 "{add_edges_code}\t\t({}_index, {}_index),\n",
-                flow[i].to_lowercase(),
-                flow[i + 1].to_lowercase()
+                flow[i].to_case(Case::Snake),
+                flow[i + 1].to_case(Case::Snake)
             );
 
             execute_code = if i + 1 == flow.len() - 1 {
@@ -323,32 +334,39 @@ impl_setter!({task_name}, [{}]);
                     0 | 1 => {
                         format!(
                             "{execute_code}\n\t\t.term(Some({}_index))?;",
-                            flow[i + 1].to_lowercase()
+                            flow[i + 1].to_case(Case::Snake)
                         )
                     }
 
                     _ => {
                         format!(
                             "{execute_code}\n\t\t.pipe({}_index)?\n\t\t.term(None)?;",
-                            flow[i + 1].to_lowercase()
+                            flow[i + 1].to_case(Case::Snake)
                         )
                     }
                 }
             } else {
                 format!(
                     "{execute_code}\n\t\t.pipe({}_index)?",
-                    flow[i + 1].to_lowercase()
+                    flow[i + 1].to_case(Case::Snake)
                 )
             };
         }
 
+        add_nodes_code = format!(
+            "{add_nodes_code}\tlet {}_index = workflow.add_node(Box::new({}));\n",
+            flow[flow.len() - 1].to_case(Case::Snake),
+            flow[flow.len() - 1].to_case(Case::Snake)
+        );
+
         add_edges_code = format!("{add_edges_code}\t]);\n\n{execute_code}");
 
-        add_edges_code
+        [add_nodes_code, add_edges_code]
     }
 
     pub fn generate_main_file_code(&self, workflow_index: usize) -> String {
         let structs = self.get_custom_structs(workflow_index);
+        let workflow_nodes_and_edges = self.get_workflow_nodes_and_edges(workflow_index);
 
         let main_file = format!(
             "{}
@@ -363,6 +381,7 @@ pub fn main(args: Value) -> Result<Value, String> {{
 
 {}
 {}
+{}
     let result = serde_json::to_value(result).unwrap();
     Ok(result)
 }}
@@ -373,7 +392,8 @@ pub fn main(args: Value) -> Result<Value, String> {{
             self.get_impl_execute_trait(workflow_index),
             self.workflows.borrow()[workflow_index].tasks.len(),
             structs[1],
-            self.get_workflow_execute_code(workflow_index)
+            workflow_nodes_and_edges[0],
+            workflow_nodes_and_edges[1]
         );
 
         main_file

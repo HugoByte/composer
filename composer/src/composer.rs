@@ -170,29 +170,59 @@ impl Composer {
         common
     }
 
-    fn copy_dir(&self, src: &Path, dest: &Path) -> io::Result<()> {
+    fn copy_dir(&self, src: &Path, dest: &Path, file: Option<&str>) -> io::Result<()> {
         // Create the destination directory if it doesn't exist
         if !dest.exists() {
-            fs::create_dir(dest)?;
+            fs::create_dir_all(dest)?;
         }
 
         for entry in fs::read_dir(src)? {
             let entry = entry?;
             let entry_path = entry.path();
             let file_name = entry.file_name();
-
-            let dest_path = dest.join(file_name);
+            let dest_path = dest.join(&file_name);
+            if file.is_some() && entry_path.is_dir() {
+                continue;
+            }
 
             if entry_path.is_dir() {
                 // Recursively copy subdirectories
-                self.copy_dir(&entry_path, &dest_path)?;
+                self.copy_dir(&entry_path, &dest_path, file)?;
             } else {
                 // Copy files
-                fs::copy(&entry_path, &dest_path)?;
+                if file.is_none() || (file_name.to_str() == file) {
+                    fs::copy(&entry_path, &dest_path)?;
+                }
             }
         }
 
         Ok(())
+    }
+
+    fn fetch_wasm(&self, pwd: &Path, workflow_name: &str) {
+        Command::new("rustup")
+            .current_dir(pwd.join(format!("temp-{}", workflow_name)))
+            .args(["target", "add", "wasm32-wasi"])
+            .status()
+            .expect("adding wasm32-wasi rust toolchain command failed to start");
+
+        Command::new("cargo")
+            .current_dir(pwd.join(format!("temp-{}", workflow_name)))
+            .args(["build", "--release", "--target", "wasm32-wasi"])
+            .status()
+            .expect("building wasm32 command failed to start");
+
+        let src = pwd.join(format!("temp-{}/target/wasm32-wasi/release", workflow_name));
+        fs::rename(
+            src.join("workflow.wasm"),
+            src.join(format!("{}.wasm", workflow_name)),
+        )
+        .unwrap();
+
+        let dest = pwd.join("workflow_wasm");
+
+        self.copy_dir(&src, &dest, Some(&format!("{}.wasm", workflow_name)))
+            .unwrap();
     }
 
     pub fn generate(&self, current_path: &Path) {
@@ -205,18 +235,32 @@ impl Composer {
             }
 
             let dest_path = current_path.join(format!(
-                "temp/{}-{}",
+                "temp-{}-{}",
                 workflow.name.to_case(Case::Snake),
                 workflow.version
             ));
-            fs::create_dir_all(&dest_path).unwrap();
 
-            self.copy_dir(&src_path, &dest_path).unwrap();
+            self.copy_dir(&src_path, &dest_path, None).unwrap();
 
             fs::write(
                 dest_path.join("src/types.rs"),
                 self.generate_main_file_code(i),
             )
+            .unwrap();
+
+            self.fetch_wasm(
+                current_path,
+                &format!(
+                    "{}-{}",
+                    workflow.name.to_case(Case::Snake),
+                    workflow.version
+                ),
+            );
+            fs::remove_dir_all(current_path.join(&format!(
+                "temp-{}-{}",
+                workflow.name.to_case(Case::Snake),
+                workflow.version
+            )))
             .unwrap();
         }
     }

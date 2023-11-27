@@ -1,6 +1,7 @@
+use allocative::Allocative;
 use anyhow::Error;
 use convert_case::{Case, Casing};
-use serde_derive::Deserialize;
+use serde_derive::{Deserialize, Serialize};
 use starlark::environment::{GlobalsBuilder, Module};
 use starlark::eval::Evaluator;
 use starlark::syntax::{AstModule, Dialect};
@@ -10,6 +11,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::{self, Display};
 use std::io::ErrorKind;
+use std::process::Command;
 use std::result::Result::Ok;
 use std::{env, fs};
 use std::{io, path::Path};
