@@ -12,13 +12,13 @@ cartype = task(
         input_args(
             name="car_type",
             input_type= string(),
-            default_value = "hgghhhch"
+            default_value = '"type_x"'
         ),
     ],
     attributes = attributes,
 )
 
-'''
+
 modelavail = task(
     kind = "openwhisk",
     action_name = "modelavail",
@@ -26,12 +26,11 @@ modelavail = task(
         input_args(
             name="car_company_list",
             input_type=map(string(), list(string())),
-            default_value= '{ "Company_x": ["type1", "type2"] }' # no need of default value
         ),
         input_args(
             name="company_name",
             input_type=string(),
-            default_value = "company_x"
+            default_value = '"company_x"'
         )
     ],
     attributes = attributes,
@@ -48,8 +47,7 @@ modelprice = task(
     input_args = [
         input_args(
             name="models",
-            input_type=list(string()),
-            default_value = '{["model_1", "model_2", "model_3"]}' # no need of default value
+            input_type=list(string())
         ),
     ],
     attributes = attributes,
@@ -66,18 +64,17 @@ purchase = task(
     input_args = [
         input_args(
             name="model_price_list",
-            input_type=map(string(), int(32)),   
-            default_value= '{ "model_1" : 10000, "model_2" : 20000 }'
+            input_type=map(string(), int(32))
         ),
         input_args(
             name="model_name",
             input_type=string(),
-            default_value = "model_x"
+            default_value = '"model_x"'
         ),
         input_args(
             name="price",
             input_type=int(32),
-            default_value = '{50}'
+            default_value = '50'
         ),
     ],
     attributes = attributes,
@@ -92,4 +89,3 @@ workflows(
     version = "0.0.1",
     tasks = [cartype, modelavail, modelprice, purchase],
 )
-'''

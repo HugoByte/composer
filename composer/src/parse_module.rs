@@ -12,12 +12,19 @@ macro_rules! make_input_struct {
     (
         $x:ident,
         // list of field and it's type
-        [$($visibility:vis $element:ident : $ty:ty),*],
+        [$(
+            $(#[$default_derive:stmt])?
+            $visibility:vis $element:ident : $ty:ty),*],
         // list of derive macros
         [$($der:ident),*]
 ) => {
         #[derive($($der),*)]
-        pub struct $x { $($visibility  $element: $ty),*}
+            pub struct $x { 
+            $(
+                $(#[serde(default=$default_derive)])?
+                $visibility  $element: $ty
+            ),*
+        }
     }
 }
 
@@ -162,7 +169,7 @@ macro_rules! impl_setter {
     }
 
     pub fn get_custom_structs(&self, workflow_index: usize) -> [String; 2] {
-        let mut common_inputs = HashMap::<String, String>::new();
+        let mut common_inputs = Vec::<String>::new();
 
         let mut constructors = String::new();
         let mut input_structs = String::new();
@@ -199,7 +206,25 @@ macro_rules! impl_setter {
                 }
 
                 if depend.binary_search(&field.name).is_err() {
-                    common_inputs.insert(field.name.clone(), field.input_type.clone());
+                    if let Some(val) = field.default_value.as_ref() {
+                        common_inputs.push(format!(
+                            "#[\"{}_fn\"] {}:{}",
+                            field.name, field.name, field.input_type
+                        ));
+
+                        let make_fn = format!(
+"pub fn {}_fn() -> {}{{
+    let val:{} = serde_json::from_str::<{}>({:?}).unwrap();
+    val
+}}",
+                            field.name, field.input_type, field.input_type, field.input_type, val
+                        );
+
+                        input_structs = format!("{input_structs}\n{make_fn}");
+                    } else {
+                        // common_inputs.insert(field.name.clone(), field.input_type.clone());
+                        common_inputs.push(format!("{}:{}", field.name, field.input_type));
+                    }
                     new.push(format!("{}:{}", field.name, field.input_type));
                 }
             }
@@ -252,7 +277,7 @@ impl_setter!({task_name}, [{}]);
         let mut input = "\nmake_input_struct!(\n\tInput,\n\t[".to_string();
 
         for (i, field) in common_inputs.iter().enumerate() {
-            input = format!("{input}{}:{}", field.0, field.1);
+            input = format!("{input}{}", field);
 
             if i != common_inputs.len() - 1 {
                 input = format!("{input},");

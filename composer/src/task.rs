@@ -19,7 +19,7 @@ pub struct Task {
 pub struct Input {
     pub name: String,
     pub input_type: String,
-    pub default_value: String,
+    pub default_value: Option<String>,
 }
 
 impl Task {
@@ -68,7 +68,7 @@ impl Display for Input {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{} {} {}",
+            "{} {} {:?}",
             self.name, self.input_type, self.default_value
         )
     }

@@ -73,10 +73,6 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         input_type: String,
         default_value: Option<String>,
     ) -> anyhow::Result<Input> {
-        let default_value = match default_value {
-            Some(b) => b,
-            None => String::default(),
-        };
         Ok(Input {
             name,
             input_type,
