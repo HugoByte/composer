@@ -24,7 +24,7 @@ modelavail = task(
     input_args = [
         input_args(
             name="car_company_list",
-            input_type = hashmap(string(), list(string())))
+            input_type = map(string(), list(string()))
         ),
         input_args(
             name="company_name",
@@ -62,7 +62,7 @@ purchase = task(
     input_args = [
         input_args(
             name="model_price_list",
-            input_type = hashmap(string(), int(32))
+            input_type = map(string(), int(32))
         ),
         input_args(
             name="model_name",

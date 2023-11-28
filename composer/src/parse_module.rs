@@ -136,7 +136,7 @@ macro_rules! impl_setter {
         format!("{attributes}]")
     }
 
-    pub fn get_kind(&self, kind: &str) -> Result<String, ErrorKind> {
+    pub fn get_task_kind(&self, kind: &str) -> Result<String, ErrorKind> {
         match kind.to_lowercase().as_str() {
             "openwhisk" => Ok("OpenWhisk".to_string()),
             "polkadot" => Ok("Polkadot".to_string()),
@@ -144,7 +144,7 @@ macro_rules! impl_setter {
         }
     }
 
-    pub fn get_custom_types(&self, workflow_index: usize) -> String {
+    pub fn get_user_defined_types(&self, workflow_index: usize) -> String {
         let mut build_string = String::new();
         let custom_types = self.custom_types.borrow();
 
@@ -161,9 +161,36 @@ macro_rules! impl_setter {
         build_string
     }
 
-    pub fn get_custom_structs(&self, workflow_index: usize) -> [String; 2] {
-        let mut common_inputs = HashMap::<String, String>::new();
+    pub fn get_common_inputs_type(&self, workflow_index: usize) -> String {
+        let mut common = Vec::<String>::new();
 
+        for (_, task) in self.workflows.borrow()[workflow_index].tasks.iter() {
+            let mut depend = Vec::<String>::new();
+
+            for (_, fields) in task.depend_on.iter() {
+                for k in fields.keys() {
+                    depend.push(k.to_string());
+                }
+            }
+
+            for input in task.input_args.iter() {
+                if depend.binary_search(&input.name).is_err() {
+                    common.push(format!("{}:{}", input.name, input.input_type));
+                };
+            }
+        }
+
+        format!(
+            "make_input_struct!(
+    Input,
+    [{}],
+    [Debug, Clone, Default, Serialize, Deserialize]
+);",
+            common.join(",")
+        )
+    }
+
+    pub fn get_types_and_constructors(&self, workflow_index: usize) -> [String; 2] {
         let mut constructors = String::new();
         let mut input_structs = String::new();
 
@@ -176,7 +203,6 @@ macro_rules! impl_setter {
             for fields in task.depend_on.values() {
                 let x = fields.iter().next().unwrap();
                 depend.push(x.0.to_string());
-
                 setter.push(format!("{}:\"{}\"", x.0, x.1));
             }
 
@@ -186,7 +212,7 @@ macro_rules! impl_setter {
     ["
             );
 
-            let mut new = Vec::<String>::new();
+            let mut not_depend = Vec::<String>::new();
 
             for (i, field) in task.input_args.iter().enumerate() {
                 input = format!("{input}{}:{}", field.name, field.input_type);
@@ -199,8 +225,7 @@ macro_rules! impl_setter {
                 }
 
                 if depend.binary_search(&field.name).is_err() {
-                    common_inputs.insert(field.name.clone(), field.input_type.clone());
-                    new.push(format!("{}:{}", field.name, field.input_type));
+                    not_depend.push(format!("{}:{}", field.name, field.input_type));
                 }
             }
 
@@ -220,53 +245,35 @@ impl_new!(
 );
 impl_setter!({task_name}, [{}]);
 ",
-                self.get_kind(&task.kind).unwrap(),
+                self.get_task_kind(&task.kind).unwrap(),
                 self.get_attributes(&task.attributes),
-                new.join(","),
+                not_depend.join(","),
                 setter.join(",")
             );
 
-            constructors = if new.is_empty() {
-                format!(
-                    "{constructors}\tlet {} = {}::new(\"{}\".to_string());\n",
-                    task.action_name.to_case(Case::Snake),
-                    task_name,
-                    task.action_name.clone()
-                )
-            } else {
-                let commons: Vec<String> = new
+            constructors = {
+                let commons: Vec<String> = not_depend
                     .iter()
                     .map(|x| format!("input.{}", x.split(':').collect::<Vec<&str>>()[0]))
                     .collect();
 
+                let commons = commons.join(",");
+
                 format!(
-                    "{constructors}\tlet {} = {}::new({}, \"{}\".to_string());\n",
+                    "{constructors}\tlet {} = {}::new({}{}\"{}\".to_string());\n",
                     task.action_name.to_case(Case::Snake),
                     task_name,
-                    commons.join(","),
+                    commons,
+                    if !commons.is_empty() { ", " } else { "" },
                     task.action_name.clone()
                 )
             };
         }
 
-        let mut input = "\nmake_input_struct!(\n\tInput,\n\t[".to_string();
-
-        for (i, field) in common_inputs.iter().enumerate() {
-            input = format!("{input}{}:{}", field.0, field.1);
-
-            if i != common_inputs.len() - 1 {
-                input = format!("{input},");
-            } else {
-                input = format!("{input}],\n\t[Debug, Clone, Default, Serialize, Deserialize]);");
-            }
-        }
-
-        input_structs = format!("{input_structs}\n{input}");
-
         [input_structs, constructors]
     }
 
-    pub fn get_impl_execute_trait(&self, workflow_index: usize) -> String {
+    pub fn get_impl_execute_trait_code(&self, workflow_index: usize) -> String {
         let mut build_string = String::from("\nimpl_execute_trait!(");
         let len = self.workflows.borrow()[workflow_index].tasks.len();
 
@@ -365,12 +372,13 @@ impl_setter!({task_name}, [{}]);
     }
 
     pub fn generate_main_file_code(&self, workflow_index: usize) -> String {
-        let structs = self.get_custom_structs(workflow_index);
+        let structs = self.get_types_and_constructors(workflow_index);
         let workflow_nodes_and_edges = self.get_workflow_nodes_and_edges(workflow_index);
 
         let main_file = format!(
             "{}
 {}            
+{}
 {}
 {}
 #[allow(dead_code, unused)]
@@ -387,9 +395,10 @@ pub fn main(args: Value) -> Result<Value, String> {{
 }}
 ",
             self.get_macros(),
-            self.get_custom_types(workflow_index),
+            self.get_user_defined_types(workflow_index),
             structs[0],
-            self.get_impl_execute_trait(workflow_index),
+            self.get_common_inputs_type(workflow_index),
+            self.get_impl_execute_trait_code(workflow_index),
             self.workflows.borrow()[workflow_index].tasks.len(),
             structs[1],
             workflow_nodes_and_edges[0],

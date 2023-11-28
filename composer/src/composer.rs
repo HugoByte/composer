@@ -124,52 +124,6 @@ impl Composer {
         flow
     }
 
-    pub fn get_task(&self, task_name: &str, workflow_index: usize) -> Task {
-        self.workflows.borrow()[workflow_index]
-            .tasks
-            .get(task_name)
-            .unwrap()
-            .clone()
-    }
-
-    pub fn get_task_input_data(&self, task_name: &str, task: &HashMap<String, String>) -> String {
-        let mut input = format!("{task_name}Input, [");
-
-        for (i, field) in task.iter().enumerate() {
-            input = format!("{input}{}:{}", field.0, field.1);
-
-            if i != task.len() - 1 {
-                input = format!("{input},");
-            } else {
-                input = format!("{input}]");
-            }
-        }
-
-        input
-    }
-
-    pub fn get_common_inputs(&self, workflow_index: usize) -> Vec<(String, String)> {
-        let mut common = Vec::<(String, String)>::new();
-
-        for (_, task) in self.workflows.borrow()[workflow_index].tasks.iter() {
-            let mut depend = Vec::<String>::new();
-
-            for (_, fields) in task.depend_on.iter() {
-                for k in fields.keys() {
-                    depend.push(k.to_string());
-                }
-            }
-
-            for input in task.input_args.iter() {
-                if depend.binary_search(&input.name).is_err() {
-                    common.push((input.name.clone(), input.input_type.clone()));
-                };
-            }
-        }
-
-        common
-    }
-
     fn copy_dir(&self, src: &Path, dest: &Path, file: Option<&str>) -> io::Result<()> {
         // Create the destination directory if it doesn't exist
         if !dest.exists() {

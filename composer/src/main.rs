@@ -22,11 +22,13 @@ pub mod starlark_modules;
 pub mod task;
 pub mod tests;
 pub mod workflow;
+pub mod input;
 
 use composer::*;
 use starlark_modules::*;
 use task::*;
 use workflow::*;
+use input::*;
 
 fn main() {
     let mut composer = Composer::default();
