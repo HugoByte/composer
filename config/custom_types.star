@@ -25,7 +25,7 @@ typ(
 
 attributes = {
     "api_host" : "https://65.20.70.146:31001",
-    "auth_token" : "23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",
+    "auth_key" : "23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",
     "insecure" : "true",
     "namespace" : "guest"   
 }
@@ -47,7 +47,7 @@ getsalaries = task(
         input_args(name = "id", input_type = int(32), default_value = "23" )
     ],
     attributes = attributes,
-    operation = operation(operation = "map", field = "salary"),
+    operation = operation(operation = "map", field = "Salary"),
     depend_on = {
         "employee_ids" : {
             "id" : "ids"
@@ -62,7 +62,7 @@ getaddress = task(
         input_args(name = "id", input_type = int(32), default_value = "1")
     ],
     attributes = attributes,
-    operation = operation(operation = "map", field = "address"),
+    operation = operation(operation = "map", field = "Address"),
     depend_on = {
         "employee_ids" : {
             "id" : "ids"

@@ -136,7 +136,7 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
         }
     }
 
-    fn map(field1: String, field2: String) -> anyhow::Result<String> {
+    fn hashmap(field1: String, field2: String) -> anyhow::Result<String> {
         Ok(format!("HashMap<{}, {}>", field1, field2))
     }
 

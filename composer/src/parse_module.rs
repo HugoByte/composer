@@ -96,21 +96,19 @@ macro_rules! impl_setter {
                 let value = val.get($key).unwrap();
                 self.input.$element = serde_json::from_value(value.clone()).unwrap();
                 )*
-
             }
         }
     }
- 
 }
 
 macro_rules! impl_map_setter {
     (
         $name:ty,
-        $element:ident,
-        $key:expr ,  
-        $typ_name : ty  
+        $element:ident : $key:expr,  
+        $typ_name : ty,
+        $out:ident
     ) => {
-        impl $name
+        impl $name {
             pub fn setter(&mut self, val: Value) {
                 
                     let value = val.get($key).unwrap();
@@ -120,13 +118,14 @@ macro_rules! impl_map_setter {
                         .map(|x| {
                             self.input.$element = x.to_owned() as $typ_name;
                             self.run();
-                            (x.to_owned(), self.output.get(\"$element\").unwrap().to_owned())
+                            (x.to_owned(), self.output.get(\"$out\").unwrap().to_owned())
                         })
                         .collect();
                     self.mapout = to_value(map).unwrap();
                 
             }
         }
+    }
     }
 
 macro_rules! impl_concat_setter {
@@ -136,7 +135,7 @@ macro_rules! impl_concat_setter {
     ) => {
         impl $name{
             pub fn setter(&mut self, val: Value) {
-                $(
+                
                     let val: Vec<Value> = serde_json::from_value(val).unwrap();
                     let res = join_hashmap(
                         serde_json::from_value(val[0].to_owned()).unwrap(),
@@ -144,7 +143,7 @@ macro_rules! impl_concat_setter {
                     );
                     self.input.$element = res;
 
-                )*
+                
             }
         }
     }
@@ -211,7 +210,7 @@ macro_rules! impl_concat_setter {
         build_string
     }
 
-    pub fn get_custom_structs(&self, workflow_index: usize) -> [String; 2] {
+    pub fn get_custom_structs(&self, workflow_index: usize) -> Vec<String> {
         let mut common_inputs = HashMap::<String, String>::new();
 
         let mut constructors = String::new();
@@ -222,35 +221,20 @@ macro_rules! impl_concat_setter {
 
             let mut depend = Vec::<String>::new();
             let mut setter = Vec::<String>::new();
+            let mut map_setter = String::new();
 
             for fields in task.depend_on.values() {
                 let x = fields.iter().next().unwrap();
                 depend.push(x.0.to_string());
 
                 setter.push(format!("{}:\"{}\"", x.0, x.1));
+
             }
 
             let field = match &task.operation{
                 Operation::Map(_) => "map",
                 _ => "",
             };
-
-            // for gg in task.input_args.iter(){
-            //     if gg.name.as_str().is_empty(){
-            //         gg
-            //     }
-                   
-            //     }
-            //     setter.push(format!({},))
-            // }
-            
-            // setter.push(asd.clone());
-
-            // let concat_field : &str = match &task.kind{
-            //     Operation::Concat => "concat",
-            //     _ => "",
-            // };
-           
             map_setter.push_str(&field);
 
             let mut input = format!(
@@ -258,6 +242,7 @@ macro_rules! impl_concat_setter {
     {task_name}Input,
     ["
             );
+
 
             let mut new = Vec::<String>::new();
 
@@ -279,10 +264,10 @@ macro_rules! impl_concat_setter {
 
         let setter_macro = match &task.operation{
             Operation::Map(field) => 
-                format!("impl_map_setter!({}, [{}], {})", task_name, setter.join(","), field),
+                format!("impl_map_setter!({}, {}, {}, {});", task_name, setter.join(","), task.input_args[0].input_type,  field),
             Operation::Concat => 
-                format!("impl_concat_setter!({}, {})", task_name, task.input_args[0].name),
-            _ =>  format!("impl_setter!({}, [{}])", task_name, setter.join(","))
+                format!("impl_concat_setter!({}, {},);", task_name, task.input_args[0].name),
+            _ =>  format!("impl_setter!({}, [{}]);", task_name, setter.join(","))
         };
 
         
@@ -303,10 +288,13 @@ impl_new!(
 );
 {setter_macro}
 ",
+    
+
                 self.get_kind(&task.kind).unwrap(),
                 self.get_attributes(&task.attributes),
                 new.join(","),
-                setter.join(",")
+            
+                
             );
 
             constructors = if new.is_empty() {
@@ -345,8 +333,7 @@ impl_new!(
         }
 
         input_structs = format!("{input_structs}\n{input}");
-
-        [input_structs, constructors]
+        vec![input_structs, constructors]
     }
 
     pub fn get_impl_execute_trait(&self, workflow_index: usize) -> String {

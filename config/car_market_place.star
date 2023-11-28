@@ -24,7 +24,7 @@ modelavail = task(
     input_args = [
         input_args(
             name="car_company_list",
-            input_type = hashmap(string(), list(string())))
+            input_type = hashmap(string(), list(string()))
         ),
         input_args(
             name="company_name",

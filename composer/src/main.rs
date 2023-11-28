@@ -35,5 +35,6 @@ fn main() {
 
 
     composer.add_config("./config/car_market_place.star");
+  
     composer.run();
 }
