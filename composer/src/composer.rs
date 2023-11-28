@@ -1,6 +1,3 @@
-
-use std::{env, fs, process::Command};
-// use anyhow::Ok;
 use super::*;
 
 #[derive(Debug, ProvidesStaticType, Default)]
@@ -16,7 +13,9 @@ impl Composer {
     }
 
     pub fn run(&self) {
-        for (index, config) in self.config_files.iter().enumerate() {
+        let current_path = env::current_dir().unwrap();
+
+        for config in self.config_files.iter() {
             let content: String = std::fs::read_to_string(config).unwrap();
             let ast = AstModule::parse("config", content, &Dialect::Extended).unwrap();
 
@@ -34,7 +33,8 @@ impl Composer {
                 eval.extra = Some(&composer);
                 eval.eval_module(ast, &globals).unwrap();
             }
-            composer.generate(index + 1);
+
+            composer.generate(current_path.as_path());
         }
     }
 
@@ -43,7 +43,7 @@ impl Composer {
         name: String,
         version: String,
         tasks: HashMap<String, Task>,
-        custom_types: Vec<String>,
+        custom_types: Option<Vec<String>>,
     ) -> Result<(), Error> {
         for i in self.workflows.borrow().iter() {
             if i.name == name {
@@ -69,7 +69,7 @@ impl Composer {
             .insert(type_name.to_string(), build_string);
     }
 
-    fn get_dependencies(&self, task_name: &str, workflow_index: usize) -> Option<Vec<String>> {
+    pub fn get_dependencies(&self, task_name: &str, workflow_index: usize) -> Option<Vec<String>> {
         let mut deps = Vec::<String>::new();
 
         for d in self.workflows.borrow()[workflow_index]
@@ -143,7 +143,7 @@ impl Composer {
             } else {
                 input = format!("{input}]");
             }
-        } 
+        }
 
         input
     }
@@ -170,41 +170,97 @@ impl Composer {
         common
     }
 
-    // Function to generate a new Cargo package and write the main.rs and Cargo.toml files
-    #[allow(dead_code)]
-    fn generate_cargo(
-        &self,
-        project_name: &str,
-        path: &Path,
-        main_file_content: &str,
-        cargo_toml_content: &str,
-    ) {
-        // Generating a new Cargo package
-        Command::new("cargo")
-            .args(["new", project_name, "--lib"])
-            .status()
-            .unwrap();
+    fn copy_dir(&self, src: &Path, dest: &Path, file: Option<&str>) -> io::Result<()> {
+        // Create the destination directory if it doesn't exist
+        if !dest.exists() {
+            fs::create_dir_all(dest)?;
+        }
 
-        // Creating and writing into the files
-        fs::write(path.join("src/lib.rs"), main_file_content).unwrap();
-        fs::write(path.join("Cargo.toml"), cargo_toml_content).unwrap();
+        for entry in fs::read_dir(src)? {
+            let entry = entry?;
+            let entry_path = entry.path();
+            let file_name = entry.file_name();
+            let dest_path = dest.join(&file_name);
+            if file.is_some() && entry_path.is_dir() {
+                continue;
+            }
+
+            if entry_path.is_dir() {
+                // Recursively copy subdirectories
+                self.copy_dir(&entry_path, &dest_path, file)?;
+            } else {
+                // Copy files
+                if file.is_none() || (file_name.to_str() == file) {
+                    fs::copy(&entry_path, &dest_path)?;
+                }
+            }
+        }
+
+        Ok(())
     }
 
-    pub fn generate(&self, index: usize) {
-        // Getting the current working directory
-        let path = env::current_dir()
-            .unwrap()
-            .join(format!("./workflows/config_{}_workflows", index));
+    fn fetch_wasm(&self, pwd: &Path, workflow_name: &str) {
+        Command::new("rustup")
+            .current_dir(pwd.join(format!("temp-{}", workflow_name)))
+            .args(["target", "add", "wasm32-wasi"])
+            .status()
+            .expect("adding wasm32-wasi rust toolchain command failed to start");
 
-        fs::create_dir_all(&path).expect("not able to create workflow directory");
+        Command::new("cargo")
+            .current_dir(pwd.join(format!("temp-{}", workflow_name)))
+            .args(["build", "--release", "--target", "wasm32-wasi"])
+            .status()
+            .expect("building wasm32 command failed to start");
+
+        let src = pwd.join(format!("temp-{}/target/wasm32-wasi/release", workflow_name));
+        fs::rename(
+            src.join("workflow.wasm"),
+            src.join(format!("{}.wasm", workflow_name)),
+        )
+        .unwrap();
+
+        let dest = pwd.join("workflow_wasm");
+
+        self.copy_dir(&src, &dest, Some(&format!("{}.wasm", workflow_name)))
+            .unwrap();
+    }
+
+    pub fn generate(&self, current_path: &Path) {
+        // Getting the current working directory
+        let src_path = current_path.join("boilerplate");
 
         for (i, workflow) in self.workflows.borrow().iter().enumerate() {
-            fs::create_dir_all(path.join(format!("./{}", workflow.name))).unwrap();
+            if workflow.tasks.is_empty() {
+                continue;
+            }
+
+            let dest_path = current_path.join(format!(
+                "temp-{}-{}",
+                workflow.name.to_case(Case::Snake),
+                workflow.version
+            ));
+
+            self.copy_dir(&src_path, &dest_path, None).unwrap();
 
             fs::write(
-                path.join(format!("./{}/types.rs", workflow.name)),
+                dest_path.join("src/types.rs"),
                 self.generate_main_file_code(i),
             )
+            .unwrap();
+
+            self.fetch_wasm(
+                current_path,
+                &format!(
+                    "{}-{}",
+                    workflow.name.to_case(Case::Snake),
+                    workflow.version
+                ),
+            );
+            fs::remove_dir_all(current_path.join(&format!(
+                "temp-{}-{}",
+                workflow.name.to_case(Case::Snake),
+                workflow.version
+            )))
             .unwrap();
         }
     }
