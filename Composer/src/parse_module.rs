@@ -223,41 +223,12 @@ macro_rules! impl_concat_setter {
             let mut setter = Vec::<String>::new();
             let mut map_setter = String::new();
 
-            for fields in task.depend_on.iter() {
-                // let x = fields.next().unwrap();
-                // depend.push(x.0.to_string());
-
-                // let mut input ="".to_string();
-                // for i in task.input_args.iter(){
-                //     if i.name.as_str() == x.0{
-                //         input = i.input_type.to_string(); 
-                //     }
-                // }
-
-                // setter.push(format!("{},\"{}\", {}", x.0, x.1, input ));
-
-            }
 
             let field = match &task.operation{
                 Operation::Map(_) => "map",
                 _ => "",
             };
 
-            // for gg in task.input_args.iter(){
-            //     if gg.name.as_str().is_empty(){
-            //         gg
-            //     }
-                   
-            //     }
-            //     setter.push(format!({},))
-            // }
-            
-            // setter.push(asd.clone());
-
-            // let concat_field : &str = match &task.kind{
-            //     Operation::Concat => "concat",
-            //     _ => "",
-            // };
            
             map_setter.push_str(&field);
 

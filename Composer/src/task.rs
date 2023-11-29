@@ -10,8 +10,6 @@ pub struct Task {
     pub attributes: HashMap<String, String>,
     #[serde(default)]
     pub operation: Operation,
-    #[serde(default)]
-    pub flow_type : Flow,
     // pub depend_on: HashMap<String, HashMap<String, String>>,
     pub depend_on : Vec<Depend>,
 }
@@ -44,18 +42,6 @@ impl Default for Operation {
     }
 }
 
-#[derive( Debug, PartialEq, Eq, ProvidesStaticType, Allocative, Clone, Deserialize, Serialize)]
-pub enum Flow{
-    Init,
-    Pipe,
-    Term
-}
-
-impl Default for Flow {
-    fn default() -> Flow{
-        Self::Pipe
-    }
-}
 
 impl Task {
     pub fn new(
@@ -64,8 +50,7 @@ impl Task {
         input_args: Vec<Input>,
         attributes: HashMap<String, String>,
         depend_on: Vec<Depend>,
-        operation: Operation,
-        flow_type: Flow,
+        operation: Operation
     ) -> Self {
         Task {
             kind: kind.to_string(),
@@ -73,8 +58,7 @@ impl Task {
             input_args,
             attributes,
             depend_on,
-            operation,
-            flow_type,
+            operation
         }
     }
 }
@@ -85,14 +69,13 @@ impl Display for Task {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{} {} {:?} {:?} {} {:?} {:?}",
+            "{} {} {:?} {:?} {} {:?}",
             self.kind,
             self.action_name,
             self.input_args,
             self.attributes,
             self.operation,
-            self.depend_on,
-            self.flow_type,
+            self.depend_on
         )
     }
 }
@@ -136,17 +119,6 @@ starlark_simple_value!(Operation);
 impl<'v> StarlarkValue<'v> for Operation {}
 
 impl Display for Operation {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-       write!(f, "{:?}", self)
-    }
-}
-
-starlark_simple_value!(Flow);
-
-#[starlark_value(type = "Flow")]
-impl<'v> StarlarkValue<'v> for Flow {}
-
-impl Display for Flow {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
        write!(f, "{:?}", self)
     }

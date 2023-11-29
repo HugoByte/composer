@@ -44,7 +44,7 @@ impl Composer {
         name: String,
         version: String,
         tasks: HashMap<String, Task>,
-        custom_types: Vec<String>,
+        custom_types: Option<Vec<String>>,
     ) -> Result<(), Error> {
         for i in self.workflows.borrow().iter() {
             if i.name == name {
@@ -58,7 +58,7 @@ impl Composer {
                 name,
                 version,
                 tasks,
-                custom_types,
+                custom_types : custom_types.unwrap_or_default(),
             });
             Ok(())
         }

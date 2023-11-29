@@ -29,7 +29,6 @@ employee_id = task(
         input_args(name = "role", input_type = string() ),  
     ],
     attributes = attributes,
-    flow_type = flow("init"),
     depend_on = []
 )
 
@@ -88,7 +87,6 @@ stakingpayout = task(
         "chain" : "westend",
         "operation" : "stakingpayout"
     },
-    flow_type = flow("init"),
     depend_on = []
 )
 

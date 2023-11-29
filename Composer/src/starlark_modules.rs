@@ -1,6 +1,4 @@
-// use anyhow::Ok;
 
-// use anyhow::Ok;
 
 use super::*;
 
@@ -13,7 +11,6 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         attributes: Value,
         depend_on: Value,
         operation: Option<Value>,
-        flow_type: Option<Value>,
     ) -> anyhow::Result<Task> {
         let input_args: Vec<Input> = serde_json::from_str(&input_args.to_json()?).unwrap();
         let attributes: HashMap<String, String> =
@@ -26,24 +23,6 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
             _ => Operation::Normal
         };
 
-        let flow_type : Flow = match flow_type{
-        Some(f) => serde_json::from_str(&f.to_json()?).unwrap(),
-        None => Flow::Pipe
-        };
-
-        // if let Some(f) = flow_type {
-
-        //     // flow_type is not null
-        // } else {
-        //     // flow_type is null
-        // }
-
-        // if !depend_on.is_empty(){
-             
-        // }else{
-            
-        // }
-
 
         Ok(Task {
             kind,
@@ -51,8 +30,7 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
             input_args,
             attributes,
             operation,
-            depend_on,
-            flow_type,
+            depend_on
         })
     }
 
@@ -60,11 +38,15 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         name: String,
         version: String,
         tasks: Value,
-        custom_types: Value,
+        custom_types: Option<Value>,
         eval: &mut Evaluator,
     ) -> anyhow::Result<NoneType> {
         let tasks: Vec<Task> = serde_json::from_str(&tasks.to_json()?).unwrap();
-        let custom_types: Vec<String> = serde_json::from_str(&custom_types.to_json()?).unwrap();
+
+        let custom_types: Option<Vec<String>> = match custom_types {
+            Some(a) => serde_json::from_str(&a.to_json()?).unwrap(),
+            None => None,
+        };
 
         let mut task_hashmap = HashMap::new();
 
@@ -128,17 +110,6 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         }
     }
 
-    fn flow(flow : Option<String>) -> anyhow::Result<Option<Flow>> {
-        match flow{
-            Some(f) => match f.as_str() {
-                "pipe" => return Ok(Some(Flow::Pipe)),
-                "init" => return Ok(Some(Flow::Init)),
-                "term" => return Ok(Some(Flow::Term)),
-                _ => Err(Error::msg("flow-type is invalid"))
-            },
-            None => Ok(None),
-        }
-    }
 }
 
 #[starlark_module]
