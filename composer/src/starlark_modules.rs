@@ -151,21 +151,12 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
         }
     }
 
-    fn hashmap(field1: String, field2: String) -> anyhow::Result<String> {
+    fn map(field1: String, field2: String) -> anyhow::Result<String> {
         Ok(format!("HashMap<{}, {}>", field1, field2))
     }
 
     fn list(field1: String) -> anyhow::Result<String> {
         Ok(format!("Vec<{}>", field1))
-    }
-
-    fn map(field: String) -> anyhow::Result<String>{
-        Ok(field)
-    }
-
-    fn concat(field: Vec<String>) -> anyhow::Result<String>{
-        Ok(field.join(","))
-        
     }
 
     fn Struct(type_name: String, eval: &mut Evaluator) -> anyhow::Result<String> {

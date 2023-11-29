@@ -40,9 +40,11 @@ getsalaries = task(
     ],
     attributes = attributes,
     operation = operation("map", "salary"),
-    depend_on = [
-        depend(task_name = "employee_ids", cur_field = "id", prev_field = "ids")
-    ]
+    depend_on = {
+        "employee_ids" : {
+            "id" : list("ids")
+        }
+    }
 )
 
 getaddress = task(
@@ -53,9 +55,11 @@ getaddress = task(
     ],
     attributes = attributes,
     operation = operation("map", "address"),
-    depend_on = [
-        depend(task_name = "employee_ids", cur_field = "id", prev_field = "ids")
-    ]
+    depend_on = {
+        "employee_ids" : {
+            "id" : list("ids")
+        }
+    },
     
 )
 
@@ -66,12 +70,17 @@ salary = task(
         input_args(name = "details", input_type = hashmap(int(32), "(i32, String)"))
     ],
     attributes = attributes,
-    operation = operation("concat"),
-     depend_on = [
-        depend(task_name = "getsalaries", cur_field = "details", prev_field = "result"),
-        depend(task_name = "getaddress", cur_field = "details", prev_field = "result")
-    ]
-
+    # operation = concat(["salaries", "address"]),
+    operation = operation("cat"),
+    
+    depend_on = {
+        "getsalaries" : {
+            "details" : "result"
+        },
+        "getaddress" : {
+            "details" : "result"
+        }
+    }
 )
 
 stakingpayout = task(
@@ -97,9 +106,9 @@ employee_salary_workflow = workflows(
     custom_types = [Struct("struct1"), Struct("struct2")]
 )
 
-workflow_polkadot_workflow = workflows(
-    name = "polkadot_payout",
-    version = "0.0.1",
-    tasks = [stakingpayout],
-    custom_types = []
-)
+# workflow_polkadot_workflow = workflows(
+#     name = "polkadot_payout",
+#     version = "0.0.1",
+#     tasks = [stakingpayout],
+#     custom_types = []
+# )
