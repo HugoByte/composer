@@ -257,34 +257,35 @@ impl Composer {
     /// # Arguments
     ///
     /// * `pwd` - A reference to the Path indicating the current working directory
-    /// * `workflow_pack_name` - A string slice representing the name of the workflow package
-    ///
-    fn fetch_wasm(&self, pwd: &Path, workflow_pack_name: &str) {
+    /// * `workflow_package_name` - A string slice representing the name of the 
+    ///   workflow package
+    /// 
+    fn fetch_wasm(&self, pwd: &Path, workflow_package_name: &str) {
         Command::new("rustup")
-            .current_dir(pwd.join(format!("temp-{}", workflow_pack_name)))
+            .current_dir(pwd.join(format!("temp-{}", workflow_package_name)))
             .args(["target", "add", "wasm32-wasi"])
             .status()
             .expect("adding wasm32-wasi rust toolchain command failed to start");
 
         Command::new("cargo")
-            .current_dir(pwd.join(format!("temp-{}", workflow_pack_name)))
+            .current_dir(pwd.join(format!("temp-{}", workflow_package_name)))
             .args(["build", "--release", "--target", "wasm32-wasi"])
             .status()
             .expect("building wasm32 command failed to start");
 
         let src = pwd.join(format!(
             "temp-{}/target/wasm32-wasi/release",
-            workflow_pack_name
+            workflow_package_name
         ));
         fs::rename(
             src.join("workflow.wasm"),
-            src.join(format!("{}.wasm", workflow_pack_name)),
+            src.join(format!("{}.wasm", workflow_package_name)),
         )
         .unwrap();
 
         let dest = pwd.join("workflow_wasm");
 
-        self.copy_dir(&src, &dest, Some(&format!("{}.wasm", workflow_pack_name)))
+        self.copy_dir(&src, &dest, Some(&format!("{}.wasm", workflow_package_name)))
             .unwrap();
     }
 
