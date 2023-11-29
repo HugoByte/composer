@@ -37,7 +37,6 @@ macro_rules! make_main_struct {
             action_name: String,
             pub input: $input,
             pub output: Value,
-            pub mapout: Value,
         }
         impl $name{
             pub fn output(&self) -> Value {
@@ -174,9 +173,12 @@ macro_rules! impl_setter {
             let mut depend = Vec::<String>::new();
             let mut setter = Vec::<String>::new();
 
+            for fields in task.depend_on.values() {
+                let x = fields.iter().next().unwrap();
+                depend.push(x.0.to_string());
 
                 setter.push(format!("{}:\"{}\"", x.0, x.1));
-        }
+            }
 
             let mut input = format!(
                 "make_input_struct!(
@@ -263,7 +265,6 @@ impl_setter!({task_name}, [{}]);
 
         [input_structs, constructors]
     }
-    
 
     pub fn get_impl_execute_trait(&self, workflow_index: usize) -> String {
         let mut build_string = String::from("\nimpl_execute_trait!(");
@@ -397,4 +398,5 @@ pub fn main(args: Value) -> Result<Value, String> {{
 
         main_file
     }
+}
 

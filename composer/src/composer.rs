@@ -79,7 +79,7 @@ impl Composer {
             .depend_on
             .iter()
         {
-            deps.push(d.to_string());
+            deps.push(d.0.clone());
         }
 
         Some(deps)

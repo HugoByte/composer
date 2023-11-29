@@ -1,5 +1,4 @@
 
-
 use super::*;
 
 #[starlark_module]
@@ -10,19 +9,18 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         input_args: Value,
         attributes: Value,
         depend_on: Value,
-        operation: Option<Value>,
+        operation: Option<String>,
     ) -> anyhow::Result<Task> {
         let input_args: Vec<Input> = serde_json::from_str(&input_args.to_json()?).unwrap();
         let attributes: HashMap<String, String> =
             serde_json::from_str(&attributes.to_json()?).unwrap();
-        let depend_on: Vec<Depend> =
+        let depend_on: HashMap<String, HashMap<String, String>> =
             serde_json::from_str(&depend_on.to_json()?).unwrap();
 
-        let operation: Operation =  match operation{
-            Some(op) => serde_json::from_str(&op.to_json()?).unwrap(),
-            _ => Operation::Normal
+        let operation = match operation {
+            Some(a) => a,
+            None => String::default(),
         };
-
 
         Ok(Task {
             kind,
@@ -30,7 +28,7 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
             input_args,
             attributes,
             operation,
-            depend_on
+            depend_on,
         })
     }
 
@@ -83,33 +81,6 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
             default_value,
         })
     }
-
-    fn depend(
-        task_name: String,
-        cur_field: String,
-        prev_field: String
-    ) -> anyhow::Result<Depend>{
-        Ok(Depend {
-            task_name,
-            cur_field,
-            prev_field,
-        })
-    }
-
-    fn operation(operation: Option<String>, field: Option<String>) -> anyhow::Result<Operation> {
-        match operation {
-            Some(op) => match op.as_str() {
-                "concat" => return Ok(Operation::Concat),
-                "map" => match field {
-                    Some(field_name) => return Ok(Operation::Map(field_name)),
-                    None => Err(Error::msg("field for the map operation does not mentioned")),
-                },
-                _ => Err(Error::msg("operation is invalid")),
-            },
-            None => Ok(Operation::Normal),
-        }
-    }
-
 }
 
 #[starlark_module]
@@ -170,3 +141,4 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
         }
     }
 }
+

@@ -9,9 +9,8 @@ pub struct Task {
     pub input_args: Vec<Input>,
     pub attributes: HashMap<String, String>,
     #[serde(default)]
-    pub operation: Operation,
-    // pub depend_on: HashMap<String, HashMap<String, String>>,
-    pub depend_on : Vec<Depend>,
+    pub operation: String,
+    pub depend_on: HashMap<String, HashMap<String, String>>,
 }
 
 #[derive(
@@ -24,35 +23,14 @@ pub struct Input {
     pub default_value: String,
 }
 
-#[derive(Debug, PartialEq, Eq, Allocative, ProvidesStaticType,Clone, Deserialize, Serialize)]
-pub struct Depend {
-    pub task_name: String,
-    pub cur_field : String,
-    pub prev_field : String,
-}
-
-#[derive( Debug, PartialEq, Eq, ProvidesStaticType, Allocative, Clone, Deserialize, Serialize)]
-pub enum Operation{
-    Normal,
-    Concat,
-    Map(String)
-}
-
-impl Default for Operation {
-    fn default() -> Operation {
-        Self::Normal
-    }
-}
-
-
 impl Task {
     pub fn new(
         kind: &str,
         action_name: &str,
         input_args: Vec<Input>,
         attributes: HashMap<String, String>,
-        depend_on: Vec<Depend>,
-        operation: Operation
+        depend_on: HashMap<String, HashMap<String, String>>,
+        operation: String,
     ) -> Self {
         Task {
             kind: kind.to_string(),
@@ -60,7 +38,7 @@ impl Task {
             input_args,
             attributes,
             depend_on,
-            operation
+            operation,
         }
     }
 }
