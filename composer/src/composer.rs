@@ -81,8 +81,7 @@ impl Composer {
             .iter()
         {
             deps.push(d.task_name.clone());
-            // deps.push(d.prev_field.clone());
-            // deps.push(d.task_name.clone());
+           
         }
 
         Some(deps)
