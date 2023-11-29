@@ -31,12 +31,8 @@ mod tests {
     fn get_dependencies_test() {
         let composer = Composer::default();
 
-        let mut dependencies: HashMap<String, HashMap<String, String>> = HashMap::new();
-        let mut depends: HashMap<String, String> = HashMap::new();
-
-        depends.insert("field_1".to_string(), "field_11".to_string());
-        depends.insert("field_2".to_string(), "field_22".to_string());
-        dependencies.insert("dependent_task".to_string(), depends);
+        let mut dependencies : Vec<Depend> = Vec::new();
+        dependencies.push(Depend { task_name: "dependent_task".to_string(), cur_field: "id".to_string(), prev_field: "ids".to_string() });
 
         let task = Task {
             action_name: "get_salaries".to_string(),
@@ -75,26 +71,28 @@ mod tests {
             ..Default::default()
         };
 
-        let mut dependencies: HashMap<String, HashMap<String, String>> = HashMap::new();
-        dependencies.insert("task0".to_string(), HashMap::new());
-        dependencies.insert("task4".to_string(), HashMap::new());
+        let mut dependencies : Vec<Depend> = Vec::new();
+        dependencies.push(Depend { task_name: "task0".to_string(), cur_field: "id".to_string(), prev_field: "ids".to_string() });
+        dependencies.push(Depend { task_name: "task4".to_string(), cur_field: "id".to_string(), prev_field: "ids".to_string() });
         task1.depend_on = dependencies;
 
         let mut task2 = Task {
             action_name: "task2".to_string(),
             ..Default::default()
         };
-        let mut dependencies: HashMap<String, HashMap<String, String>> = HashMap::new();
-        dependencies.insert("task0".to_string(), HashMap::new());
+    
+        let mut dependencies : Vec<Depend> = Vec::new();
+        dependencies.push(Depend { task_name: "task0".to_string(), cur_field: "id".to_string(), prev_field: "ids".to_string() });
         task2.depend_on = dependencies;
 
         let mut task3 = Task {
             action_name: "task3".to_string(),
             ..Default::default()
         };
-        let mut dependencies: HashMap<String, HashMap<String, String>> = HashMap::new();
-        dependencies.insert("task1".to_string(), HashMap::new());
-        dependencies.insert("task2".to_string(), HashMap::new());
+       
+        let mut dependencies : Vec<Depend> = Vec::new();
+        dependencies.push(Depend { task_name: "task1".to_string(), cur_field: "id".to_string(), prev_field: "ids".to_string() });
+        dependencies.push(Depend { task_name: "task2".to_string(), cur_field: "id".to_string(), prev_field: "ids".to_string() });
         task3.depend_on = dependencies;
 
         let task4 = Task {
@@ -106,8 +104,8 @@ mod tests {
             ..Default::default()
         };
 
-        let mut dependencies: HashMap<String, HashMap<String, String>> = HashMap::new();
-        dependencies.insert("task2".to_string(), HashMap::new());
+        let mut dependencies : Vec<Depend> = Vec::new();
+        dependencies.push(Depend { task_name: "task2".to_string(), cur_field: "id".to_string(), prev_field: "ids".to_string() });
         task5.depend_on = dependencies;
 
         let mut tasks = HashMap::new();
@@ -215,6 +213,11 @@ mod tests {
             ..Default::default()
         });
 
+        let mut depend : Vec<Depend> = Vec::new();
+        depend.push(Depend { task_name: "employee_id".to_string(), cur_field: "id".to_string(), prev_field: "ids".to_string() });
+
+        let operation : Operation = task::Operation::Map(String::from("map"));
+
         let mut attributes: HashMap<String, String> = HashMap::new();
         attributes.insert(
             "api_host".to_string(),
@@ -229,8 +232,8 @@ mod tests {
             "get_salaries",
             input_args,
             attributes,
-            HashMap::default(),
-            String::new(),
+            depend,
+            operation,
         );
 
         let mut tasks = HashMap::new();

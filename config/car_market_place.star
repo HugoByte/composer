@@ -15,7 +15,7 @@ cartype = task(
         ),
     ],
     attributes = attributes,
-    depend_on = {},
+    depend_on = [],
 )
 
 modelavail = task(
@@ -24,7 +24,7 @@ modelavail = task(
     input_args = [
         input_args(
             name="car_company_list",
-            input_type = hashmap(string(), list(string())))
+            input_type = map(string(), list(string()))
         ),
         input_args(
             name="company_name",
@@ -32,11 +32,9 @@ modelavail = task(
         )
     ],
     attributes = attributes,
-    depend_on = {
-        "cartype": {
-            "car_company_list": "car_company_list",
-        },
-    },
+    depend_on = [
+        depend(task_name = "cartype", cur_field = "car_company_list", prev_field = "car_company_list")
+    ]
 )
 
 modelprice = task(
@@ -49,11 +47,9 @@ modelprice = task(
         ),
     ],
     attributes = attributes,
-    depend_on = {
-        "modelavail": {
-            "models": "models",
-        },
-    },
+    depend_on = [
+        depend(task_name = "modelavail", cur_field = "models", prev_field = "models")
+    ]
 )
 
 purchase = task(
@@ -62,7 +58,7 @@ purchase = task(
     input_args = [
         input_args(
             name="model_price_list",
-            input_type = hashmap(string(), int(32))
+            input_type = map(string(), int(32))
         ),
         input_args(
             name="model_name",
@@ -74,11 +70,9 @@ purchase = task(
         ),
     ],
     attributes = attributes,
-    depend_on = {
-        "modelsprice": {
-            "model_price_list": "model_price_list",
-        },
-    },
+    depend_on = [
+        depend(task_name = "modelsprice", cur_field = "model_price_list", prev_field = "model_price_list")
+    ]
 )
 
 workflows(

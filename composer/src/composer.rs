@@ -35,6 +35,7 @@ impl Composer {
             }
 
             composer.generate(current_path.as_path());
+            // println!("{:?}", composer);
         }
     }
 
@@ -79,7 +80,9 @@ impl Composer {
             .depend_on
             .iter()
         {
-            deps.push(d.0.clone());
+            deps.push(d.task_name.clone());
+            // deps.push(d.prev_field.clone());
+            // deps.push(d.task_name.clone());
         }
 
         Some(deps)
@@ -154,8 +157,8 @@ impl Composer {
         for (_, task) in self.workflows.borrow()[workflow_index].tasks.iter() {
             let mut depend = Vec::<String>::new();
 
-            for (_, fields) in task.depend_on.iter() {
-                for k in fields.keys() {
+            for fields in &task.depend_on {
+                for k in fields {
                     depend.push(k.to_string());
                 }
             }

@@ -1,4 +1,5 @@
 use super::*;
+use core::result::Iter;
 
 #[derive(
     Debug, Default, PartialEq, Eq, ProvidesStaticType, Allocative, Clone, Deserialize, Serialize,
@@ -9,8 +10,8 @@ pub struct Task {
     pub input_args: Vec<Input>,
     pub attributes: HashMap<String, String>,
     #[serde(default)]
-    pub operation: String,
-    pub depend_on: HashMap<String, HashMap<String, String>>,
+    pub operation: Operation,
+    pub depend_on: Vec<Depend>,
 }
 
 #[derive(
@@ -23,14 +24,34 @@ pub struct Input {
     pub default_value: String,
 }
 
+#[derive(Debug, PartialEq, Eq, Allocative, ProvidesStaticType,Clone, Deserialize, Serialize)]
+pub struct Depend {
+    pub task_name: String,
+    pub cur_field : String,
+    pub prev_field : String,
+}
+
+#[derive( Debug, PartialEq, Eq, ProvidesStaticType, Allocative, Clone, Deserialize, Serialize)]
+pub enum Operation{
+    Normal,
+    Concat,
+    Map(String)
+}
+
+impl Default for Operation {
+    fn default() -> Operation {
+        Self::Normal
+    }
+}
+
 impl Task {
     pub fn new(
         kind: &str,
         action_name: &str,
         input_args: Vec<Input>,
         attributes: HashMap<String, String>,
-        depend_on: HashMap<String, HashMap<String, String>>,
-        operation: String,
+        depend_on: Vec<Depend>,
+        operation: Operation,
     ) -> Self {
         Task {
             kind: kind.to_string(),
@@ -60,6 +81,30 @@ impl Display for Task {
     }
 }
 
+starlark_simple_value!(Depend);
+
+impl Display for Depend {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{} {} {}",
+            self.task_name, self.cur_field, self.prev_field
+        )
+    }
+}
+
+impl<'a> IntoIterator for &'a Depend {
+    type Item = &'a String;
+    type IntoIter = Iter<'a, String>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.into_iter()
+    }
+}
+
+#[starlark_value(type = "depend")]
+impl<'v> StarlarkValue<'v> for Depend {}
+
 #[starlark_value(type = "task")]
 impl<'v> StarlarkValue<'v> for Task {}
 
@@ -77,3 +122,14 @@ impl Display for Input {
 
 #[starlark_value(type = "input")]
 impl<'v> StarlarkValue<'v> for Input {}
+
+starlark_simple_value!(Operation);
+
+#[starlark_value(type = "Operation")]
+impl<'v> StarlarkValue<'v> for Operation {}
+
+impl Display for Operation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+       write!(f, "{:?}", self)
+    }
+}

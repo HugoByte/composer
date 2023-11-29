@@ -37,6 +37,7 @@ macro_rules! make_main_struct {
             action_name: String,
             pub input: $input,
             pub output: Value,
+            pub mapout: Value,
         }
         impl $name{
             pub fn output(&self) -> Value {
@@ -98,6 +99,56 @@ macro_rules! impl_setter {
             }
         }
     }
+    }
+
+    macro_rules! impl_map_setter {
+        (
+            $name:ty,
+            $element:ident : $key:expr,  
+            $typ_name : ty,
+            $out:ident
+        ) => {
+            impl $name {
+                pub fn setter(&mut self, val: Value) {
+                    
+                        let value = val.get($key).unwrap();
+                        let value = serde_json::from_value::<Vec<$typ_name>>(value.clone()).unwrap();
+                        let mut map: HashMap<_, _> = value
+                            .iter()
+                            .map(|x| {
+                                self.input.$element = x.to_owned() as $typ_name;
+                                self.run();
+                                (x.to_owned(), self.output.get(\"$out\").unwrap().to_owned())
+                            })
+                            .collect();
+                        self.mapout = to_value(map).unwrap();
+                    
+                }
+            }
+        }
+        }
+    
+    macro_rules! impl_concat_setter {
+        (
+            $name:ty,
+            $element:ident,
+        ) => {
+            impl $name{
+                pub fn setter(&mut self, val: Value) {
+                    
+                        let val: Vec<Value> = serde_json::from_value(val).unwrap();
+                        let res = join_hashmap(
+                            serde_json::from_value(val[0].to_owned()).unwrap(),
+                            serde_json::from_value(val[1].to_owned()).unwrap(),
+                        );
+                        self.input.$element = res;
+    
+                    
+                }
+            }
+        }
+
+
 }"
         .to_string()
     }
@@ -172,13 +223,19 @@ macro_rules! impl_setter {
 
             let mut depend = Vec::<String>::new();
             let mut setter = Vec::<String>::new();
+            let mut map_setter = String::new();
 
-            for fields in task.depend_on.values() {
-                let x = fields.iter().next().unwrap();
-                depend.push(x.0.to_string());
+            for fields in task.depend_on.iter().by_ref(){
+                depend.push(fields.cur_field.clone());
 
-                setter.push(format!("{}:\"{}\"", x.0, x.1));
+                setter.push(format!("{}:\"{}\"", fields.cur_field, fields.prev_field));
             }
+
+            let field = match &task.operation{
+                Operation::Map(_) => "map",
+                _ => "",
+            };
+            map_setter.push_str(&field);
 
             let mut input = format!(
                 "make_input_struct!(
@@ -204,6 +261,14 @@ macro_rules! impl_setter {
                 }
             }
 
+            let setter_macro = match &task.operation{
+                Operation::Map(field) => 
+                    format!("impl_map_setter!({}, {}, {}, {});", task_name, setter.join(","), task.input_args[0].input_type,  field),
+                Operation::Concat => 
+                    format!("impl_concat_setter!({}, {},);", task_name, task.input_args[0].name),
+                _ =>  format!("impl_setter!({}, [{}]);", task_name, setter.join(","))
+            };
+
             input_structs = format!(
                 "{input_structs}
 {input}
@@ -218,12 +283,11 @@ impl_new!(
     {task_name}Input,
     [{}]
 );
-impl_setter!({task_name}, [{}]);
+{setter_macro}
 ",
                 self.get_kind(&task.kind).unwrap(),
                 self.get_attributes(&task.attributes),
                 new.join(","),
-                setter.join(",")
             );
 
             constructors = if new.is_empty() {
