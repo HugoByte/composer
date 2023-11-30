@@ -186,21 +186,21 @@ mod tests {
     }
 
     #[test]
-    fn get_kind_test_pass() {
+    fn get_task_kind_test_pass() {
         let composer = Composer::default();
 
-        let kind_name = composer.get_kind("polkadot").unwrap();
+        let kind_name = composer.get_task_kind("polkadot").unwrap();
         assert_eq!(&kind_name, "Polkadot");
 
-        let kind_name = composer.get_kind("openwhisk").unwrap();
+        let kind_name = composer.get_task_kind("openwhisk").unwrap();
         assert_eq!(&kind_name, "OpenWhisk");
     }
 
     #[test]
     #[should_panic]
-    fn get_kind_test_fail() {
+    fn get_task_kind_test_fail() {
         let composer = Composer::default();
-        let kind_name = composer.get_kind("polkadot").unwrap();
+        let kind_name = composer.get_task_kind("polkadot").unwrap();
         assert_eq!(&kind_name, "polkadot");
     }
 
@@ -230,7 +230,7 @@ mod tests {
             input_args,
             attributes,
             HashMap::default(),
-            String::new(),
+            Operation::Normal,
         );
 
         let mut tasks = HashMap::new();

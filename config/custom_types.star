@@ -50,7 +50,7 @@ getsalaries = task(
     operation = operation(operation = "map", field = "Salary"),
     depend_on = {
         "employee_ids" : {
-            "id" : "ids"
+            "id" : list("ids")
         }
     }
 )
@@ -65,7 +65,7 @@ getaddress = task(
     operation = operation(operation = "map", field = "Address"),
     depend_on = {
         "employee_ids" : {
-            "id" : "ids"
+            "id" : list("ids")
         }
     },
     
@@ -75,7 +75,7 @@ salary = task(
     kind = "openwhisk",
     action_name = "salary",
     input_args = [
-        input_args(name = "details", input_type = hashmap(int(32), "(i32, String)"))
+        input_args(name = "details", input_type = hashmap(int(32), Struct("detailtype")))
     ],
     attributes = attributes,
     operation = operation("concat"),
@@ -111,10 +111,3 @@ employee_salary_workflow = workflows(
     tasks = [employee_id, getsalaries, getaddress, salary],
     custom_types = [Struct("struct1"), Struct("struct2")]
 )
-
-# workflow_polkadot_workflow = workflows(
-#     name = "polkadot_payout",
-#     version = "0.0.1",
-#     tasks = [stakingpayout],
-#     custom_types = []
-# )
