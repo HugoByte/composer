@@ -35,7 +35,6 @@ impl Composer {
             }
 
             composer.generate(current_path.as_path());
-            // println!("{:?}", composer);
         }
     }
 

@@ -30,7 +30,6 @@ use workflow::*;
 
 fn main() {
     let mut composer = Composer::default();
-    // composer.add_config("./config/new_config.star");
     composer.add_config("./config/car_market_place.star");
     composer.run();
 }

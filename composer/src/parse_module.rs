@@ -99,56 +99,6 @@ macro_rules! impl_setter {
             }
         }
     }
-    }
-
-    macro_rules! impl_map_setter {
-        (
-            $name:ty,
-            $element:ident : $key:expr,  
-            $typ_name : ty,
-            $out:ident
-        ) => {
-            impl $name {
-                pub fn setter(&mut self, val: Value) {
-                    
-                        let value = val.get($key).unwrap();
-                        let value = serde_json::from_value::<Vec<$typ_name>>(value.clone()).unwrap();
-                        let mut map: HashMap<_, _> = value
-                            .iter()
-                            .map(|x| {
-                                self.input.$element = x.to_owned() as $typ_name;
-                                self.run();
-                                (x.to_owned(), self.output.get(\"$out\").unwrap().to_owned())
-                            })
-                            .collect();
-                        self.mapout = to_value(map).unwrap();
-                    
-                }
-            }
-        }
-        }
-    
-    macro_rules! impl_concat_setter {
-        (
-            $name:ty,
-            $element:ident,
-        ) => {
-            impl $name{
-                pub fn setter(&mut self, val: Value) {
-                    
-                        let val: Vec<Value> = serde_json::from_value(val).unwrap();
-                        let res = join_hashmap(
-                            serde_json::from_value(val[0].to_owned()).unwrap(),
-                            serde_json::from_value(val[1].to_owned()).unwrap(),
-                        );
-                        self.input.$element = res;
-    
-                    
-                }
-            }
-        }
-
-
 }"
         .to_string()
     }
@@ -231,11 +181,11 @@ macro_rules! impl_setter {
                 setter.push(format!("{}:\"{}\"", fields.cur_field, fields.prev_field));
             }
 
-            let field = match &task.operation{
-                Operation::Map(_) => "map",
-                _ => "",
-            };
-            map_setter.push_str(&field);
+            // let field = match &task.operation{
+            //     Operation::Map(_) => "map",
+            //     _ => "",
+            // };
+            // map_setter.push_str(&field);
 
             let mut input = format!(
                 "make_input_struct!(
@@ -261,13 +211,13 @@ macro_rules! impl_setter {
                 }
             }
 
-            let setter_macro = match &task.operation{
-                Operation::Map(field) => 
-                    format!("impl_map_setter!({}, {}, {}, {});", task_name, setter.join(","), task.input_args[0].input_type,  field),
-                Operation::Concat => 
-                    format!("impl_concat_setter!({}, {},);", task_name, task.input_args[0].name),
-                _ =>  format!("impl_setter!({}, [{}]);", task_name, setter.join(","))
-            };
+            // let setter_macro = match &task.operation{
+            //     Operation::Map(field) => 
+            //         format!("impl_map_setter!({}, {}, {}, {});", task_name, setter.join(","), task.input_args[0].input_type,  field),
+            //     Operation::Concat => 
+            //         format!("impl_concat_setter!({}, {},);", task_name, task.input_args[0].name),
+            //     _ =>  format!("impl_setter!({}, [{}]);", task_name, setter.join(","))
+            // };
 
             input_structs = format!(
                 "{input_structs}
@@ -283,11 +233,12 @@ impl_new!(
     {task_name}Input,
     [{}]
 );
-{setter_macro}
+impl_setter!({task_name}, [{}]);
 ",
                 self.get_kind(&task.kind).unwrap(),
                 self.get_attributes(&task.attributes),
                 new.join(","),
+                setter.join(",")
             );
 
             constructors = if new.is_empty() {

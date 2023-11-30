@@ -216,8 +216,6 @@ mod tests {
         let mut depend : Vec<Depend> = Vec::new();
         depend.push(Depend { task_name: "employee_id".to_string(), cur_field: "id".to_string(), prev_field: "ids".to_string() });
 
-        let operation : Operation = task::Operation::Map(String::from("map"));
-
         let mut attributes: HashMap<String, String> = HashMap::new();
         attributes.insert(
             "api_host".to_string(),
@@ -233,7 +231,7 @@ mod tests {
             input_args,
             attributes,
             depend,
-            operation,
+            String::new(),
         );
 
         let mut tasks = HashMap::new();
