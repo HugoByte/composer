@@ -94,19 +94,6 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         })
     }
 
-    // fn operation(operation: Option<String>, field: Option<String>) -> anyhow::Result<Operation> {
-    //     match operation {
-    //         Some(op) => match op.as_str() {
-    //             "concat" => return Ok(Operation::Concat),
-    //             "map" => match field {
-    //                 Some(field_name) => return Ok(Operation::Map(field_name)),
-    //                 None => Err(Error::msg("field for the map operation does not mentioned")),
-    //             },
-    //             _ => Err(Error::msg("operation is invalid")),
-    //         },
-    //         None => Ok(Operation::Normal),
-    //     }
-    // }
 }
 
 

@@ -36,8 +36,7 @@ macro_rules! make_main_struct {
         pub struct $name {
             action_name: String,
             pub input: $input,
-            pub output: Value,
-            pub mapout: Value,
+            pub output: Value
         }
         impl $name{
             pub fn output(&self) -> Value {
@@ -181,12 +180,6 @@ macro_rules! impl_setter {
                 setter.push(format!("{}:\"{}\"", fields.cur_field, fields.prev_field));
             }
 
-            // let field = match &task.operation{
-            //     Operation::Map(_) => "map",
-            //     _ => "",
-            // };
-            // map_setter.push_str(&field);
-
             let mut input = format!(
                 "make_input_struct!(
     {task_name}Input,
@@ -210,14 +203,6 @@ macro_rules! impl_setter {
                     new.push(format!("{}:{}", field.name, field.input_type));
                 }
             }
-
-            // let setter_macro = match &task.operation{
-            //     Operation::Map(field) => 
-            //         format!("impl_map_setter!({}, {}, {}, {});", task_name, setter.join(","), task.input_args[0].input_type,  field),
-            //     Operation::Concat => 
-            //         format!("impl_concat_setter!({}, {},);", task_name, task.input_args[0].name),
-            //     _ =>  format!("impl_setter!({}, [{}]);", task_name, setter.join(","))
-            // };
 
             input_structs = format!(
                 "{input_structs}
