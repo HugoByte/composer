@@ -17,21 +17,21 @@ use std::{env, fs};
 use std::{io, path::Path};
 
 pub mod composer;
+pub mod input;
 pub mod parse_module;
 pub mod starlark_modules;
 pub mod task;
 pub mod tests;
 pub mod workflow;
-pub mod input;
 
 use composer::*;
+use input::*;
 use starlark_modules::*;
 use task::*;
 use workflow::*;
-use input::*;
 
 fn main() {
     let mut composer = Composer::default();
-    composer.add_config("./config/car_market_place.star");
+    composer.add_config("./config/default-value-testing-car_market_place.star");
     composer.run();
 }

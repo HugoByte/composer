@@ -18,12 +18,19 @@ macro_rules! make_input_struct {
     (
         $x:ident,
         // list of field and it's type
-        [$($visibility:vis $element:ident : $ty:ty),*],
+        [$(
+            $(#[$default_derive:stmt])?
+            $visibility:vis $element:ident : $ty:ty),*],
         // list of derive macros
         [$($der:ident),*]
 ) => {
         #[derive($($der),*)]
-        pub struct $x { $($visibility  $element: $ty),*}
+            pub struct $x { 
+            $(
+                $(#[serde(default=$default_derive)])?
+                $visibility  $element: $ty
+            ),*
+        }
     }
 }
 
@@ -185,7 +192,7 @@ macro_rules! impl_setter {
 
     /// Retrieves user-defined types and creates code to generate corresponding structs
     /// This method is invoked by the starlark_module
-    /// 
+    ///
     /// # Arguments
     ///
     /// * `workflow_index` - The index of the workflow
@@ -226,6 +233,8 @@ macro_rules! impl_setter {
     pub fn get_common_inputs_type(&self, workflow_index: usize) -> String {
         let mut common = Vec::<String>::new();
 
+        let mut default_value_functions = String::new();
+
         for (_, task) in self.workflows.borrow()[workflow_index].tasks.iter() {
             let mut depend = Vec::<String>::new();
 
@@ -237,13 +246,35 @@ macro_rules! impl_setter {
 
             for input in task.input_args.iter() {
                 if depend.binary_search(&input.name).is_err() {
-                    common.push(format!("{}:{}", input.name, input.input_type));
+                    if let Some(val) = input.default_value.as_ref() {
+                        common.push(format!(
+                            "#[\"{}_fn\"] {}:{}",
+                            input.name, input.name, input.input_type
+                        ));
+
+                        let content = match input.input_type.as_str() {
+                            "String" => format!("{val:?}.to_string()"),
+                            _ => format!(
+                                "let val = serde_json::from_str::<{}>({:?}).unwrap();\n\tval",
+                                input.input_type, val
+                            ),
+                        };
+
+                        let make_fn = format!(
+                            "pub fn {}_fn() -> {}{{\n\t{}\n}}\n",
+                            input.name, input.input_type, content
+                        );
+                        default_value_functions = format!("{default_value_functions}{make_fn}");
+                    } else {
+                        common.push(format!("{}:{}", input.name, input.input_type));
+                    }
                 };
             }
         }
 
         format!(
-            "make_input_struct!(
+            "{default_value_functions}
+make_input_struct!(
     Input,
     [{}],
     [Debug, Clone, Default, Serialize, Deserialize]

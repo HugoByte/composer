@@ -24,14 +24,17 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         action_name: String,
         input_args: Value,
         attributes: Value,
-        depend_on: Value,
+        depend_on: Option<Value>,
         operation: Option<String>,
     ) -> anyhow::Result<Task> {
         let input_args: Vec<Input> = serde_json::from_str(&input_args.to_json()?).unwrap();
         let attributes: HashMap<String, String> =
             serde_json::from_str(&attributes.to_json()?).unwrap();
-        let depend_on: HashMap<String, HashMap<String, String>> =
-            serde_json::from_str(&depend_on.to_json()?).unwrap();
+
+        let depend_on: HashMap<String, HashMap<String, String>> = match depend_on {
+            Some(val) => serde_json::from_str(&val.to_json()?).unwrap(),
+            None => HashMap::new(),
+        };
 
         let operation = match operation {
             Some(a) => a,
@@ -124,10 +127,6 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         input_type: String,
         default_value: Option<String>,
     ) -> anyhow::Result<Input> {
-        let default_value = match default_value {
-            Some(b) => b,
-            None => String::default(),
-        };
         Ok(Input {
             name,
             input_type,
