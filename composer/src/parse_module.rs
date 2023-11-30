@@ -1,3 +1,5 @@
+use std::fmt::format;
+
 use super::*;
 
 impl Composer {
@@ -212,12 +214,14 @@ macro_rules! impl_setter {
                             field.name, field.name, field.input_type
                         ));
 
-                        let make_fn = format!(
-"pub fn {}_fn() -> {}{{
-    let val:{} = serde_json::from_str::<{}>({:?}).unwrap();
-    val
-}}",
-                            field.name, field.input_type, field.input_type, field.input_type, val
+                        let content = match field.input_type.as_str(){
+
+                            "String" => format!("{val:?}.to_string()"),
+                            _ => format!("let val = serde_json::from_str::<{}>({:?}).unwrap();\n\tval", field.input_type, val)
+                        };
+
+                        let make_fn = format!("pub fn {}_fn() -> {}{{\n\t{}\n}}",
+                            field.name, field.input_type, content
                         );
 
                         input_structs = format!("{input_structs}\n{make_fn}");

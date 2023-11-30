@@ -12,12 +12,11 @@ cartype = task(
         input_args(
             name="car_type",
             input_type= string(),
-            default_value = '"type_x"'
+            default_value = 'type_x'
         ),
     ],
     attributes = attributes,
 )
-
 
 modelavail = task(
     kind = "openwhisk",
@@ -30,7 +29,7 @@ modelavail = task(
         input_args(
             name="company_name",
             input_type=string(),
-            default_value = '"company_x"'
+            default_value = 'company_x'
         )
     ],
     attributes = attributes,
@@ -69,7 +68,7 @@ purchase = task(
         input_args(
             name="model_name",
             input_type=string(),
-            default_value = '"model_x"'
+            default_value = 'model_x'
         ),
         input_args(
             name="price",
