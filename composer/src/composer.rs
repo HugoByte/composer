@@ -154,11 +154,11 @@ impl Composer {
         for (_, task) in self.workflows.borrow()[workflow_index].tasks.iter() {
             let mut depend = Vec::<String>::new();
 
-            // for fields in task.depend_on.iter() {
-            //     for k in fields.keys() {
-            //         depend.push(k.to_string());
-            //     }
-            // }
+            for (_, fields) in task.depend_on.iter() {
+                for k in fields.keys() {
+                    depend.push(k.to_string());
+                }
+            }
 
             for input in task.input_args.iter() {
                 if depend.binary_search(&input.name).is_err() {
