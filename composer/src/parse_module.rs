@@ -222,7 +222,6 @@ macro_rules! impl_setter {
 
                         input_structs = format!("{input_structs}\n{make_fn}");
                     } else {
-                        // common_inputs.insert(field.name.clone(), field.input_type.clone());
                         common_inputs.push(format!("{}:{}", field.name, field.input_type));
                     }
                     new.push(format!("{}:{}", field.name, field.input_type));
