@@ -5,7 +5,7 @@ use serde_derive::{Deserialize, Serialize};
 use starlark::environment::{GlobalsBuilder, Module};
 use starlark::eval::Evaluator;
 use starlark::syntax::{AstModule, Dialect};
-use starlark::values::{none::NoneType, ProvidesStaticType, StarlarkValue, Value};
+use starlark::values::{ProvidesStaticType, StarlarkValue, Value};
 use starlark::{starlark_module, starlark_simple_value, values::starlark_value};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -22,11 +22,13 @@ pub mod starlark_modules;
 pub mod task;
 pub mod tests;
 pub mod workflow;
+pub mod input;
 
 use composer::*;
 use starlark_modules::*;
 use task::*;
 use workflow::*;
+use input::*;
 
 fn main() {
     let mut composer = Composer::default();
