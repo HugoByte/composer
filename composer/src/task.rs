@@ -109,4 +109,3 @@ impl Display for Input {
 
 #[starlark_value(type = "input")]
 impl<'v> StarlarkValue<'v> for Input {}
-

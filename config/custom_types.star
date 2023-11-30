@@ -113,10 +113,3 @@ employee_salary_workflow = workflows(
     tasks = [employee_id, getsalaries, getaddress, salary],
     custom_types = [Struct("struct1"), Struct("struct2")]
 )
-
-# workflow_polkadot_workflow = workflows(
-#     name = "polkadot_payout",
-#     version = "0.0.1",
-#     tasks = [stakingpayout],
-#     custom_types = []
-# )
