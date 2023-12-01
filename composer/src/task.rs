@@ -70,16 +70,6 @@ impl Display for Depend {
     }
 }
 
-impl Default for Depend {
-    fn default() -> Self {
-        Depend {
-            task_name: String::default(),
-            cur_field: String::default(),
-            prev_field: String::default(),
-        }
-    }
-}
-
 #[starlark_value(type = "Depend")]
 impl<'v> StarlarkValue<'v> for Depend {}
 
