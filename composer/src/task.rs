@@ -14,15 +14,6 @@ pub struct Task {
     pub depend_on: Vec<Depend>,
 }
 
-#[derive(
-    Debug, Default, PartialEq, Eq, Allocative, ProvidesStaticType, Clone, Deserialize, Serialize,
-)]
-pub struct Input {
-    pub name: String,
-    pub input_type: String,
-    #[serde(default)]
-    pub default_value: String,
-}
 
 #[derive(Debug, PartialEq, Eq, Allocative, ProvidesStaticType,Clone, Deserialize, Serialize)]
 pub struct Depend {
@@ -89,23 +80,9 @@ impl<'a> IntoIterator for &'a Depend {
     }
 }
 
-#[starlark_value(type = "depend")]
+#[starlark_value(type = "Depend")]
 impl<'v> StarlarkValue<'v> for Depend {}
 
-#[starlark_value(type = "task")]
+#[starlark_value(type = "Task")]
 impl<'v> StarlarkValue<'v> for Task {}
 
-starlark_simple_value!(Input);
-
-impl Display for Input {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{} {} {}",
-            self.name, self.input_type, self.default_value
-        )
-    }
-}
-
-#[starlark_value(type = "input")]
-impl<'v> StarlarkValue<'v> for Input {}

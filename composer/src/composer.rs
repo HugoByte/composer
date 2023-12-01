@@ -8,10 +8,35 @@ pub struct Composer {
 }
 
 impl Composer {
+    /// Adds config file to the composer
+    /// This method is called by the user
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - A string slice that holds the of the config file along with its name
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use composer::Composer;
+    /// let mut composer = Composer::default();
+    /// composer.add_config("config/path/config_file_name_here");
+    /// ```
     pub fn add_config(&mut self, config: &str) {
         self.config_files.push(config.to_string());
     }
 
+    /// Runs the composer to build all workflows specified in the config files.
+    /// This method is called by the user.
+    ///
+    /// # Example
+    /// ```
+    /// use your_module_name_here::Composer;
+    /// let composer = Composer::default();
+    /// composer.add_config("config_file_1");
+    /// composer.add_config("config_file_2");
+    /// composer.run();
+    /// ```
     pub fn run(&self) {
         let current_path = env::current_dir().unwrap();
 
@@ -38,6 +63,22 @@ impl Composer {
         }
     }
 
+    /// Adds a new workflow to the composer.
+    /// This method is invoked by the workflows function inside the starlark_module.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - Name of the workflow to be added
+    /// * `version` - Version of the workflow
+    /// * `tasks` - HashMap of tasks associated with the workflow
+    /// * `custom_types` - Optional vector of custom types names that are created within config
+    ///   for the workflow.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<(), Error>` - Result indicating success if the workflow is added successfully,
+    ///   or an error if the workflow name is empty or if there is a duplicate workflow name.
+    ///
     pub fn add_workflow(
         &self,
         name: String,
@@ -45,8 +86,8 @@ impl Composer {
         tasks: HashMap<String, Task>,
         custom_types: Option<Vec<String>>,
     ) -> Result<(), Error> {
-        for i in self.workflows.borrow().iter() {
-            if i.name == name {
+        for workflow in self.workflows.borrow().iter() {
+            if workflow.name == name {
                 return Err(Error::msg("Workflows should not have same name"));
             }
         }
@@ -63,29 +104,61 @@ impl Composer {
         }
     }
 
+    /// Adds a custom type that is created by the user inside the config.
+    /// This method is called by the starlark_module.
+    ///
+    /// # Arguments
+    ///
+    /// * `type_name` - A string slice that holds the name of the struct for the custom type
+    /// * `build_string` - A string that holds the Rust code, which uses macros to create a struct
+    ///
     pub fn add_custom_type(&self, type_name: &str, build_string: String) {
         self.custom_types
             .borrow_mut()
             .insert(type_name.to_string(), build_string);
     }
 
+    /// Finds the list of dependencies that the given task depends on.
+    ///
+    /// # Arguments
+    ///
+    /// * `task_name` - A string slice that holds the name of the task
+    /// * `workflow_index` - A integer that holds the index of the workflow where the given
+    ///   task is stored
+    ///
+    /// # Returns
+    ///
+    /// * `Option<Vec<String>>` - An option containing a vector of dependencies if the task is
+    ///   found, or None if the task have no dependency
+    ///
     pub fn get_dependencies(&self, task_name: &str, workflow_index: usize) -> Option<Vec<String>> {
-        let mut deps = Vec::<String>::new();
+        let mut dependencies = Vec::<String>::new();
 
-        for d in self.workflows.borrow()[workflow_index]
+        for task in self.workflows.borrow()[workflow_index]
             .tasks
             .get(task_name)
             .unwrap()
             .depend_on
             .iter()
         {
-            deps.push(d.task_name.clone());
-           
+            dependencies.push(task.task_name.clone());
         }
 
-        Some(deps)
+        Some(dependencies)
     }
 
+    /// Performs depth-first search (DFS) in the workflow subgraph.
+    /// This method is invoked within the get_flow method to perform `Topological-Sorting`
+    /// # Arguments
+    ///
+    /// * `task_name` - A string slice that holds the name of the task where the DFS should start
+    /// * `visited` - A mutable reference to a HashMap that holds the list of task (node) names
+    ///   and a boolean indicating whether it has been traversed
+    /// * `flow` - A mutable reference to a vector of strings that stores the flow of the DFS
+    ///   traversal
+    /// * `workflow_index` - An integer that holds the index of the workflow where the given
+    ///   task is located
+    ///
     fn dfs(
         &self,
         task_name: &str,
@@ -95,82 +168,60 @@ impl Composer {
     ) {
         visited.insert(task_name.to_string(), true);
 
-        for d in self
+        for depend_task in self
             .get_dependencies(task_name, workflow_index)
             .unwrap()
             .iter()
         {
-            if !visited[d] {
-                self.dfs(d, visited, flow, workflow_index);
+            if !visited[depend_task] {
+                self.dfs(depend_task, visited, flow, workflow_index);
             }
         }
 
         flow.push(task_name.to_string());
     }
 
+    /// Performs topological sort in the workflow graph.
+    /// This method is invoked by the parse_module.
+    ///
+    /// # Arguments
+    ///
+    /// * `workflow_index` - An integer that holds the index of the workflow for which
+    ///   topological sort is to be performed
+    ///
+    /// # Returns
+    ///
+    /// * `Vec<String>` - A vector containing the list of task names in the order of the
+    ///   topological sort
+    ///
     pub fn get_flow(&self, workflow_index: usize) -> Vec<String> {
         let mut visited = HashMap::<String, bool>::new();
         let mut flow = Vec::<String>::new();
 
-        for t in self.workflows.borrow()[workflow_index].tasks.iter() {
-            visited.insert(t.0.to_string(), false);
+        for task in self.workflows.borrow()[workflow_index].tasks.iter() {
+            visited.insert(task.0.to_string(), false);
         }
 
-        for t in self.workflows.borrow()[workflow_index].tasks.iter() {
-            if !visited[t.0] {
-                self.dfs(t.0, &mut visited, &mut flow, workflow_index)
+        for task in self.workflows.borrow()[workflow_index].tasks.iter() {
+            if !visited[task.0] {
+                self.dfs(task.0, &mut visited, &mut flow, workflow_index)
             }
         }
 
         flow
     }
 
-    pub fn get_task(&self, task_name: &str, workflow_index: usize) -> Task {
-        self.workflows.borrow()[workflow_index]
-            .tasks
-            .get(task_name)
-            .unwrap()
-            .clone()
-    }
-
-    pub fn get_task_input_data(&self, task_name: &str, task: &HashMap<String, String>) -> String {
-        let mut input = format!("{task_name}Input, [");
-
-        for (i, field) in task.iter().enumerate() {
-            input = format!("{input}{}:{}", field.0, field.1);
-
-            if i != task.len() - 1 {
-                input = format!("{input},");
-            } else {
-                input = format!("{input}]");
-            }
-        }
-
-        input
-    }
-
-    pub fn get_common_inputs(&self, workflow_index: usize) -> Vec<(String, String)> {
-        let mut common = Vec::<(String, String)>::new();
-
-        for (_, task) in self.workflows.borrow()[workflow_index].tasks.iter() {
-            let mut depend = Vec::<String>::new();
-
-            for fields in &task.depend_on {
-                for k in fields {
-                    depend.push(k.to_string());
-                }
-            }
-
-            for input in task.input_args.iter() {
-                if depend.binary_search(&input.name).is_err() {
-                    common.push((input.name.clone(), input.input_type.clone()));
-                };
-            }
-        }
-
-        common
-    }
-
+    /// Copies the source directory and its files to the destination directory.
+    ///
+    /// # Arguments
+    ///
+    /// * `src` - A reference to the source directory path
+    /// * `dest` - A reference to the destination directory path
+    /// * `file` - An optional string slice representing the specific file to be copied
+    ///
+    /// This method copies the source directory and all its files to the destination directory
+    /// . If the `file` argument is provided, only the specified file is copied.
+    ///
     fn copy_dir(&self, src: &Path, dest: &Path, file: Option<&str>) -> io::Result<()> {
         // Create the destination directory if it doesn't exist
         if !dest.exists() {
@@ -200,37 +251,60 @@ impl Composer {
         Ok(())
     }
 
-    fn fetch_wasm(&self, pwd: &Path, workflow_name: &str) {
+    /// Builds and Fetches the WebAssembly (WASM) file
+    /// This method is called by the `generate`
+    ///
+    /// # Arguments
+    ///
+    /// * `pwd` - A reference to the Path indicating the current working directory
+    /// * `workflow_package_name` - A string slice representing the name of the
+    ///   workflow package
+    ///
+    fn fetch_wasm(&self, pwd: &Path, workflow_package_name: &str) {
         Command::new("rustup")
-            .current_dir(pwd.join(format!("temp-{}", workflow_name)))
+            .current_dir(pwd.join(format!("temp-{}", workflow_package_name)))
             .args(["target", "add", "wasm32-wasi"])
             .status()
             .expect("adding wasm32-wasi rust toolchain command failed to start");
 
         Command::new("cargo")
-            .current_dir(pwd.join(format!("temp-{}", workflow_name)))
+            .current_dir(pwd.join(format!("temp-{}", workflow_package_name)))
             .args(["build", "--release", "--target", "wasm32-wasi"])
             .status()
             .expect("building wasm32 command failed to start");
 
-        let src = pwd.join(format!("temp-{}/target/wasm32-wasi/release", workflow_name));
+        let src = pwd.join(format!(
+            "temp-{}/target/wasm32-wasi/release",
+            workflow_package_name
+        ));
         fs::rename(
             src.join("workflow.wasm"),
-            src.join(format!("{}.wasm", workflow_name)),
+            src.join(format!("{}.wasm", workflow_package_name)),
         )
         .unwrap();
 
         let dest = pwd.join("workflow_wasm");
 
-        self.copy_dir(&src, &dest, Some(&format!("{}.wasm", workflow_name)))
-            .unwrap();
+        self.copy_dir(
+            &src,
+            &dest,
+            Some(&format!("{}.wasm", workflow_package_name)),
+        )
+        .unwrap();
     }
 
+    /// Generates workflow package and builds the WASM file for all of the workflows
+    /// inside the composer
+    ///
+    /// # Arguments
+    ///
+    /// * `current_path` - A reference to the Path indicating the current working directory
+    ///
     pub fn generate(&self, current_path: &Path) {
         // Getting the current working directory
         let src_path = current_path.join("boilerplate");
 
-        for (i, workflow) in self.workflows.borrow().iter().enumerate() {
+        for (workflow_index, workflow) in self.workflows.borrow().iter().enumerate() {
             if workflow.tasks.is_empty() {
                 continue;
             }
@@ -245,7 +319,7 @@ impl Composer {
 
             fs::write(
                 dest_path.join("src/types.rs"),
-                self.generate_main_file_code(i),
+                self.generate_types_rs_file_code(workflow_index),
             )
             .unwrap();
 

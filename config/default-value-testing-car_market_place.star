@@ -11,7 +11,8 @@ cartype = task(
     input_args = [
         input_args(
             name="car_type",
-            input_type= string()
+            input_type= string(),
+            default_value = 'type_x'
         ),
     ],
     attributes = attributes,
@@ -23,17 +24,20 @@ modelavail = task(
     input_args = [
         input_args(
             name="car_company_list",
-            input_type = map(string(), list(string()))
+            input_type=map(string(), list(string())),
         ),
         input_args(
             name="company_name",
-            input_type=string()
+            input_type=string(),
+            default_value = 'company_x'
         )
     ],
     attributes = attributes,
-    depend_on = [
-        depend(task_name = "cartype", cur_field = "car_company_list", prev_field = "car_company_list")
-    ]
+    depend_on = {
+        "cartype": {
+            "car_company_list": "car_company_list",
+        },
+    },
 )
 
 modelprice = task(
@@ -46,9 +50,11 @@ modelprice = task(
         ),
     ],
     attributes = attributes,
-    depend_on = [
-        depend(task_name = "modelavail", cur_field = "models", prev_field = "models")
-    ]
+    depend_on = {
+        "modelavail": {
+            "models": "models",
+        },
+    },
 )
 
 purchase = task(
@@ -57,23 +63,26 @@ purchase = task(
     input_args = [
         input_args(
             name="model_price_list",
-            input_type = map(string(), int(32))
+            input_type=map(string(), int(32))
         ),
         input_args(
             name="model_name",
-            input_type=string()
+            input_type=string(),
+            default_value = 'model_x'
         ),
         input_args(
             name="price",
-            input_type=int(32)
+            input_type=int(32),
+            default_value = '50'
         ),
     ],
     attributes = attributes,
-    depend_on = [
-        depend(task_name = "modelsprice", cur_field = "model_price_list", prev_field = "model_price_list")
-    ]
+    depend_on = {
+        "modelsprice": {
+            "model_price_list": "model_price_list",
+        },
+    },
 )
-
 workflows(
     name = "car_market_place",
     version = "0.0.1",
