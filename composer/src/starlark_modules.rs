@@ -30,10 +30,9 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         let input_args: Vec<Input> = serde_json::from_str(&input_args.to_json()?).unwrap();
         let attributes: HashMap<String, String> =
             serde_json::from_str(&attributes.to_json()?).unwrap();
-
-        let depend_on: HashMap<String, HashMap<String, String>> = match depend_on {
+        let depend_on : Vec<Depend> = match depend_on{
             Some(val) => serde_json::from_str(&val.to_json()?).unwrap(),
-            None => HashMap::new(),
+            None => Vec::default(),
         };
 
         let operation: Operation = match operation {
@@ -133,7 +132,21 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
             default_value,
         })
     }
+
+    fn depend(
+        task_name: String,
+        cur_field: String,
+        prev_field: String
+    ) -> anyhow::Result<Depend>{
+        Ok(Depend {
+            task_name,
+            cur_field,
+            prev_field,
+        })
+    }
+
 }
+
 
 #[starlark_module]
 pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {

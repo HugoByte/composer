@@ -142,7 +142,7 @@ impl Composer {
             .depend_on
             .iter()
         {
-            dependencies.push(task.0.clone());
+            dependencies.push(task.task_name.clone());
         }
 
         Some(dependencies)

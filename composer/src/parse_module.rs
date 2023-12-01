@@ -286,10 +286,8 @@ macro_rules! impl_concat_setter {
         for (_, task) in self.workflows.borrow()[workflow_index].tasks.iter() {
             let mut depend = Vec::<String>::new();
 
-            for (_, fields) in task.depend_on.iter() {
-                for key in fields.keys() {
-                    depend.push(key.to_string());
-                }
+            for fields in task.depend_on.iter() {
+                    depend.push(fields.cur_field.to_string());
             }
 
             for input in task.input_args.iter() {
@@ -354,10 +352,10 @@ make_input_struct!(
             let mut setter = Vec::<String>::new();
             let mut map_setter = String::new();
 
-            for fields in task.depend_on.values() {
-                let x = fields.iter().next().unwrap();
-                depend.push(x.0.to_string());
-                setter.push(format!("{}:\"{}\"", x.0, x.1));
+            for fields in task.depend_on.iter().by_ref(){
+                depend.push(fields.cur_field.clone());
+
+                setter.push(format!("{}:\"{}\"", fields.cur_field, fields.prev_field));
             }
 
             let field = match &task.operation {
@@ -525,7 +523,7 @@ impl_new!(
                 flow[i].to_case(Case::Snake)
             );
 
-            for (dependent_task_name, _) in self.workflows.borrow()[workflow_index]
+            for dependent_task_name in self.workflows.borrow()[workflow_index]
                 .tasks
                 .get(&flow[i + 1])
                 .unwrap()
@@ -534,7 +532,7 @@ impl_new!(
             {
                 add_edges_code = format!(
                     "{add_edges_code}\t\t({}_index, {}_index),\n",
-                    dependent_task_name.to_case(Case::Snake),
+                    dependent_task_name.task_name.to_case(Case::Snake),
                     flow[i + 1].to_case(Case::Snake)
                 );
             }
