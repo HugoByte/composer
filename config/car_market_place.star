@@ -14,7 +14,7 @@ cartype = task(
             input_type= string()
         ),
     ],
-    attributes = attributes,
+    attributes = attributes
 )
 
 modelavail = task(
@@ -31,11 +31,9 @@ modelavail = task(
         )
     ],
     attributes = attributes,
-    depend_on = {
-        "cartype": {
-            "car_company_list": "car_company_list",
-        },
-    },
+    depend_on = [
+        depend(task_name = "cartype", cur_field = "car_company_list", prev_field = "car_company_list")
+    ]
 )
 
 modelprice = task(
@@ -48,11 +46,9 @@ modelprice = task(
         ),
     ],
     attributes = attributes,
-    depend_on = {
-        "modelavail": {
-            "models": "models",
-        },
-    },
+    depend_on = [
+        depend(task_name = "modelavail", cur_field = "models", prev_field = "models")
+    ]
 )
 
 purchase = task(
@@ -73,11 +69,9 @@ purchase = task(
         ),
     ],
     attributes = attributes,
-    depend_on = {
-        "modelsprice": {
-            "model_price_list": "model_price_list",
-        },
-    },
+    depend_on = [
+        depend(task_name = "modelsprice", cur_field = "model_price_list", prev_field = "model_price_list")
+    ]
 )
 
 workflows(

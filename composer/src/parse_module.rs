@@ -49,7 +49,7 @@ macro_rules! make_main_struct {
         pub struct $name {
             action_name: String,
             pub input: $input,
-            pub output: Value,
+            pub output: Value
         }
         impl $name{
             pub fn output(&self) -> Value {
@@ -238,10 +238,8 @@ macro_rules! impl_setter {
         for (_, task) in self.workflows.borrow()[workflow_index].tasks.iter() {
             let mut depend = Vec::<String>::new();
 
-            for (_, fields) in task.depend_on.iter() {
-                for key in fields.keys() {
-                    depend.push(key.to_string());
-                }
+            for fields in task.depend_on.iter() {
+                    depend.push(fields.cur_field.to_string());
             }
 
             for input in task.input_args.iter() {
@@ -305,10 +303,10 @@ make_input_struct!(
             let mut depend = Vec::<String>::new();
             let mut setter = Vec::<String>::new();
 
-            for fields in task.depend_on.values() {
-                let x = fields.iter().next().unwrap();
-                depend.push(x.0.to_string());
-                setter.push(format!("{}:\"{}\"", x.0, x.1));
+            for fields in task.depend_on.iter().by_ref(){
+                depend.push(fields.cur_field.clone());
+
+                setter.push(format!("{}:\"{}\"", fields.cur_field, fields.prev_field));
             }
 
             let mut input = format!(

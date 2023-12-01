@@ -10,7 +10,15 @@ pub struct Task {
     pub attributes: HashMap<String, String>,
     #[serde(default)]
     pub operation: String,
-    pub depend_on: HashMap<String, HashMap<String, String>>,
+    pub depend_on: Vec<Depend>,
+}
+
+
+#[derive(Debug, PartialEq, Eq, Allocative, ProvidesStaticType,Clone, Deserialize, Serialize)]
+pub struct Depend {
+    pub task_name: String,
+    pub cur_field : String,
+    pub prev_field : String,
 }
 
 impl Task {
@@ -19,7 +27,7 @@ impl Task {
         action_name: &str,
         input_args: Vec<Input>,
         attributes: HashMap<String, String>,
-        depend_on: HashMap<String, HashMap<String, String>>,
+        depend_on: Vec<Depend>,
         operation: String,
     ) -> Self {
         Task {
@@ -50,5 +58,21 @@ impl Display for Task {
     }
 }
 
+starlark_simple_value!(Depend);
+
+impl Display for Depend {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{} {} {}",
+            self.task_name, self.cur_field, self.prev_field
+        )
+    }
+}
+
+#[starlark_value(type = "Depend")]
+impl<'v> StarlarkValue<'v> for Depend {}
+
 #[starlark_value(type = "Task")]
 impl<'v> StarlarkValue<'v> for Task {}
+
