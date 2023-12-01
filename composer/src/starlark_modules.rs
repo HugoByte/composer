@@ -11,8 +11,8 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
     /// * `action_name` - A string that holds the the name of the action associated with the task
     /// * `input_args` - The input arguments for the task
     /// * `attributes` - The attributes of the task
-    /// * `depend_on` - The dependencies of the task
     /// * `operation` - An optional argument to mention type of the task operation
+    /// * `depend_on` - The dependencies of the task
     ///   (i.e "map", "concat")
     ///
     /// # Returns
@@ -147,7 +147,6 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
 
 }
 
-
 #[starlark_module]
 pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     /// Creates a user-defined type inside the `types.rs`.
@@ -186,6 +185,7 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     /// This method will be invoked inside the config file.
     ///
     /// # Returns
+    /// 
     /// * A string representing the Rust type for a string
     ///
     fn string() -> anyhow::Result<String> {
@@ -195,6 +195,7 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     /// Returns the Rust type for a bool
     ///
     /// # Returns
+    /// 
     /// * A string representing the Rust type for a bool
     ///
     fn bool() -> anyhow::Result<String> {
@@ -209,6 +210,7 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     /// * `size` - An optional size for the integer
     ///
     /// # Returns
+    /// 
     /// * A Result containing the Rust type for an integer
     /// * an error message if the size is invalid
     ///
@@ -231,6 +233,7 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     /// * `type_2` - The type of the value
     ///
     /// # Returns
+    /// 
     /// * A Result containing the Rust type for a map
     ///
     fn hashmap(type_1: String, type_2: String) -> anyhow::Result<String> {
@@ -279,14 +282,40 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
 
 #[starlark_module]
 pub fn starlark_operation_module(builder: &mut GlobalsBuilder) {
+
+    /// Returns `Operation::Normal` task-operation type to the config file
+    /// This method will be invoked inside the config file
+    /// 
+    /// # Returns
+    /// 
+    /// * A Result containing Operation::Normal
+    ///   
     fn normal() -> anyhow::Result<Operation> {
         Ok(Operation::Normal)
     }
 
+    /// Returns `Operation::Concat` task-operation type to the config file
+    /// This method will be invoked inside the config file
+    /// 
+    /// # Returns
+    /// 
+    /// * A Result containing Operation::Concat
+    ///   
     fn concat() -> anyhow::Result<Operation> {
         Ok(Operation::Concat)
     }
 
+    /// Returns `Operation::Map(field)` task-operation type to the config file
+    /// This method will be invoked inside the config file
+    /// 
+    /// # Arguments
+    /// 
+    /// * `field` - A String containing name of the field that should be fetch from the previous task 
+    /// 
+    /// # Returns
+    /// 
+    /// * A Result containing Operation::Map(field)
+    ///   
     fn map(field: String) -> anyhow::Result<Operation> {
         Ok(Operation::Map(field))
     }
