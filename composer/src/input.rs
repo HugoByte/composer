@@ -7,7 +7,7 @@ pub struct Input {
     pub name: String,
     pub input_type: String,
     #[serde(default)]
-    pub default_value: String,
+    pub default_value: Option<String>,
 }
 
 starlark_simple_value!(Input);
@@ -16,7 +16,7 @@ impl Display for Input {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{} {} {}",
+            "{} {} {:?}",
             self.name, self.input_type, self.default_value
         )
     }

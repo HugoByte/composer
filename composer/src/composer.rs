@@ -258,9 +258,9 @@ impl Composer {
     /// # Arguments
     ///
     /// * `pwd` - A reference to the Path indicating the current working directory
-    /// * `workflow_package_name` - A string slice representing the name of the 
+    /// * `workflow_package_name` - A string slice representing the name of the
     ///   workflow package
-    /// 
+    ///
     fn fetch_wasm(&self, pwd: &Path, workflow_package_name: &str) {
         Command::new("rustup")
             .current_dir(pwd.join(format!("temp-{}", workflow_package_name)))
@@ -286,8 +286,12 @@ impl Composer {
 
         let dest = pwd.join("workflow_wasm");
 
-        self.copy_dir(&src, &dest, Some(&format!("{}.wasm", workflow_package_name)))
-            .unwrap();
+        self.copy_dir(
+            &src,
+            &dest,
+            Some(&format!("{}.wasm", workflow_package_name)),
+        )
+        .unwrap();
     }
 
     /// Generates workflow package and builds the WASM file for all of the workflows
@@ -328,12 +332,12 @@ impl Composer {
                     workflow.version
                 ),
             );
-            // fs::remove_dir_all(current_path.join(&format!(
-            //     "temp-{}-{}",
-            //     workflow.name.to_case(Case::Snake),
-            //     workflow.version
-            // )))
-            // .unwrap();
+            fs::remove_dir_all(current_path.join(&format!(
+                "temp-{}-{}",
+                workflow.name.to_case(Case::Snake),
+                workflow.version
+            )))
+            .unwrap();
         }
     }
 }

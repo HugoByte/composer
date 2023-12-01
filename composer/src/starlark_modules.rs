@@ -25,17 +25,20 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         input_args: Value,
         attributes: Value,
         operation: Option<Value>,
-        depend_on: Value,
+        depend_on: Option<Value>,
     ) -> anyhow::Result<Task> {
         let input_args: Vec<Input> = serde_json::from_str(&input_args.to_json()?).unwrap();
         let attributes: HashMap<String, String> =
             serde_json::from_str(&attributes.to_json()?).unwrap();
-        let depend_on: HashMap<String, HashMap<String, String>> =
-            serde_json::from_str(&depend_on.to_json()?).unwrap();
 
-        let operation: Operation =  match operation{
+        let depend_on: HashMap<String, HashMap<String, String>> = match depend_on {
+            Some(val) => serde_json::from_str(&val.to_json()?).unwrap(),
+            None => HashMap::new(),
+        };
+
+        let operation: Operation = match operation {
             Some(op) => serde_json::from_str(&op.to_json()?).unwrap(),
-            _ => Operation::Normal
+            _ => Operation::Normal,
         };
 
         Ok(Task {
@@ -73,7 +76,7 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         let tasks: Vec<Task> = serde_json::from_str(&tasks.to_json()?).unwrap();
 
         let custom_types: Option<Vec<String>> = match custom_types {
-            Some(a) => serde_json::from_str(&a.to_json()?).unwrap(),
+            Some(value) => serde_json::from_str(&value.to_json()?).unwrap(),
             None => None,
         };
 
@@ -124,10 +127,6 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         input_type: String,
         default_value: Option<String>,
     ) -> anyhow::Result<Input> {
-        let default_value = match default_value {
-            Some(b) => b,
-            None => String::default(),
-        };
         Ok(Input {
             name,
             input_type,
@@ -200,10 +199,10 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     /// * A Result containing the Rust type for an integer
     /// * an error message if the size is invalid
     ///
-    fn int(size: Option<i32>) -> anyhow::Result<String> {
-        match size {
-            Some(x) => match x {
-                8 | 16 | 32 | 64 | 128 => Ok(format!("i{}", x)),
+    fn int(size_value: Option<i32>) -> anyhow::Result<String> {
+        match size_value {
+            Some(size) => match size {
+                8 | 16 | 32 | 64 | 128 => Ok(format!("i{}", size)),
                 _ => Err(Error::msg("Size is invalid")),
             },
             None => Ok("i32".to_string()),
@@ -267,16 +266,15 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
 
 #[starlark_module]
 pub fn starlark_operation_module(builder: &mut GlobalsBuilder) {
-
-    fn normal() -> anyhow::Result<Operation>{
+    fn normal() -> anyhow::Result<Operation> {
         Ok(Operation::Normal)
     }
 
-    fn concat() -> anyhow::Result<Operation>{
+    fn concat() -> anyhow::Result<Operation> {
         Ok(Operation::Concat)
     }
 
-    fn map(field: String) -> anyhow::Result<Operation>{
+    fn map(field: String) -> anyhow::Result<Operation> {
         Ok(Operation::Map(field))
     }
 }

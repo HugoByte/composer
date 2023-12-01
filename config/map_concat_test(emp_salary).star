@@ -58,7 +58,7 @@ salary = task(
         },
         "getaddress" : {
             "details" : "result"
-        }
+        },
      }
 )
 
