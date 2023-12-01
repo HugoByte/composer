@@ -239,9 +239,7 @@ macro_rules! impl_setter {
             let mut depend = Vec::<String>::new();
 
             for fields in task.depend_on.iter() {
-                    depend.push(fields.task_name.to_string());
                     depend.push(fields.cur_field.to_string());
-                    depend.push(fields.prev_field.to_string());
             }
 
             for input in task.input_args.iter() {
