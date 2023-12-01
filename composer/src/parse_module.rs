@@ -239,9 +239,9 @@ macro_rules! impl_setter {
             let mut depend = Vec::<String>::new();
 
             for fields in task.depend_on.iter() {
-                for key in fields {
-                    depend.push(key.to_string());
-                }
+                    depend.push(fields.task_name.to_string());
+                    depend.push(fields.cur_field.to_string());
+                    depend.push(fields.prev_field.to_string());
             }
 
             for input in task.input_args.iter() {
@@ -304,7 +304,6 @@ make_input_struct!(
 
             let mut depend = Vec::<String>::new();
             let mut setter = Vec::<String>::new();
-            let mut map_setter = String::new();
 
             for fields in task.depend_on.iter().by_ref(){
                 depend.push(fields.cur_field.clone());

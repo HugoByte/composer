@@ -1,5 +1,3 @@
-use serde::de;
-
 use super::*;
 
 #[starlark_module]
@@ -34,10 +32,8 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
             serde_json::from_str(&attributes.to_json()?).unwrap();
         let depend_on : Vec<Depend> = match depend_on{
             Some(val) => serde_json::from_str(&val.to_json()?).unwrap(),
-            None => Default::default(),
+            None => Vec::default(),
         };
-
-
         let operation = match operation {
             Some(a) => a,
             None => String::default(),

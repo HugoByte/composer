@@ -1,5 +1,4 @@
 use super::*;
-use core::result::Iter;
 
 #[derive(
     Debug, Default, PartialEq, Eq, ProvidesStaticType, Allocative, Clone, Deserialize, Serialize,
@@ -71,12 +70,13 @@ impl Display for Depend {
     }
 }
 
-impl<'a> IntoIterator for &'a Depend {
-    type Item = &'a String;
-    type IntoIter = Iter<'a, String>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.into_iter()
+impl Default for Depend {
+    fn default() -> Self {
+        Depend {
+            task_name: String::default(),
+            cur_field: String::default(),
+            prev_field: String::default(),
+        }
     }
 }
 

@@ -14,7 +14,7 @@ cartype = task(
             input_type= string()
         ),
     ],
-    attributes = attributes,
+    attributes = attributes
 )
 
 modelavail = task(
