@@ -11,8 +11,8 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
     /// * `action_name` - A string that holds the the name of the action associated with the task
     /// * `input_args` - The input arguments for the task
     /// * `attributes` - The attributes of the task
-    /// * `depend_on` - The dependencies of the task
     /// * `operation` - An optional argument to mention type of the task operation
+    /// * `depend_on` - The dependencies of the task
     ///   (i.e "map", "concat")
     ///
     /// # Returns
@@ -24,8 +24,8 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         action_name: String,
         input_args: Value,
         attributes: Value,
+        operation: Option<Value>,
         depend_on: Option<Value>,
-        operation: Option<String>,
     ) -> anyhow::Result<Task> {
         let input_args: Vec<Input> = serde_json::from_str(&input_args.to_json()?).unwrap();
         let attributes: HashMap<String, String> =
@@ -34,9 +34,10 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
             Some(val) => serde_json::from_str(&val.to_json()?).unwrap(),
             None => Vec::default(),
         };
-        let operation = match operation {
-            Some(a) => a,
-            None => String::default(),
+
+        let operation: Operation = match operation {
+            Some(op) => serde_json::from_str(&op.to_json()?).unwrap(),
+            _ => Operation::Normal,
         };
 
         Ok(Task {
@@ -74,7 +75,7 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         let tasks: Vec<Task> = serde_json::from_str(&tasks.to_json()?).unwrap();
 
         let custom_types: Option<Vec<String>> = match custom_types {
-            Some(a) => serde_json::from_str(&a.to_json()?).unwrap(),
+            Some(value) => serde_json::from_str(&value.to_json()?).unwrap(),
             None => None,
         };
 
@@ -146,7 +147,6 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
 
 }
 
-
 #[starlark_module]
 pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     /// Creates a user-defined type inside the `types.rs`.
@@ -185,6 +185,7 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     /// This method will be invoked inside the config file.
     ///
     /// # Returns
+    /// 
     /// * A string representing the Rust type for a string
     ///
     fn string() -> anyhow::Result<String> {
@@ -194,6 +195,7 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     /// Returns the Rust type for a bool
     ///
     /// # Returns
+    /// 
     /// * A string representing the Rust type for a bool
     ///
     fn bool() -> anyhow::Result<String> {
@@ -208,13 +210,14 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     /// * `size` - An optional size for the integer
     ///
     /// # Returns
+    /// 
     /// * A Result containing the Rust type for an integer
     /// * an error message if the size is invalid
     ///
-    fn int(size: Option<i32>) -> anyhow::Result<String> {
-        match size {
-            Some(x) => match x {
-                8 | 16 | 32 | 64 | 128 => Ok(format!("i{}", x)),
+    fn int(size_value: Option<i32>) -> anyhow::Result<String> {
+        match size_value {
+            Some(size) => match size {
+                8 | 16 | 32 | 64 | 128 => Ok(format!("i{}", size)),
                 _ => Err(Error::msg("Size is invalid")),
             },
             None => Ok("i32".to_string()),
@@ -230,9 +233,10 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     /// * `type_2` - The type of the value
     ///
     /// # Returns
+    /// 
     /// * A Result containing the Rust type for a map
     ///
-    fn map(type_1: String, type_2: String) -> anyhow::Result<String> {
+    fn hashmap(type_1: String, type_2: String) -> anyhow::Result<String> {
         Ok(format!("HashMap<{}, {}>", type_1, type_2))
     }
 
@@ -273,5 +277,46 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
         } else {
             Err(Error::msg("type {type_name} does not exist"))
         }
+    }
+}
+
+#[starlark_module]
+pub fn starlark_operation_module(builder: &mut GlobalsBuilder) {
+
+    /// Returns `Operation::Normal` task-operation type to the config file
+    /// This method will be invoked inside the config file
+    /// 
+    /// # Returns
+    /// 
+    /// * A Result containing Operation::Normal
+    ///   
+    fn normal() -> anyhow::Result<Operation> {
+        Ok(Operation::Normal)
+    }
+
+    /// Returns `Operation::Concat` task-operation type to the config file
+    /// This method will be invoked inside the config file
+    /// 
+    /// # Returns
+    /// 
+    /// * A Result containing Operation::Concat
+    ///   
+    fn concat() -> anyhow::Result<Operation> {
+        Ok(Operation::Concat)
+    }
+
+    /// Returns `Operation::Map(field)` task-operation type to the config file
+    /// This method will be invoked inside the config file
+    /// 
+    /// # Arguments
+    /// 
+    /// * `field` - A String containing name of the field that should be fetch from the previous task 
+    /// 
+    /// # Returns
+    /// 
+    /// * A Result containing Operation::Map(field)
+    ///   
+    fn map(field: String) -> anyhow::Result<Operation> {
+        Ok(Operation::Map(field))
     }
 }

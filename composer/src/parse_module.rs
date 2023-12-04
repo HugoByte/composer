@@ -40,7 +40,8 @@ macro_rules! make_main_struct {
         $input:ty,
         [$($der:ident),*],
         // list of attributes
-        [$($key:ident : $val:expr),*]
+        [$($key:ident : $val:expr),*],
+        $output_field: ident
 ) => {
         #[derive($($der),*)]
         $(
@@ -49,11 +50,12 @@ macro_rules! make_main_struct {
         pub struct $name {
             action_name: String,
             pub input: $input,
-            pub output: Value
+            pub output: Value,
+            pub mapout: Value
         }
         impl $name{
             pub fn output(&self) -> Value {
-                self.output.clone()
+                self.$output_field.clone()
             }
         }
     }
@@ -108,6 +110,52 @@ macro_rules! impl_setter {
                 let value = val.get($key).unwrap();
                 self.input.$element = serde_json::from_value(value.clone()).unwrap();
                 )*
+            }
+        }
+    }
+}
+
+macro_rules! impl_map_setter {
+    (
+        $name:ty,
+        $element:ident : $key:expr,  
+        $typ_name : ty,
+        $out:expr
+    ) => {
+        impl $name {
+            pub fn setter(&mut self, val: Value) {
+                
+                    let value = val.get($key).unwrap();
+                    let value = serde_json::from_value::<Vec<$typ_name>>(value.clone()).unwrap();
+                    let mut map: HashMap<_, _> = value
+                        .iter()
+                        .map(|x| {
+                            self.input.$element = x.to_owned() as $typ_name;
+                            self.run();
+                            (x.to_owned(), self.output.get($out).unwrap().to_owned())
+                        })
+                        .collect();
+                    self.mapout = to_value(map).unwrap();
+                
+            }
+        }
+    }
+    }
+
+macro_rules! impl_concat_setter {
+    (
+        $name:ty,
+        $input:ident
+    ) => {
+        impl $name{
+            pub fn setter(&mut self, val: Value) {
+                
+                    let val: Vec<Value> = serde_json::from_value(val).unwrap();
+                    let res = join_hashmap(
+                        serde_json::from_value(val[0].to_owned()).unwrap(),
+                        serde_json::from_value(val[1].to_owned()).unwrap(),
+                    );
+                    self.input.$input = res;
             }
         }
     }
@@ -243,7 +291,7 @@ macro_rules! impl_setter {
             }
 
             for input in task.input_args.iter() {
-                if depend.binary_search(&input.name).is_err() {
+                if !depend.contains(&input.name) {
                     if let Some(val) = input.default_value.as_ref() {
                         common.push(format!(
                             "#[\"{}_fn\"] {}:{}",
@@ -302,12 +350,19 @@ make_input_struct!(
 
             let mut depend = Vec::<String>::new();
             let mut setter = Vec::<String>::new();
+            let mut map_setter = String::new();
 
             for fields in task.depend_on.iter().by_ref(){
                 depend.push(fields.cur_field.clone());
 
                 setter.push(format!("{}:\"{}\"", fields.cur_field, fields.prev_field));
             }
+
+            let field = match &task.operation {
+                Operation::Map(_) => "map",
+                _ => "",
+            };
+            map_setter.push_str(&field);
 
             let mut input = format!(
                 "make_input_struct!(
@@ -332,6 +387,21 @@ make_input_struct!(
                 }
             }
 
+            let setter_macro = match &task.operation {
+                Operation::Map(field) => format!(
+                    "impl_map_setter!({}, {}, {}, \"{}\");",
+                    task_name,
+                    setter.join(","),
+                    task.input_args[0].input_type,
+                    field
+                ),
+                Operation::Concat => format!(
+                    "impl_concat_setter!({}, {});",
+                    task_name, task.input_args[0].name
+                ),
+                _ => format!("impl_setter!({}, [{}]);", task_name, setter.join(",")),
+            };
+
             input_structs = format!(
                 "{input_structs}
 {input}
@@ -339,6 +409,7 @@ make_main_struct!(
     {task_name},
     {task_name}Input,
     [Debug, Clone, Default, Serialize, Deserialize, {}],
+    {},
     {}
 );
 impl_new!(
@@ -346,12 +417,16 @@ impl_new!(
     {task_name}Input,
     [{}]
 );
-impl_setter!({task_name}, [{}]);
+{setter_macro}
 ",
                 self.get_task_kind(&task.kind).unwrap(),
                 self.get_attributes(&task.attributes),
-                not_depend.join(","),
-                setter.join(",")
+                if let Operation::Map(_) = task.operation {
+                    "mapout"
+                } else {
+                    "output"
+                },
+                not_depend.join(",")
             );
 
             constructors = {
@@ -441,23 +516,31 @@ impl_setter!({task_name}, [{}]);
         let mut add_nodes_code = String::new();
         let mut add_edges_code = "\tworkflow.add_edges(&[\n".to_string();
 
-        for index in 0..flow.len() - 1 {
+        for i in 0..flow.len() - 1 {
             add_nodes_code = format!(
                 "{add_nodes_code}\tlet {}_index = workflow.add_node(Box::new({}));\n",
-                flow[index].to_case(Case::Snake),
-                flow[index].to_case(Case::Snake)
+                flow[i].to_case(Case::Snake),
+                flow[i].to_case(Case::Snake)
             );
 
-            add_edges_code = format!(
-                "{add_edges_code}\t\t({}_index, {}_index),\n",
-                flow[index].to_case(Case::Snake),
-                flow[index + 1].to_case(Case::Snake)
-            );
+            for dependent_task_name in self.workflows.borrow()[workflow_index]
+                .tasks
+                .get(&flow[i + 1])
+                .unwrap()
+                .depend_on
+                .iter()
+            {
+                add_edges_code = format!(
+                    "{add_edges_code}\t\t({}_index, {}_index),\n",
+                    dependent_task_name.task_name.to_case(Case::Snake),
+                    flow[i + 1].to_case(Case::Snake)
+                );
+            }
 
-            execute_code = if index + 1 == flow.len() - 1 {
+            execute_code = if i + 1 == flow.len() - 1 {
                 match self.workflows.borrow()[workflow_index]
                     .tasks
-                    .get(&flow[index + 1])
+                    .get(&flow[i + 1])
                     .unwrap()
                     .depend_on
                     .len()
@@ -465,21 +548,21 @@ impl_setter!({task_name}, [{}]);
                     0 | 1 => {
                         format!(
                             "{execute_code}\n\t\t.term(Some({}_index))?;",
-                            flow[index + 1].to_case(Case::Snake)
+                            flow[i + 1].to_case(Case::Snake)
                         )
                     }
 
                     _ => {
                         format!(
                             "{execute_code}\n\t\t.pipe({}_index)?\n\t\t.term(None)?;",
-                            flow[index + 1].to_case(Case::Snake)
+                            flow[i + 1].to_case(Case::Snake)
                         )
                     }
                 }
             } else {
                 format!(
                     "{execute_code}\n\t\t.pipe({}_index)?",
-                    flow[index + 1].to_case(Case::Snake)
+                    flow[i + 1].to_case(Case::Snake)
                 )
             };
         }

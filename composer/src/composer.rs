@@ -48,6 +48,7 @@ impl Composer {
             let globals = GlobalsBuilder::new()
                 .with(starlark_workflow_module)
                 .with(starlark_datatype_module)
+                .with_struct("Operation", starlark_operation_module)
                 .build();
 
             let module = Module::new();

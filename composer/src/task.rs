@@ -1,5 +1,29 @@
 use super::*;
 
+#[derive( Debug, PartialEq, Eq, ProvidesStaticType, Allocative, Clone, Deserialize, Serialize)]
+pub enum Operation{
+    Normal,
+    Concat,
+    Map(String)
+}
+
+impl Default for Operation {
+    fn default() -> Operation {
+        Self::Normal
+    }
+}
+
+starlark_simple_value!(Operation);
+
+#[starlark_value(type = "Operation")]
+impl<'v> StarlarkValue<'v> for Operation {}
+
+impl Display for Operation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+       write!(f, "{:?}", self)
+    }
+}
+
 #[derive(
     Debug, Default, PartialEq, Eq, ProvidesStaticType, Allocative, Clone, Deserialize, Serialize,
 )]
@@ -9,7 +33,7 @@ pub struct Task {
     pub input_args: Vec<Input>,
     pub attributes: HashMap<String, String>,
     #[serde(default)]
-    pub operation: String,
+    pub operation: Operation,
     pub depend_on: Vec<Depend>,
 }
 
@@ -28,7 +52,7 @@ impl Task {
         input_args: Vec<Input>,
         attributes: HashMap<String, String>,
         depend_on: Vec<Depend>,
-        operation: String,
+        operation: Operation,
     ) -> Self {
         Task {
             kind: kind.to_string(),
