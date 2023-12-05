@@ -209,12 +209,9 @@ mod tests {
         let mut input_args: Vec<Input> = Vec::new();
         input_args.push(Input {
             name: "field_1".to_string(),
-            input_type: "i32".to_string(),
+            input_type: RustType::Int,
             ..Default::default()
         });
-
-        let mut depend : Vec<Depend> = Vec::new();
-        depend.push(Depend { task_name: "employee_id".to_string(), cur_field: "id".to_string(), prev_field: "ids".to_string() });
 
         let mut attributes: HashMap<String, String> = HashMap::new();
         attributes.insert(
@@ -230,7 +227,7 @@ mod tests {
             "get_salaries",
             input_args,
             attributes,
-            depend,
+            Vec::new(),
             Operation::Normal,
         );
 

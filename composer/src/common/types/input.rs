@@ -5,7 +5,7 @@ use super::*;
 )]
 pub struct Input {
     pub name: String,
-    pub input_type: String,
+    pub input_type: RustType,
     #[serde(default)]
     pub default_value: Option<String>,
 }

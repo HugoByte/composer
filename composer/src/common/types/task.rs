@@ -30,7 +30,7 @@ impl Display for Operation {
 pub struct Task {
     pub kind: String,
     pub action_name: String,
-    pub input_args: Vec<Input>,
+    pub input_arguments: Vec<Input>,
     pub attributes: HashMap<String, String>,
     #[serde(default)]
     pub operation: Operation,
@@ -49,7 +49,7 @@ impl Task {
     pub fn new(
         kind: &str,
         action_name: &str,
-        input_args: Vec<Input>,
+        input_arguments: Vec<Input>,
         attributes: HashMap<String, String>,
         depend_on: Vec<Depend>,
         operation: Operation,
@@ -57,7 +57,7 @@ impl Task {
         Task {
             kind: kind.to_string(),
             action_name: action_name.to_string(),
-            input_args,
+            input_arguments,
             attributes,
             depend_on,
             operation,
@@ -74,7 +74,7 @@ impl Display for Task {
             "{} {} {:?} {:?} {} {:?}",
             self.kind,
             self.action_name,
-            self.input_args,
+            self.input_arguments,
             self.attributes,
             self.operation,
             self.depend_on

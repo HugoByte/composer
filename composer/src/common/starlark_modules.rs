@@ -22,12 +22,12 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
     fn task(
         kind: String,
         action_name: String,
-        input_args: Value,
+        input_arguments: Value,
         attributes: Value,
         operation: Option<Value>,
         depend_on: Option<Value>,
     ) -> anyhow::Result<Task> {
-        let input_args: Vec<Input> = serde_json::from_str(&input_args.to_json()?).unwrap();
+        let input_arguments: Vec<Input> = serde_json::from_str(&input_arguments.to_json()?).unwrap();
         let attributes: HashMap<String, String> =
             serde_json::from_str(&attributes.to_json()?).unwrap();
         let depend_on : Vec<Depend> = match depend_on{
@@ -43,7 +43,7 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         Ok(Task {
             kind,
             action_name,
-            input_args,
+            input_arguments,
             attributes,
             operation,
             depend_on,
@@ -75,7 +75,7 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         let tasks: Vec<Task> = serde_json::from_str(&tasks.to_json()?).unwrap();
 
         let custom_types: Option<Vec<String>> = match custom_types {
-            Some(value) => serde_json::from_str(&value.to_json()?).unwrap(),
+            Some(value) => Some(serde_json::from_str::<Vec<RustType>>(&value.to_json()?).unwrap().iter().map(|t| t.to_string()).collect()),
             None => None,
         };
 
@@ -121,11 +121,14 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
     ///
     /// * A Result containing the input object of `Input` type
     ///
-    fn input_args(
+    fn arg(
         name: String,
-        input_type: String,
+        input_type: Value,
         default_value: Option<String>,
     ) -> anyhow::Result<Input> {
+
+        let input_type: RustType = serde_json::from_str(&input_type.to_json()?).unwrap();
+
         Ok(Input {
             name,
             input_type,
@@ -145,10 +148,6 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         })
     }
 
-}
-
-#[starlark_module]
-pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     /// Creates a user-defined type inside the `types.rs`.
     /// This method will be invoked inside the config file.
     ///
@@ -162,8 +161,9 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     ///
     /// * A Result containing the name of the user-defined type
     ///
-    fn typ(name: String, fields: Value, eval: &mut Evaluator) -> anyhow::Result<String> {
-        let fields: HashMap<String, String> = serde_json::from_str(&fields.to_json()?).unwrap();
+    fn EchoStruct(name: String, fields: Value, eval: &mut Evaluator) -> anyhow::Result<NoneType> {
+        
+        let fields: HashMap<String, RustType> = serde_json::from_str(&fields.to_json()?).unwrap();
 
         let composer = eval.extra.unwrap().downcast_ref::<Composer>().unwrap();
 
@@ -172,14 +172,19 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
         composer.add_custom_type(
             &name,
             format!(
-                "make_input_struct!(\n\t{},\n\t{},\n\t[Default, Clone, Debug]\n);",
+                "make_input_struct!(\n\t{},\n\t{},\n\t[Default, Clone, Debug, Deserialize, Serialize]\n);",
                 &name,
                 composer.parse_hashmap(&fields)
             ),
         );
 
-        Ok(name)
+        Ok(NoneType)
     }
+
+}
+
+#[starlark_module]
+pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
 
     /// Returns the Rust type for a string
     /// This method will be invoked inside the config file.
@@ -188,8 +193,8 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     /// 
     /// * A string representing the Rust type for a string
     ///
-    fn string() -> anyhow::Result<String> {
-        Ok("String".to_string())
+    fn String() -> anyhow::Result<RustType> {
+        Ok(RustType::String)
     }
 
     /// Returns the Rust type for a bool
@@ -198,8 +203,8 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     /// 
     /// * A string representing the Rust type for a bool
     ///
-    fn bool() -> anyhow::Result<String> {
-        Ok("bool".to_string())
+    fn Bool() -> anyhow::Result<RustType> {
+        Ok(RustType::Boolean)
     }
 
     /// Returns the Rust type for an integer with an optional size
@@ -214,14 +219,8 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     /// * A Result containing the Rust type for an integer
     /// * an error message if the size is invalid
     ///
-    fn int(size_value: Option<i32>) -> anyhow::Result<String> {
-        match size_value {
-            Some(size) => match size {
-                8 | 16 | 32 | 64 | 128 => Ok(format!("i{}", size)),
-                _ => Err(Error::msg("Size is invalid")),
-            },
-            None => Ok("i32".to_string()),
-        }
+    fn Int() -> anyhow::Result<RustType> {
+        Ok(RustType::Int)
     }
 
     /// Returns the Rust type for a map with specified types of the key and vale
@@ -236,8 +235,12 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     /// 
     /// * A Result containing the Rust type for a map
     ///
-    fn hashmap(type_1: String, type_2: String) -> anyhow::Result<String> {
-        Ok(format!("HashMap<{}, {}>", type_1, type_2))
+    fn HashMap(type_1: Value, type_2: Value) -> anyhow::Result<RustType> {
+
+        let type_1: RustType = serde_json::from_str(&type_1.to_json()?).unwrap();
+        let type_2: RustType = serde_json::from_str(&type_2.to_json()?).unwrap();
+
+        Ok(RustType::HashMap(Box::new(type_1), Box::new(type_2)))
     }
 
     /// Returns the Rust type for a list with specified element type
@@ -251,8 +254,11 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     ///
     ///  * A Result containing the Rust type for a list
     ///
-    fn list(type_: String) -> anyhow::Result<String> {
-        Ok(format!("Vec<{}>", type_))
+    fn List(type_: Value) -> anyhow::Result<RustType> {
+
+        let type_: RustType = serde_json::from_str(&type_.to_json()?).unwrap();
+
+        Ok(RustType::List(Box::new(type_)))
     }
 
     /// Calls the user-defined type created by the user and validates if the type name exists
@@ -268,16 +274,17 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     /// * A Result containing the name of the user-defined type if it exists
     /// * an error message if it does not
     ///
-    fn Struct(type_name: String, eval: &mut Evaluator) -> anyhow::Result<String> {
+    fn Struct(type_name: String, eval: &mut Evaluator) -> anyhow::Result<RustType> {
         let composer = eval.extra.unwrap().downcast_ref::<Composer>().unwrap();
         let type_name = type_name.to_case(Case::Pascal);
 
         if !type_name.is_empty() && composer.custom_types.borrow().contains_key(&type_name) {
-            Ok(type_name)
+            Ok(RustType::Struct(type_name))
         } else {
             Err(Error::msg("type {type_name} does not exist"))
         }
     }
+
 }
 
 #[starlark_module]
@@ -320,3 +327,4 @@ pub fn starlark_operation_module(builder: &mut GlobalsBuilder) {
         Ok(Operation::Map(field))
     }
 }
+

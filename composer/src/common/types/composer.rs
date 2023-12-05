@@ -45,7 +45,23 @@ impl Composer {
             let ast = AstModule::parse("config", content, &Dialect::Extended).unwrap();
 
             // We build our globals by adding some functions we wrote
-            let globals = GlobalsBuilder::new()
+            let globals = GlobalsBuilder::extended_by( &[
+                StructType,
+                RecordType,
+                EnumType,
+                Map,
+                Filter,
+                Partial,
+                ExperimentalRegex,
+                Debug,
+                Print,
+                Pprint,
+                Breakpoint,
+                Json,
+                Typing,
+                Internal,
+                CallStack,
+                ])
                 .with(starlark_workflow_module)
                 .with(starlark_datatype_module)
                 .with_struct("Operation", starlark_operation_module)
@@ -332,12 +348,8 @@ impl Composer {
                     workflow.version
                 ),
             );
-            fs::remove_dir_all(current_path.join(&format!(
-                "temp-{}-{}",
-                workflow.name.to_case(Case::Snake),
-                workflow.version
-            )))
-            .unwrap();
+            
+            // fs::remove_dir_all(current_path.join(&format!("temp-{}-{}",workflow.name.to_case(Case::Snake),workflow.version))).unwrap();
         }
     }
 }

@@ -107,7 +107,13 @@ macro_rules! impl_setter {
         impl $name{
             pub fn setter(&mut self, val: Value) {
                 $(
-                let value = val.get($key).unwrap();
+
+                // if the key does not provided the input type will be considered as struct 
+                let value = match $key{ 
+                    \"\" => val.clone(),
+                    _ => val.get($key).unwrap().clone(),
+                };
+
                 self.input.$element = serde_json::from_value(value.clone()).unwrap();
                 )*
             }
@@ -203,7 +209,7 @@ macro_rules! impl_concat_setter {
     ///
     /// * A String containing formatted key-value pairs enclosed in square brackets
     ///
-    pub fn parse_hashmap(&self, map: &HashMap<String, String>) -> String {
+    pub fn parse_hashmap(&self, map: &HashMap<String, RustType>) -> String {
         let mut attributes = "[".to_string();
 
         for (index, (k, v)) in map.iter().enumerate() {
@@ -290,7 +296,7 @@ macro_rules! impl_concat_setter {
                     depend.push(fields.cur_field.to_string());
             }
 
-            for input in task.input_args.iter() {
+            for input in task.input_arguments.iter() {
                 if !depend.contains(&input.name) {
                     if let Some(val) = input.default_value.as_ref() {
                         common.push(format!(
@@ -298,7 +304,7 @@ macro_rules! impl_concat_setter {
                             input.name, input.name, input.input_type
                         ));
 
-                        let content = match input.input_type.as_str() {
+                        let content = match input.input_type.to_string().as_str() {
                             "String" => format!("{val:?}.to_string()"),
                             _ => format!(
                                 "let val = serde_json::from_str::<{}>({:?}).unwrap();\n\tval",
@@ -372,10 +378,10 @@ make_input_struct!(
 
             let mut not_depend = Vec::<String>::new();
 
-            for (index, field) in task.input_args.iter().enumerate() {
+            for (index, field) in task.input_arguments.iter().enumerate() {
                 input = format!("{input}{}:{}", field.name, field.input_type);
 
-                if index != task.input_args.len() - 1 {
+                if index != task.input_arguments.len() - 1 {
                     input = format!("{input},");
                 } else {
                     input =
@@ -392,12 +398,12 @@ make_input_struct!(
                     "impl_map_setter!({}, {}, {}, \"{}\");",
                     task_name,
                     setter.join(","),
-                    task.input_args[0].input_type,
+                    task.input_arguments[0].input_type,
                     field
                 ),
                 Operation::Concat => format!(
                     "impl_concat_setter!({}, {});",
-                    task_name, task.input_args[0].name
+                    task_name, task.input_arguments[0].name
                 ),
                 _ => format!("impl_setter!({}, [{}]);", task_name, setter.join(",")),
             };
