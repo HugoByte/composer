@@ -1,8 +1,7 @@
 use super::*;
 
-#[derive(
-    Debug, PartialEq, Eq, Allocative, ProvidesStaticType, Clone, Deserialize, Serialize,
-)]pub enum RustType{
+#[derive(Debug, PartialEq, Eq, Allocative, ProvidesStaticType, Clone, Deserialize, Serialize)]
+pub enum RustType {
     Null,
     Int,
     Float,
@@ -10,7 +9,7 @@ use super::*;
     String,
     List(Box<RustType>),
     HashMap(Box<RustType>, Box<RustType>),
-    Struct(String)
+    Struct(String),
 }
 
 impl Default for RustType {
@@ -37,6 +36,4 @@ impl Display for RustType {
             RustType::Struct(name) => write!(f, "{name}"),
         }
     }
-
-
 }

@@ -10,7 +10,6 @@ mod tests {
             name: "test-workflow".to_string(),
             version: "0.0.1".to_string(),
             tasks: HashMap::default(),
-            custom_types: None,
         };
 
         composer
@@ -18,7 +17,6 @@ mod tests {
                 "test-workflow".to_string(),
                 "0.0.1".to_string(),
                 HashMap::default(),
-                None,
             )
             .unwrap();
 
@@ -31,8 +29,12 @@ mod tests {
     fn get_dependencies_test() {
         let composer = Composer::default();
 
-        let mut dependencies : Vec<Depend> = Vec::new();
-        dependencies.push(Depend { task_name: "dependent_task".to_string(), cur_field: "id".to_string(), prev_field: "ids".to_string() });
+        let mut dependencies: Vec<Depend> = Vec::new();
+        dependencies.push(Depend {
+            task_name: "dependent_task".to_string(),
+            cur_field: "id".to_string(),
+            prev_field: "ids".to_string(),
+        });
 
         let task = Task {
             action_name: "get_salaries".to_string(),
@@ -44,12 +46,7 @@ mod tests {
         tasks.insert("get_salaries".to_string(), task);
 
         composer
-            .add_workflow(
-                "test-workflow".to_string(),
-                "0.0.1".to_string(),
-                tasks,
-                None,
-            )
+            .add_workflow("test-workflow".to_string(), "0.0.1".to_string(), tasks)
             .unwrap();
 
         assert_eq!(
@@ -71,28 +68,48 @@ mod tests {
             ..Default::default()
         };
 
-        let mut dependencies : Vec<Depend> = Vec::new();
-        dependencies.push(Depend { task_name: "task0".to_string(), cur_field: "id".to_string(), prev_field: "ids".to_string() });
-        dependencies.push(Depend { task_name: "task4".to_string(), cur_field: "id".to_string(), prev_field: "ids".to_string() });
+        let mut dependencies: Vec<Depend> = Vec::new();
+        dependencies.push(Depend {
+            task_name: "task0".to_string(),
+            cur_field: "id".to_string(),
+            prev_field: "ids".to_string(),
+        });
+        dependencies.push(Depend {
+            task_name: "task4".to_string(),
+            cur_field: "id".to_string(),
+            prev_field: "ids".to_string(),
+        });
         task1.depend_on = dependencies;
 
         let mut task2 = Task {
             action_name: "task2".to_string(),
             ..Default::default()
         };
-    
-        let mut dependencies : Vec<Depend> = Vec::new();
-        dependencies.push(Depend { task_name: "task0".to_string(), cur_field: "id".to_string(), prev_field: "ids".to_string() });
+
+        let mut dependencies: Vec<Depend> = Vec::new();
+        dependencies.push(Depend {
+            task_name: "task0".to_string(),
+            cur_field: "id".to_string(),
+            prev_field: "ids".to_string(),
+        });
         task2.depend_on = dependencies;
 
         let mut task3 = Task {
             action_name: "task3".to_string(),
             ..Default::default()
         };
-       
-        let mut dependencies : Vec<Depend> = Vec::new();
-        dependencies.push(Depend { task_name: "task1".to_string(), cur_field: "id".to_string(), prev_field: "ids".to_string() });
-        dependencies.push(Depend { task_name: "task2".to_string(), cur_field: "id".to_string(), prev_field: "ids".to_string() });
+
+        let mut dependencies: Vec<Depend> = Vec::new();
+        dependencies.push(Depend {
+            task_name: "task1".to_string(),
+            cur_field: "id".to_string(),
+            prev_field: "ids".to_string(),
+        });
+        dependencies.push(Depend {
+            task_name: "task2".to_string(),
+            cur_field: "id".to_string(),
+            prev_field: "ids".to_string(),
+        });
         task3.depend_on = dependencies;
 
         let task4 = Task {
@@ -104,8 +121,12 @@ mod tests {
             ..Default::default()
         };
 
-        let mut dependencies : Vec<Depend> = Vec::new();
-        dependencies.push(Depend { task_name: "task2".to_string(), cur_field: "id".to_string(), prev_field: "ids".to_string() });
+        let mut dependencies: Vec<Depend> = Vec::new();
+        dependencies.push(Depend {
+            task_name: "task2".to_string(),
+            cur_field: "id".to_string(),
+            prev_field: "ids".to_string(),
+        });
         task5.depend_on = dependencies;
 
         let mut tasks = HashMap::new();
@@ -117,12 +138,7 @@ mod tests {
         tasks.insert("task5".to_string(), task5);
 
         composer
-            .add_workflow(
-                "test-workflow".to_string(),
-                "0.0.1".to_string(),
-                tasks,
-                None,
-            )
+            .add_workflow("test-workflow".to_string(), "0.0.1".to_string(), tasks)
             .unwrap();
 
         let flow = composer.get_flow(0);
@@ -162,12 +178,7 @@ mod tests {
         );
 
         composer
-            .add_workflow(
-                "test-workflow".to_string(),
-                "0.0.1".to_string(),
-                tasks,
-                None,
-            )
+            .add_workflow("test-workflow".to_string(), "0.0.1".to_string(), tasks)
             .unwrap();
 
         let composer_task = &composer.workflows.borrow()[0].tasks;
@@ -235,12 +246,7 @@ mod tests {
         tasks.insert("get_salaries".to_string(), task);
 
         composer
-            .add_workflow(
-                "test_workflow".to_string(),
-                "0.0.1".to_string(),
-                tasks,
-                None,
-            )
+            .add_workflow("test_workflow".to_string(), "0.0.1".to_string(), tasks)
             .unwrap();
 
         let current_path = env::current_dir().unwrap();

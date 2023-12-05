@@ -105,16 +105,10 @@ macro_rules! impl_setter {
         [$($element:ident : $key:expr),*]
     ) => {
         impl $name{
-            pub fn setter(&mut self, val: Value) {
+            pub fn setter(&mut self, value: Value) {
                 $(
-
-                // if the key does not provided the input type will be considered as struct 
-                let value = match $key{ 
-                    \"\" => val.clone(),
-                    _ => val.get($key).unwrap().clone(),
-                };
-
-                self.input.$element = serde_json::from_value(value.clone()).unwrap();
+                    let val = value.get($key).unwrap();
+                    self.input.$element = serde_json::from_value(val.clone()).unwrap();
                 )*
             }
         }
@@ -255,19 +249,14 @@ macro_rules! impl_concat_setter {
     ///
     /// * A String containing code to create user-defined types as structs
     ///
-    pub fn get_user_defined_types(&self, workflow_index: usize) -> String {
+    pub fn get_user_defined_types(&self, types: Vec<String>) -> String {
         let mut build_string = String::new();
         let custom_types = self.custom_types.borrow();
 
-        if let Some(types) = self.workflows.borrow()[workflow_index]
-            .custom_types
-            .as_ref()
-        {
-            for type_ in types.iter() {
-                let typ = custom_types.get(type_).unwrap();
-                build_string = format!("{build_string}{typ}\n");
-            }
-        };
+        for type_ in types.iter() {
+            let typ = custom_types.get(type_).unwrap();
+            build_string = format!("{build_string}{typ}\n");
+        }
 
         build_string
     }
@@ -286,6 +275,7 @@ macro_rules! impl_concat_setter {
     ///
     pub fn get_common_inputs_type(&self, workflow_index: usize) -> String {
         let mut common = Vec::<String>::new();
+        let mut custom_types = Vec::<String>::new();
 
         let mut default_value_functions = String::new();
 
@@ -293,10 +283,14 @@ macro_rules! impl_concat_setter {
             let mut depend = Vec::<String>::new();
 
             for fields in task.depend_on.iter() {
-                    depend.push(fields.cur_field.to_string());
+                depend.push(fields.cur_field.to_string());
             }
 
             for input in task.input_arguments.iter() {
+                if let RustType::Struct(name) = &input.input_type {
+                    custom_types.push(name.to_string());
+                }
+
                 if !depend.contains(&input.name) {
                     if let Some(val) = input.default_value.as_ref() {
                         common.push(format!(
@@ -324,8 +318,15 @@ macro_rules! impl_concat_setter {
             }
         }
 
+        let custom_types = if !custom_types.is_empty() {
+            self.get_user_defined_types(custom_types)
+        } else {
+            "".to_string()
+        };
+
         format!(
-            "{default_value_functions}
+            "{custom_types}
+{default_value_functions}
 make_input_struct!(
     Input,
     [{}],
@@ -358,7 +359,7 @@ make_input_struct!(
             let mut setter = Vec::<String>::new();
             let mut map_setter = String::new();
 
-            for fields in task.depend_on.iter().by_ref(){
+            for fields in task.depend_on.iter().by_ref() {
                 depend.push(fields.cur_field.clone());
 
                 setter.push(format!("{}:\"{}\"", fields.cur_field, fields.prev_field));
@@ -599,8 +600,7 @@ impl_new!(
         let workflow_nodes_and_edges = self.get_workflow_nodes_and_edges(workflow_index);
 
         let main_file = format!(
-            "{}
-{}            
+            "{}            
 {}
 {}
 {}
@@ -618,7 +618,6 @@ pub fn main(args: Value) -> Result<Value, String> {{
 }}
 ",
             self.get_macros(),
-            self.get_user_defined_types(workflow_index),
             structs[0],
             self.get_common_inputs_type(workflow_index),
             self.get_impl_execute_trait_code(workflow_index),

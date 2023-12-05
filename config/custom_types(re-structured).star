@@ -1,7 +1,7 @@
-EchoStruct(
-    name = "my_struct",
+my_struct = EchoStruct(
+    name = "message",
     fields = {
-        "car_type" : HashMap(String(), Int())
+        "result" : HashMap(String(), Int()) 
     }
 )
 
@@ -18,7 +18,7 @@ cartype = task(
     input_arguments = [
         arg(
             name="car_type",
-            input_type= HashMap(String(), Int())
+            input_type = String()
         ),
     ],
     attributes = attributes
@@ -64,7 +64,7 @@ purchase = task(
     input_arguments = [
         arg(
             name="model_price_list",
-            input_type = HashMap(String(), Int())
+            input_type = my_struct
         ),
         arg(
             name="model_name",
@@ -84,6 +84,5 @@ purchase = task(
 workflows(
     name = "car_market_place",
     version = "0.0.1",
-    tasks = [cartype, modelavail, modelprice, purchase],
-    custom_types = [ Struct("my_struct")]
+    tasks = [cartype, modelavail, modelprice, purchase]
 )

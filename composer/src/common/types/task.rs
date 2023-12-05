@@ -1,10 +1,10 @@
 use super::*;
 
-#[derive( Debug, PartialEq, Eq, ProvidesStaticType, Allocative, Clone, Deserialize, Serialize)]
-pub enum Operation{
+#[derive(Debug, PartialEq, Eq, ProvidesStaticType, Allocative, Clone, Deserialize, Serialize)]
+pub enum Operation {
     Normal,
     Concat,
-    Map(String)
+    Map(String),
 }
 
 impl Default for Operation {
@@ -20,7 +20,7 @@ impl<'v> StarlarkValue<'v> for Operation {}
 
 impl Display for Operation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-       write!(f, "{:?}", self)
+        write!(f, "{:?}", self)
     }
 }
 
@@ -37,12 +37,11 @@ pub struct Task {
     pub depend_on: Vec<Depend>,
 }
 
-
-#[derive(Debug, PartialEq, Eq, Allocative, ProvidesStaticType,Clone, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Allocative, ProvidesStaticType, Clone, Deserialize, Serialize)]
 pub struct Depend {
     pub task_name: String,
-    pub cur_field : String,
-    pub prev_field : String,
+    pub cur_field: String,
+    pub prev_field: String,
 }
 
 impl Task {
@@ -99,4 +98,3 @@ impl<'v> StarlarkValue<'v> for Depend {}
 
 #[starlark_value(type = "Task")]
 impl<'v> StarlarkValue<'v> for Task {}
-

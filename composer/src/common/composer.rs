@@ -45,7 +45,7 @@ impl Composer {
             let ast = AstModule::parse("config", content, &Dialect::Extended).unwrap();
 
             // We build our globals by adding some functions we wrote
-            let globals = GlobalsBuilder::extended_by( &[
+            let globals = GlobalsBuilder::extended_by(&[
                 StructType,
                 RecordType,
                 EnumType,
@@ -61,11 +61,11 @@ impl Composer {
                 Typing,
                 Internal,
                 CallStack,
-                ])
-                .with(starlark_workflow_module)
-                .with(starlark_datatype_module)
-                .with_struct("Operation", starlark_operation_module)
-                .build();
+            ])
+            .with(starlark_workflow_module)
+            .with(starlark_datatype_module)
+            .with_struct("Operation", starlark_operation_module)
+            .build();
 
             let module = Module::new();
             let composer = Composer::default();
@@ -101,7 +101,6 @@ impl Composer {
         name: String,
         version: String,
         tasks: HashMap<String, Task>,
-        custom_types: Option<Vec<String>>,
     ) -> Result<(), Error> {
         for workflow in self.workflows.borrow().iter() {
             if workflow.name == name {
@@ -115,7 +114,6 @@ impl Composer {
                 name,
                 version,
                 tasks,
-                custom_types,
             });
             Ok(())
         }
@@ -348,8 +346,13 @@ impl Composer {
                     workflow.version
                 ),
             );
-            
-            // fs::remove_dir_all(current_path.join(&format!("temp-{}-{}",workflow.name.to_case(Case::Snake),workflow.version))).unwrap();
+
+            fs::remove_dir_all(current_path.join(&format!(
+                "temp-{}-{}",
+                workflow.name.to_case(Case::Snake),
+                workflow.version
+            )))
+            .unwrap();
         }
     }
 }
