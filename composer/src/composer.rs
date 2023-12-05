@@ -37,11 +37,13 @@ impl Composer {
     /// composer.add_config("config_file_2");
     /// composer.run();
     /// ```
-    pub fn run(&self) {
-        let current_path = env::current_dir().unwrap();
+    pub fn run(&self, pwd: &Path) {
+        let current_path = pwd;
 
         for config in self.config_files.iter() {
+            
             let content: String = std::fs::read_to_string(config).unwrap();
+
             let ast = AstModule::parse("config", content, &Dialect::Extended).unwrap();
 
             // We build our globals by adding some functions we wrote
@@ -59,7 +61,7 @@ impl Composer {
                 eval.eval_module(ast, &globals).unwrap();
             }
 
-            composer.generate(current_path.as_path());
+            composer.generate(current_path);
         }
     }
 
@@ -222,7 +224,7 @@ impl Composer {
     /// This method copies the source directory and all its files to the destination directory
     /// . If the `file` argument is provided, only the specified file is copied.
     ///
-    fn copy_dir(&self, src: &Path, dest: &Path, file: Option<&str>) -> io::Result<()> {
+    pub fn copy_dir(&self, src: &Path, dest: &Path, file: Option<&str>) -> io::Result<()> {
         // Create the destination directory if it doesn't exist
         if !dest.exists() {
             fs::create_dir_all(dest)?;
@@ -260,7 +262,7 @@ impl Composer {
     /// * `workflow_package_name` - A string slice representing the name of the
     ///   workflow package
     ///
-    fn fetch_wasm(&self, pwd: &Path, workflow_package_name: &str) {
+    pub fn fetch_wasm(&self, pwd: &Path, workflow_package_name: &str) {
         Command::new("rustup")
             .current_dir(pwd.join(format!("temp-{}", workflow_package_name)))
             .args(["target", "add", "wasm32-wasi"])

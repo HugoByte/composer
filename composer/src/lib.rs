@@ -24,14 +24,9 @@ pub mod task;
 pub mod tests;
 pub mod workflow;
 
-use composer::*;
-use input::*;
-use starlark_modules::*;
-use task::*;
-use workflow::*;
+pub use composer::*;
+pub use input::*;
+pub use starlark_modules::*;
+pub use task::*;
+pub use workflow::*;
 
-fn main() {
-    let mut composer = Composer::default();
-    composer.add_config("./config/default-value-testing-car_market_place.star");
-    composer.run();
-}
