@@ -2,6 +2,7 @@ use allocative::Allocative;
 use anyhow::Error;
 use convert_case::{Case, Casing};
 use serde_derive::{Deserialize, Serialize};
+use starlark::environment::LibraryExtension::*;
 use starlark::environment::{GlobalsBuilder, Module};
 use starlark::eval::Evaluator;
 use starlark::syntax::{AstModule, Dialect};
@@ -16,24 +17,17 @@ use std::result::Result::Ok;
 use std::{env, fs};
 use std::{io, path::Path};
 
-pub mod composer;
-pub mod input;
-pub mod parse_module;
-pub mod starlark_modules;
-pub mod task;
-pub mod tests;
-pub mod workflow;
+mod types;
+mod common;
+mod tests;
 
-use composer::*;
-use input::*;
-use starlark_modules::*;
-use task::*;
-use workflow::*;
+pub use types::*;
+pub use common::*;
 
 fn main() {
     let mut composer = Composer::default();
 
-    composer.add_config("./config/map_concat_test(emp_salary).star");
+    composer.add_config("./config/custom-types-re-structured.star");
 
     composer.run();
 }

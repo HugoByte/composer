@@ -1,10 +1,10 @@
 use super::*;
 
-#[derive( Debug, PartialEq, Eq, ProvidesStaticType, Allocative, Clone, Deserialize, Serialize)]
-pub enum Operation{
+#[derive(Debug, PartialEq, Eq, ProvidesStaticType, Allocative, Clone, Deserialize, Serialize)]
+pub enum Operation {
     Normal,
     Concat,
-    Map(String)
+    Map(String),
 }
 
 impl Default for Operation {
@@ -20,7 +20,7 @@ impl<'v> StarlarkValue<'v> for Operation {}
 
 impl Display for Operation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-       write!(f, "{:?}", self)
+        write!(f, "{:?}", self)
     }
 }
 
@@ -30,26 +30,25 @@ impl Display for Operation {
 pub struct Task {
     pub kind: String,
     pub action_name: String,
-    pub input_args: Vec<Input>,
+    pub input_arguments: Vec<Input>,
     pub attributes: HashMap<String, String>,
     #[serde(default)]
     pub operation: Operation,
     pub depend_on: Vec<Depend>,
 }
 
-
-#[derive(Debug, PartialEq, Eq, Allocative, ProvidesStaticType,Clone, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Allocative, ProvidesStaticType, Clone, Deserialize, Serialize)]
 pub struct Depend {
     pub task_name: String,
-    pub cur_field : String,
-    pub prev_field : String,
+    pub cur_field: String,
+    pub prev_field: String,
 }
 
 impl Task {
     pub fn new(
         kind: &str,
         action_name: &str,
-        input_args: Vec<Input>,
+        input_arguments: Vec<Input>,
         attributes: HashMap<String, String>,
         depend_on: Vec<Depend>,
         operation: Operation,
@@ -57,7 +56,7 @@ impl Task {
         Task {
             kind: kind.to_string(),
             action_name: action_name.to_string(),
-            input_args,
+            input_arguments,
             attributes,
             depend_on,
             operation,
@@ -74,7 +73,7 @@ impl Display for Task {
             "{} {} {:?} {:?} {} {:?}",
             self.kind,
             self.action_name,
-            self.input_args,
+            self.input_arguments,
             self.attributes,
             self.operation,
             self.depend_on
@@ -99,4 +98,3 @@ impl<'v> StarlarkValue<'v> for Depend {}
 
 #[starlark_value(type = "Task")]
 impl<'v> StarlarkValue<'v> for Task {}
-
