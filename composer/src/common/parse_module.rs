@@ -298,8 +298,8 @@ macro_rules! impl_concat_setter {
                             input.name, input.name, input.input_type
                         ));
 
-                        let content = match input.input_type.to_string().as_str() {
-                            "String" => format!("{val:?}.to_string()"),
+                        let content = match input.input_type {
+                            RustType::String => format!("{val:?}.to_string()"),
                             _ => format!(
                                 "let val = serde_json::from_str::<{}>({:?}).unwrap();\n\tval",
                                 input.input_type, val
@@ -359,9 +359,8 @@ make_input_struct!(
             let mut setter = Vec::<String>::new();
             let mut map_setter = String::new();
 
-            for fields in task.depend_on.iter().by_ref() {
+            for fields in task.depend_on.iter() {
                 depend.push(fields.cur_field.clone());
-
                 setter.push(format!("{}:\"{}\"", fields.cur_field, fields.prev_field));
             }
 
@@ -389,7 +388,7 @@ make_input_struct!(
                         format!("{input}],\n\t[Debug, Clone, Default, Serialize, Deserialize]);");
                 }
 
-                if depend.binary_search(&field.name).is_err() {
+                if !depend.contains(&field.name) {
                     not_depend.push(format!("{}:{}", field.name, field.input_type));
                 }
             }

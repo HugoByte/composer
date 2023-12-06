@@ -17,15 +17,17 @@ use std::result::Result::Ok;
 use std::{env, fs};
 use std::{io, path::Path};
 
-pub mod common;
-pub mod tests;
+mod types;
+mod common;
+mod tests;
 
-use common::*;
+pub use types::*;
+pub use common::*;
 
 fn main() {
     let mut composer = Composer::default();
 
-    composer.add_config("./config/custom_types(re-structured).star");
+    composer.add_config("./config/custom-types-re-structured.star");
 
     composer.run();
 }
