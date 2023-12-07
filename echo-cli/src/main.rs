@@ -41,7 +41,7 @@ fn generate_wasm(){
     c.add_config("../config/car_market_place.star");
 
     // println!("===> {:?}", current_path.join);
-    c.run(&current_path.join("../"));
+    c.run();
 }
 
 

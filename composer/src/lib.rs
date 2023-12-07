@@ -13,8 +13,7 @@ use std::fmt::{self, Display};
 use std::io::ErrorKind;
 use std::process::Command;
 use std::result::Result::Ok;
-use std::{env, fs};
-use std::{io, path::Path};
+use std::{fs};
 
 pub mod composer;
 pub mod input;
