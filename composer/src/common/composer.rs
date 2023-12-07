@@ -1,7 +1,3 @@
-use std::path::PathBuf;
-
-use anyhow::Ok;
-
 use super::*;
 
 #[derive(Debug, ProvidesStaticType, Default)]
@@ -285,25 +281,24 @@ impl Composer {
         .with_struct("Operation", starlark_operation_module)
         .build();
 
-    
-    let module = Module::new();
+        let module = Module::new();
 
-    let int = module.heap().alloc(RustType::Int);
-    module.set("Int", int); 
-    let int = module.heap().alloc(RustType::Float);
-    module.set("Float", int);
-    let int = module.heap().alloc(RustType::String);
-    module.set("String", int);
-    let int = module.heap().alloc(RustType::Boolean);
-    module.set("Bool", int);
+        let int = module.heap().alloc(RustType::Int);
+        module.set("Int", int);
+        let int = module.heap().alloc(RustType::Float);
+        module.set("Float", int);
+        let int = module.heap().alloc(RustType::String);
+        module.set("String", int);
+        let int = module.heap().alloc(RustType::Boolean);
+        module.set("Bool", int);
 
-    let composer = Composer::default();
-    {
-        let mut eval = Evaluator::new(&module);
-        // We add a reference to our store
-        eval.extra = Some(&composer);
-        eval.eval_module(ast, &globals).unwrap();
-    }
+        let composer = Composer::default();
+        {
+            let mut eval = Evaluator::new(&module);
+            // We add a reference to our store
+            eval.extra = Some(&composer);
+            eval.eval_module(ast, &globals).unwrap();
+        }
 
         composer
     }
