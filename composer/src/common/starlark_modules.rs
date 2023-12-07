@@ -167,42 +167,6 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
 
 #[starlark_module]
 pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
-    /// Returns the Rust type for a string
-    /// This method will be invoked inside the config file.
-    ///
-    /// # Returns
-    ///
-    /// * A string representing the Rust type for a string
-    ///
-    fn String() -> anyhow::Result<RustType> {
-        Ok(RustType::String)
-    }
-
-    /// Returns the Rust type for a bool
-    ///
-    /// # Returns
-    ///
-    /// * A string representing the Rust type for a bool
-    ///
-    fn Bool() -> anyhow::Result<RustType> {
-        Ok(RustType::Boolean)
-    }
-
-    /// Returns the Rust type for an integer with an optional size
-    /// This method will be invoked inside the config file.
-    ///
-    /// # Arguments
-    ///
-    /// * `size` - An optional size for the integer
-    ///
-    /// # Returns
-    ///
-    /// * A Result containing the Rust type for an integer
-    /// * an error message if the size is invalid
-    ///
-    fn Int() -> anyhow::Result<RustType> {
-        Ok(RustType::Int)
-    }
 
     /// Returns the Rust type for a map with specified types of the key and vale
     /// This method will be invoked inside the config file.

@@ -12,22 +12,22 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::{self, Display};
 use std::io::ErrorKind;
+use std::path::Path;
 use std::process::Command;
 use std::result::Result::Ok;
 use std::{env, fs};
-use std::{io, path::Path};
 
-mod types;
 mod common;
 mod tests;
+mod types;
 
-pub use types::*;
 pub use common::*;
+pub use types::*;
 
 fn main() {
     let mut composer = Composer::default();
 
     composer.add_config("./config/custom-types-re-structured.star");
 
-    composer.run();
+    composer.generate(&env::current_dir().unwrap()).unwrap();
 }
