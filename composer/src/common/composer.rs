@@ -26,60 +26,6 @@ impl Composer {
         self.config_files.push(config.to_string());
     }
 
-    /// Runs the composer to build all workflows specified in the config files.
-    /// This method is called by the user.
-    ///
-    /// # Example
-    /// ```
-    /// use your_module_name_here::Composer;
-    /// let composer = Composer::default();
-    /// composer.add_config("config_file_1");
-    /// composer.add_config("config_file_2");
-    /// composer.run();
-    /// ```
-    pub fn run(&self) {
-        let current_path = env::current_dir().unwrap();
-
-        for config in self.config_files.iter() {
-            let content: String = std::fs::read_to_string(config).unwrap();
-            let ast = AstModule::parse("config", content, &Dialect::Extended).unwrap();
-
-            // We build our globals by adding some functions we wrote
-            let globals = GlobalsBuilder::extended_by(&[
-                StructType,
-                RecordType,
-                EnumType,
-                Map,
-                Filter,
-                Partial,
-                ExperimentalRegex,
-                Debug,
-                Print,
-                Pprint,
-                Breakpoint,
-                Json,
-                Typing,
-                Internal,
-                CallStack,
-            ])
-            .with(starlark_workflow_module)
-            .with(starlark_datatype_module)
-            .with_struct("Operation", starlark_operation_module)
-            .build();
-
-            let module = Module::new();
-            let composer = Composer::default();
-            {
-                let mut eval = Evaluator::new(&module);
-                // We add a reference to our store
-                eval.extra = Some(&composer);
-                eval.eval_module(ast, &globals).unwrap();
-            }
-
-            composer.generate(current_path.as_path());
-        }
-    }
-
     /// Adds a new workflow to the composer.
     /// This method is invoked by the workflows function inside the starlark_module.
     ///
@@ -237,7 +183,7 @@ impl Composer {
     /// This method copies the source directory and all its files to the destination directory
     /// . If the `file` argument is provided, only the specified file is copied.
     ///
-    fn copy_dir(&self, src: &Path, dest: &Path, file: Option<&str>) -> io::Result<()> {
+    fn copy_dir(&self, src: &Path, dest: &Path, file: Option<&str>) -> Result<(), Error> {
         // Create the destination directory if it doesn't exist
         if !dest.exists() {
             fs::create_dir_all(dest)?;
@@ -308,6 +254,55 @@ impl Composer {
         .unwrap();
     }
 
+    fn compile_starlark(&self, config: &str) -> Composer {
+        let content: String = std::fs::read_to_string(config).unwrap();
+        let ast = AstModule::parse("config", content, &Dialect::Extended).unwrap();
+
+        // We build our globals by adding some functions we wrote
+        let globals = GlobalsBuilder::extended_by(&[
+            StructType,
+            RecordType,
+            EnumType,
+            Map,
+            Filter,
+            Partial,
+            ExperimentalRegex,
+            Debug,
+            Print,
+            Pprint,
+            Breakpoint,
+            Json,
+            Typing,
+            Internal,
+            CallStack,
+        ])
+        .with(starlark_workflow_module)
+        .with(starlark_datatype_module)
+        .with_struct("Operation", starlark_operation_module)
+        .build();
+
+        let module = Module::new();
+
+        let int = module.heap().alloc(RustType::Int);
+        module.set("Int", int);
+        let int = module.heap().alloc(RustType::Float);
+        module.set("Float", int);
+        let int = module.heap().alloc(RustType::String);
+        module.set("String", int);
+        let int = module.heap().alloc(RustType::Boolean);
+        module.set("Bool", int);
+
+        let composer = Composer::default();
+        {
+            let mut eval = Evaluator::new(&module);
+            // We add a reference to our store
+            eval.extra = Some(&composer);
+            eval.eval_module(ast, &globals).unwrap();
+        }
+
+        composer
+    }
+
     /// Generates workflow package and builds the WASM file for all of the workflows
     /// inside the composer
     ///
@@ -315,44 +310,47 @@ impl Composer {
     ///
     /// * `current_path` - A reference to the Path indicating the current working directory
     ///
-    pub fn generate(&self, current_path: &Path) {
+    pub fn generate(&self, current_path: &Path) -> Result<PathBuf, Error> {
         // Getting the current working directory
         let src_path = current_path.join("boilerplate");
 
-        for (workflow_index, workflow) in self.workflows.borrow().iter().enumerate() {
-            if workflow.tasks.is_empty() {
-                continue;
-            }
+        for config in self.config_files.iter() {
+            let composer = self.compile_starlark(config);
 
-            let dest_path = current_path.join(format!(
-                "temp-{}-{}",
-                workflow.name.to_case(Case::Snake),
-                workflow.version
-            ));
+            for (workflow_index, workflow) in composer.workflows.borrow().iter().enumerate() {
+                if workflow.tasks.is_empty() {
+                    continue;
+                }
 
-            self.copy_dir(&src_path, &dest_path, None).unwrap();
-
-            fs::write(
-                dest_path.join("src/types.rs"),
-                self.generate_types_rs_file_code(workflow_index),
-            )
-            .unwrap();
-
-            self.fetch_wasm(
-                current_path,
-                &format!(
-                    "{}-{}",
+                let dest_path = current_path.join(format!(
+                    "temp-{}-{}",
                     workflow.name.to_case(Case::Snake),
                     workflow.version
-                ),
-            );
+                ));
+                self.copy_dir(&src_path, &dest_path, None)?;
 
-            fs::remove_dir_all(current_path.join(&format!(
-                "temp-{}-{}",
-                workflow.name.to_case(Case::Snake),
-                workflow.version
-            )))
-            .unwrap();
+                fs::write(
+                    dest_path.join("src/types.rs"),
+                    composer.generate_types_rs_file_code(workflow_index),
+                )?;
+
+                self.fetch_wasm(
+                    current_path,
+                    &format!(
+                        "{}-{}",
+                        workflow.name.to_case(Case::Snake),
+                        workflow.version
+                    ),
+                );
+
+                fs::remove_dir_all(current_path.join(&format!(
+                    "temp-{}-{}",
+                    workflow.name.to_case(Case::Snake),
+                    workflow.version
+                )))?
+            }
         }
+
+        Ok(current_path.join("workflow_wasm"))
     }
 }

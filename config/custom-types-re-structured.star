@@ -1,7 +1,7 @@
 my_struct = EchoStruct(
     name = "message",
     fields = {
-        "result" : HashMap(String(), Int()) 
+        "result" : HashMap(String, Int) 
     }
 )
 
@@ -18,7 +18,7 @@ cartype = task(
     input_arguments = [
         arg(
             name="car_type",
-            input_type = String()
+            input_type = String
         ),
     ],
     attributes = attributes
@@ -30,11 +30,11 @@ modelavail = task(
     input_arguments = [
         arg(
             name="car_company_list",
-            input_type = HashMap(String(), List(String()))
+            input_type = HashMap(String, List(String))
         ),
         arg(
             name="company_name",
-            input_type= String()
+            input_type= String
         )
     ],
     attributes = attributes,
@@ -49,7 +49,7 @@ modelprice = task(
     input_arguments = [
         arg(
             name="models",
-            input_type= List(String())
+            input_type= List(String)
         ),
     ],
     attributes = attributes,
@@ -68,11 +68,11 @@ purchase = task(
         ),
         arg(
             name="model_name",
-            input_type= String()
+            input_type= String
         ),
         arg(
             name="price",
-            input_type= Int()
+            input_type= Int
         ),
     ],
     attributes = attributes,
