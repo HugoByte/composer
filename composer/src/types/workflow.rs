@@ -5,18 +5,13 @@ pub struct Workflow {
     pub name: String,
     pub version: String,
     pub tasks: HashMap<String, Task>,
-    pub custom_types: Option<Vec<String>>,
 }
 
 starlark_simple_value!(Workflow);
 
 impl Display for Workflow {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{} {} {:?} {:?}",
-            self.name, self.version, self.tasks, self.custom_types
-        )
+        write!(f, "{} {} {:?}", self.name, self.version, self.tasks)
     }
 }
 

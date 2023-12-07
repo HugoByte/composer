@@ -40,7 +40,8 @@ macro_rules! make_main_struct {
         $input:ty,
         [$($der:ident),*],
         // list of attributes
-        [$($key:ident : $val:expr),*]
+        [$($key:ident : $val:expr),*],
+        $output_field: ident
 ) => {
         #[derive($($der),*)]
         $(
@@ -50,10 +51,11 @@ macro_rules! make_main_struct {
             action_name: String,
             pub input: $input,
             pub output: Value,
+            pub mapout: Value
         }
         impl $name{
             pub fn output(&self) -> Value {
-                self.output.clone()
+                self.$output_field.clone()
             }
         }
     }
@@ -103,11 +105,57 @@ macro_rules! impl_setter {
         [$($element:ident : $key:expr),*]
     ) => {
         impl $name{
-            pub fn setter(&mut self, val: Value) {
+            pub fn setter(&mut self, value: Value) {
                 $(
-                let value = val.get($key).unwrap();
-                self.input.$element = serde_json::from_value(value.clone()).unwrap();
+                    let val = value.get($key).unwrap();
+                    self.input.$element = serde_json::from_value(val.clone()).unwrap();
                 )*
+            }
+        }
+    }
+}
+
+macro_rules! impl_map_setter {
+    (
+        $name:ty,
+        $element:ident : $key:expr,  
+        $typ_name : ty,
+        $out:expr
+    ) => {
+        impl $name {
+            pub fn setter(&mut self, val: Value) {
+                
+                    let value = val.get($key).unwrap();
+                    let value = serde_json::from_value::<Vec<$typ_name>>(value.clone()).unwrap();
+                    let mut map: HashMap<_, _> = value
+                        .iter()
+                        .map(|x| {
+                            self.input.$element = x.to_owned() as $typ_name;
+                            self.run();
+                            (x.to_owned(), self.output.get($out).unwrap().to_owned())
+                        })
+                        .collect();
+                    self.mapout = to_value(map).unwrap();
+                
+            }
+        }
+    }
+    }
+
+macro_rules! impl_concat_setter {
+    (
+        $name:ty,
+        $input:ident
+    ) => {
+        impl $name{
+            pub fn setter(&mut self, val: Value) {
+                
+                    let val: Vec<Value> = serde_json::from_value(val).unwrap();
+                    let res = join_hashmap(
+                        serde_json::from_value(val[0].to_owned()).unwrap(),
+                        serde_json::from_value(val[1].to_owned()).unwrap(),
+                    );
+                    self.input.$input = res;
             }
         }
     }
@@ -155,7 +203,7 @@ macro_rules! impl_setter {
     ///
     /// * A String containing formatted key-value pairs enclosed in square brackets
     ///
-    pub fn parse_hashmap(&self, map: &HashMap<String, String>) -> String {
+    pub fn parse_hashmap(&self, map: &HashMap<String, RustType>) -> String {
         let mut attributes = "[".to_string();
 
         for (index, (k, v)) in map.iter().enumerate() {
@@ -201,19 +249,14 @@ macro_rules! impl_setter {
     ///
     /// * A String containing code to create user-defined types as structs
     ///
-    pub fn get_user_defined_types(&self, workflow_index: usize) -> String {
+    pub fn get_user_defined_types(&self, types: Vec<String>) -> String {
         let mut build_string = String::new();
         let custom_types = self.custom_types.borrow();
 
-        if let Some(types) = self.workflows.borrow()[workflow_index]
-            .custom_types
-            .as_ref()
-        {
-            for type_ in types.iter() {
-                let typ = custom_types.get(type_).unwrap();
-                build_string = format!("{build_string}{typ}\n");
-            }
-        };
+        for type_ in types.iter() {
+            let typ = custom_types.get(type_).unwrap();
+            build_string = format!("{build_string}{typ}\n");
+        }
 
         build_string
     }
@@ -232,28 +275,31 @@ macro_rules! impl_setter {
     ///
     pub fn get_common_inputs_type(&self, workflow_index: usize) -> String {
         let mut common = Vec::<String>::new();
+        let mut custom_types = Vec::<String>::new();
 
         let mut default_value_functions = String::new();
 
         for (_, task) in self.workflows.borrow()[workflow_index].tasks.iter() {
             let mut depend = Vec::<String>::new();
 
-            for (_, fields) in task.depend_on.iter() {
-                for key in fields.keys() {
-                    depend.push(key.to_string());
-                }
+            for fields in task.depend_on.iter() {
+                depend.push(fields.cur_field.to_string());
             }
 
-            for input in task.input_args.iter() {
-                if depend.binary_search(&input.name).is_err() {
+            for input in task.input_arguments.iter() {
+                if let RustType::Struct(name) = &input.input_type {
+                    custom_types.push(name.to_string());
+                }
+
+                if !depend.contains(&input.name) {
                     if let Some(val) = input.default_value.as_ref() {
                         common.push(format!(
                             "#[\"{}_fn\"] {}:{}",
                             input.name, input.name, input.input_type
                         ));
 
-                        let content = match input.input_type.as_str() {
-                            "String" => format!("{val:?}.to_string()"),
+                        let content = match input.input_type {
+                            RustType::String => format!("{val:?}.to_string()"),
                             _ => format!(
                                 "let val = serde_json::from_str::<{}>({:?}).unwrap();\n\tval",
                                 input.input_type, val
@@ -272,8 +318,15 @@ macro_rules! impl_setter {
             }
         }
 
+        let custom_types = if !custom_types.is_empty() {
+            self.get_user_defined_types(custom_types)
+        } else {
+            "".to_string()
+        };
+
         format!(
-            "{default_value_functions}
+            "{custom_types}
+{default_value_functions}
 make_input_struct!(
     Input,
     [{}],
@@ -304,12 +357,18 @@ make_input_struct!(
 
             let mut depend = Vec::<String>::new();
             let mut setter = Vec::<String>::new();
+            let mut map_setter = String::new();
 
-            for fields in task.depend_on.values() {
-                let x = fields.iter().next().unwrap();
-                depend.push(x.0.to_string());
-                setter.push(format!("{}:\"{}\"", x.0, x.1));
+            for fields in task.depend_on.iter() {
+                depend.push(fields.cur_field.clone());
+                setter.push(format!("{}:\"{}\"", fields.cur_field, fields.prev_field));
             }
+
+            let field = match &task.operation {
+                Operation::Map(_) => "map",
+                _ => "",
+            };
+            map_setter.push_str(&field);
 
             let mut input = format!(
                 "make_input_struct!(
@@ -319,20 +378,35 @@ make_input_struct!(
 
             let mut not_depend = Vec::<String>::new();
 
-            for (index, field) in task.input_args.iter().enumerate() {
+            for (index, field) in task.input_arguments.iter().enumerate() {
                 input = format!("{input}{}:{}", field.name, field.input_type);
 
-                if index != task.input_args.len() - 1 {
+                if index != task.input_arguments.len() - 1 {
                     input = format!("{input},");
                 } else {
                     input =
                         format!("{input}],\n\t[Debug, Clone, Default, Serialize, Deserialize]);");
                 }
 
-                if depend.binary_search(&field.name).is_err() {
+                if !depend.contains(&field.name) {
                     not_depend.push(format!("{}:{}", field.name, field.input_type));
                 }
             }
+
+            let setter_macro = match &task.operation {
+                Operation::Map(field) => format!(
+                    "impl_map_setter!({}, {}, {}, \"{}\");",
+                    task_name,
+                    setter.join(","),
+                    task.input_arguments[0].input_type,
+                    field
+                ),
+                Operation::Concat => format!(
+                    "impl_concat_setter!({}, {});",
+                    task_name, task.input_arguments[0].name
+                ),
+                _ => format!("impl_setter!({}, [{}]);", task_name, setter.join(",")),
+            };
 
             input_structs = format!(
                 "{input_structs}
@@ -341,6 +415,7 @@ make_main_struct!(
     {task_name},
     {task_name}Input,
     [Debug, Clone, Default, Serialize, Deserialize, {}],
+    {},
     {}
 );
 impl_new!(
@@ -348,12 +423,16 @@ impl_new!(
     {task_name}Input,
     [{}]
 );
-impl_setter!({task_name}, [{}]);
+{setter_macro}
 ",
                 self.get_task_kind(&task.kind).unwrap(),
                 self.get_attributes(&task.attributes),
-                not_depend.join(","),
-                setter.join(",")
+                if let Operation::Map(_) = task.operation {
+                    "mapout"
+                } else {
+                    "output"
+                },
+                not_depend.join(",")
             );
 
             constructors = {
@@ -443,23 +522,31 @@ impl_setter!({task_name}, [{}]);
         let mut add_nodes_code = String::new();
         let mut add_edges_code = "\tworkflow.add_edges(&[\n".to_string();
 
-        for index in 0..flow.len() - 1 {
+        for i in 0..flow.len() - 1 {
             add_nodes_code = format!(
                 "{add_nodes_code}\tlet {}_index = workflow.add_node(Box::new({}));\n",
-                flow[index].to_case(Case::Snake),
-                flow[index].to_case(Case::Snake)
+                flow[i].to_case(Case::Snake),
+                flow[i].to_case(Case::Snake)
             );
 
-            add_edges_code = format!(
-                "{add_edges_code}\t\t({}_index, {}_index),\n",
-                flow[index].to_case(Case::Snake),
-                flow[index + 1].to_case(Case::Snake)
-            );
+            for dependent_task_name in self.workflows.borrow()[workflow_index]
+                .tasks
+                .get(&flow[i + 1])
+                .unwrap()
+                .depend_on
+                .iter()
+            {
+                add_edges_code = format!(
+                    "{add_edges_code}\t\t({}_index, {}_index),\n",
+                    dependent_task_name.task_name.to_case(Case::Snake),
+                    flow[i + 1].to_case(Case::Snake)
+                );
+            }
 
-            execute_code = if index + 1 == flow.len() - 1 {
+            execute_code = if i + 1 == flow.len() - 1 {
                 match self.workflows.borrow()[workflow_index]
                     .tasks
-                    .get(&flow[index + 1])
+                    .get(&flow[i + 1])
                     .unwrap()
                     .depend_on
                     .len()
@@ -467,21 +554,21 @@ impl_setter!({task_name}, [{}]);
                     0 | 1 => {
                         format!(
                             "{execute_code}\n\t\t.term(Some({}_index))?;",
-                            flow[index + 1].to_case(Case::Snake)
+                            flow[i + 1].to_case(Case::Snake)
                         )
                     }
 
                     _ => {
                         format!(
                             "{execute_code}\n\t\t.pipe({}_index)?\n\t\t.term(None)?;",
-                            flow[index + 1].to_case(Case::Snake)
+                            flow[i + 1].to_case(Case::Snake)
                         )
                     }
                 }
             } else {
                 format!(
                     "{execute_code}\n\t\t.pipe({}_index)?",
-                    flow[index + 1].to_case(Case::Snake)
+                    flow[i + 1].to_case(Case::Snake)
                 )
             };
         }
@@ -512,8 +599,7 @@ impl_setter!({task_name}, [{}]);
         let workflow_nodes_and_edges = self.get_workflow_nodes_and_edges(workflow_index);
 
         let main_file = format!(
-            "{}
-{}            
+            "{}            
 {}
 {}
 {}
@@ -531,7 +617,6 @@ pub fn main(args: Value) -> Result<Value, String> {{
 }}
 ",
             self.get_macros(),
-            self.get_user_defined_types(workflow_index),
             structs[0],
             self.get_common_inputs_type(workflow_index),
             self.get_impl_execute_trait_code(workflow_index),

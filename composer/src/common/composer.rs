@@ -32,43 +32,6 @@ impl Composer {
         self.config_files.push(config.to_string());
     }
 
-    /// Runs the composer to build all workflows specified in the config files.
-    /// This method is called by the user.
-    ///
-    /// # Example
-    /// ```
-    /// use your_module_name_here::Composer;
-    /// let composer = Composer::default();
-    /// composer.add_config("config_file_1");
-    /// composer.add_config("config_file_2");
-    /// composer.run();
-    /// ```
-    pub fn run(&self) {
-        for config in self.config_files.iter() {
-            
-            let content: String = std::fs::read_to_string(config).unwrap();
-
-            let ast = AstModule::parse("config", content, &Dialect::Extended).unwrap();
-
-            // We build our globals by adding some functions we wrote
-            let globals = GlobalsBuilder::new()
-                .with(starlark_workflow_module)
-                .with(starlark_datatype_module)
-                .build();
-
-            let module = Module::new();
-            let composer = Composer::default();
-            {
-                let mut eval = Evaluator::new(&module);
-                // We add a reference to our store
-                eval.extra = Some(&composer);
-                eval.eval_module(ast, &globals).unwrap();
-            }
-
-            composer.generate();
-        }
-    }
-
     /// Adds a new workflow to the composer.
     /// This method is invoked by the workflows function inside the starlark_module.
     ///
@@ -90,7 +53,6 @@ impl Composer {
         name: String,
         version: String,
         tasks: HashMap<String, Task>,
-        custom_types: Option<Vec<String>>,
     ) -> Result<(), Error> {
         for workflow in self.workflows.borrow().iter() {
             if workflow.name == name {
@@ -104,7 +66,6 @@ impl Composer {
                 name,
                 version,
                 tasks,
-                custom_types,
             });
             Ok(())
         }
@@ -147,7 +108,7 @@ impl Composer {
             .depend_on
             .iter()
         {
-            dependencies.push(task.0.clone());
+            dependencies.push(task.task_name.clone());
         }
 
         Some(dependencies)
@@ -254,7 +215,56 @@ impl Composer {
 
  
     }
-    
+
+    fn compile_starlark(&self, config: &str) -> Composer {
+        let content: String = std::fs::read_to_string(config).unwrap();
+        let ast = AstModule::parse("config", content, &Dialect::Extended).unwrap();
+
+        // We build our globals by adding some functions we wrote
+        let globals = GlobalsBuilder::extended_by(&[
+            StructType,
+            RecordType,
+            EnumType,
+            Map,
+            Filter,
+            Partial,
+            ExperimentalRegex,
+            Debug,
+            Print,
+            Pprint,
+            Breakpoint,
+            Json,
+            Typing,
+            Internal,
+            CallStack,
+        ])
+        .with(starlark_workflow_module)
+        .with(starlark_datatype_module)
+        .with_struct("Operation", starlark_operation_module)
+        .build();
+
+        let module = Module::new();
+
+        let int = module.heap().alloc(RustType::Int);
+        module.set("Int", int);
+        let int = module.heap().alloc(RustType::Float);
+        module.set("Float", int);
+        let int = module.heap().alloc(RustType::String);
+        module.set("String", int);
+        let int = module.heap().alloc(RustType::Boolean);
+        module.set("Bool", int);
+
+        let composer = Composer::default();
+        {
+            let mut eval = Evaluator::new(&module);
+            // We add a reference to our store
+            eval.extra = Some(&composer);
+            eval.eval_module(ast, &globals).unwrap();
+        }
+
+        composer
+    }
+
     /// Generates workflow package and builds the WASM file for all of the workflows
     /// inside the composer
     ///
@@ -262,16 +272,24 @@ impl Composer {
     ///
     /// * `current_path` - A reference to the Path indicating the current working directory
     ///
-    pub fn generate(&self) {
+    pub fn generate(&self, verbose: bool, pb: &mut ProgressBar) -> Result<(), Error> {
         // Getting the current working directory
-        for (workflow_index, workflow) in self.workflows.borrow().iter().enumerate() {
-            if workflow.tasks.is_empty() {
-                continue;
+
+        for config in self.config_files.iter() {
+            let composer = self.compile_starlark(config);
+
+            for (workflow_index, workflow) in composer.workflows.borrow().iter().enumerate() {
+               
+                if workflow.tasks.is_empty() {
+                    continue;
+                }
+
+                let workflow_name = format!("{}_{}", workflow.name, workflow.version);
+                self.copy_boilerplate(&self.generate_types_rs_file_code(workflow_index), workflow_name);
+
             }
-
-            let workflow_name = format!("{}_{}", workflow.name, workflow.version);
-            self.copy_boilerplate(&self.generate_types_rs_file_code(workflow_index), workflow_name);
-
         }
+
+        Ok(())
     }
 }

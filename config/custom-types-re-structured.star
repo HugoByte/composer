@@ -1,3 +1,10 @@
+my_struct = EchoStruct(
+    name = "message",
+    fields = {
+        "result" : HashMap(String, Int) 
+    }
+)
+
 attributes = {
     "api_host": "http://127.0.0.1:8080",
     "auth_key": "23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",
@@ -8,10 +15,10 @@ attributes = {
 cartype = task(
     kind = "openwhisk",
     action_name = "cartype",
-    input_args = [
-        input_args(
+    input_arguments = [
+        arg(
             name="car_type",
-            input_type= string()
+            input_type = String
         ),
     ],
     attributes = attributes
@@ -20,14 +27,14 @@ cartype = task(
 modelavail = task(
     kind = "openwhisk",
     action_name = "modelavail",
-    input_args = [
-        input_args(
+    input_arguments = [
+        arg(
             name="car_company_list",
-            input_type = hashmap(string(), list(string()))
+            input_type = HashMap(String, List(String))
         ),
-        input_args(
+        arg(
             name="company_name",
-            input_type=string()
+            input_type= String
         )
     ],
     attributes = attributes,
@@ -39,10 +46,10 @@ modelavail = task(
 modelprice = task(
     kind = "openwhisk",
     action_name = "modelsprice",
-    input_args = [
-        input_args(
+    input_arguments = [
+        arg(
             name="models",
-            input_type=list(string())
+            input_type= List(String)
         ),
     ],
     attributes = attributes,
@@ -54,18 +61,18 @@ modelprice = task(
 purchase = task(
     kind = "openwhisk",
     action_name = "purchase",
-    input_args = [
-        input_args(
+    input_arguments = [
+        arg(
             name="model_price_list",
-            input_type = hashmap(string(), int(32))
+            input_type = my_struct
         ),
-        input_args(
+        arg(
             name="model_name",
-            input_type=string()
+            input_type= String
         ),
-        input_args(
+        arg(
             name="price",
-            input_type=int(32)
+            input_type= Int
         ),
     ],
     attributes = attributes,
@@ -77,5 +84,5 @@ purchase = task(
 workflows(
     name = "car_market_place",
     version = "0.0.1",
-    tasks = [cartype, modelavail, modelprice, purchase],
+    tasks = [cartype, modelavail, modelprice, purchase]
 )
