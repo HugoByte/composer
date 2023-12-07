@@ -1,10 +1,11 @@
 
 use super::*;
+use indicatif::*;
 
-const COMMON: &str = include_str!("../../boilerplate/src/common.rs");
-const LIB: &str = include_str!("../../boilerplate/src/lib.rs");
-const TRAIT: &str = include_str!("../../boilerplate/src/traits.rs");
-const CARGO: &str = include_str!("../../boilerplate/Cargo.toml");
+const COMMON: &str = include_str!("../../../boilerplate/src/common.rs");
+const LIB: &str = include_str!("../../../boilerplate/src/lib.rs");
+const TRAIT: &str = include_str!("../../../boilerplate/src/traits.rs");
+const CARGO: &str = include_str!("../../../boilerplate/Cargo.toml");
 
 #[derive(Debug, ProvidesStaticType, Default)]
 pub struct Composer {
@@ -178,8 +179,8 @@ impl Composer {
         flow
     }
 
-    pub fn copy_boilerplate(&self, types_rs: &str, workflow_name: String){
-
+    pub fn copy_boilerplate(&self, types_rs: &str, workflow_name: String, verbose: bool, pb: &mut ProgressBar){
+        pb.inc(5);
         let temp_dir = std::env::temp_dir().join(&workflow_name);
         let curr = temp_dir.join("boilerplate");
 
@@ -189,7 +190,7 @@ impl Composer {
  
         let src_curr = temp_dir.join("boilerplate/src");
         let temp_path = src_curr.as_path().join("common.rs");
-        // println!("{:?}", temp_path);
+        
         std::fs::write(&temp_path, &COMMON[..]).unwrap();
      
         let temp_path = src_curr.as_path().join("lib.rs");
@@ -203,17 +204,38 @@ impl Composer {
         let cargo_path = curr.join("Cargo.toml");
         std::fs::write(&cargo_path, &CARGO[..]).unwrap();
 
-        Command::new("cargo")
+        pb.inc(5);
+        if verbose {
+               
+            Command::new("rustup")
+            .current_dir(temp_dir.join("boilerplate"))
+            .args(["target", "add", "wasm32-wasi"])
+            .status()
+            .expect("adding wasm32-wasi rust toolchain command failed to start");
+
+            Command::new("rustup")
+            .args(["default", "nightly"])
+            .status()
+            .expect("building wasm32 command failed to start");
+
+            Command::new("cargo")
             .current_dir(temp_dir.join("boilerplate"))
             .args(["build", "--release", "--target", "wasm32-wasi"])
             .status()
             .expect("building wasm32 command failed to start");
-        
-        let wasm_path = format!("{}/target/wasm32-wasi/release/workflow.wasm",curr.as_path().to_str().unwrap() );
-  
+
+    } else {
+        Command::new("cargo")
+            .current_dir(temp_dir.join("boilerplate"))
+            .args(["build", "--release", "--target", "wasm32-wasi", "--quiet"])
+            .status()
+            .expect("building wasm32 command failed to start");
+    }
+        pb.inc(10);
+        let wasm_path = format!("{}/target/wasm32-wasi/release/boilerplate.wasm",curr.as_path().to_str().unwrap() );
+
         fs::copy(wasm_path, &std::env::current_dir().unwrap().join(format!("{workflow_name}.wasm"))).unwrap();
 
- 
     }
 
     fn compile_starlark(&self, config: &str) -> Composer {
@@ -274,7 +296,7 @@ impl Composer {
     ///
     pub fn generate(&self, verbose: bool, pb: &mut ProgressBar) -> Result<(), Error> {
         // Getting the current working directory
-
+        pb.inc(10);
         for config in self.config_files.iter() {
             let composer = self.compile_starlark(config);
 
@@ -283,9 +305,9 @@ impl Composer {
                 if workflow.tasks.is_empty() {
                     continue;
                 }
-
                 let workflow_name = format!("{}_{}", workflow.name, workflow.version);
-                self.copy_boilerplate(&self.generate_types_rs_file_code(workflow_index), workflow_name);
+                pb.inc(10);
+                self.copy_boilerplate(&composer.generate_types_rs_file_code(workflow_index), workflow_name, verbose, pb);
 
             }
         }

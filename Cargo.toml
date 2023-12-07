@@ -6,4 +6,3 @@ version = "0.0.1"
 
 [workspace]
 members = ["composer", "echo-cli"]
-

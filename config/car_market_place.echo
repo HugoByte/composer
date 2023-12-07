@@ -8,8 +8,8 @@ attributes = {
 cartype = task(
     kind = "openwhisk",
     action_name = "cartype",
-    input_args = [
-        input_args(
+    arg = [
+        arg(
             name="car_type",
             input_type= string()
         ),
@@ -20,12 +20,12 @@ cartype = task(
 modelavail = task(
     kind = "openwhisk",
     action_name = "modelavail",
-    input_args = [
-        input_args(
+    arg = [
+        arg(
             name="car_company_list",
             input_type = hashmap(string(), list(string()))
         ),
-        input_args(
+        arg(
             name="company_name",
             input_type=string()
         )
@@ -39,8 +39,8 @@ modelavail = task(
 modelprice = task(
     kind = "openwhisk",
     action_name = "modelsprice",
-    input_args = [
-        input_args(
+    arg = [
+        arg(
             name="models",
             input_type=list(string())
         ),
@@ -54,16 +54,16 @@ modelprice = task(
 purchase = task(
     kind = "openwhisk",
     action_name = "purchase",
-    input_args = [
-        input_args(
+    arg = [
+        arg(
             name="model_price_list",
             input_type = hashmap(string(), int(32))
         ),
-        input_args(
+        arg(
             name="model_name",
             input_type=string()
         ),
-        input_args(
+        arg(
             name="price",
             input_type=int(32)
         ),
