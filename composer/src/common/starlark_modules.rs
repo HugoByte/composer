@@ -110,7 +110,7 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
     ///
     /// * A Result containing the input object of `Input` type
     ///
-    fn arg(
+    fn argument(
         name: String,
         input_type: Value,
         default_value: Option<String>,
@@ -167,6 +167,25 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
 
 #[starlark_module]
 pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
+
+    /// Returns the Rust type for a tuple with specified types of the key and vale
+    /// This method will be invoked inside the config file.
+    ///
+    /// # Arguments
+    ///
+    /// * `type_1` - The type of the tuple field-1
+    /// * `type_2` - The type of the tuple field-2
+    ///
+    /// # Returns
+    ///
+    /// * A Result containing the Rust type for a map
+    ///
+    fn Tuple(type_1: Value, type_2: Value) -> anyhow::Result<RustType> {
+        let type_1: RustType = serde_json::from_str(&type_1.to_json()?).unwrap();
+        let type_2: RustType = serde_json::from_str(&type_2.to_json()?).unwrap();
+
+        Ok(RustType::Tuple(Box::new(type_1), Box::new(type_2)))
+    }
 
     /// Returns the Rust type for a map with specified types of the key and vale
     /// This method will be invoked inside the config file.

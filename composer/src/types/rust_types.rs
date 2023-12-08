@@ -8,6 +8,7 @@ pub enum RustType {
     Boolean,
     String,
     List(Box<RustType>),
+    Tuple(Box<RustType>, Box<RustType>),
     HashMap(Box<RustType>, Box<RustType>),
     Struct(String),
 }
@@ -32,6 +33,7 @@ impl Display for RustType {
             RustType::Boolean => write!(f, "bool"),
             RustType::String => write!(f, "String"),
             RustType::List(type_) => write!(f, "Vec<{type_}>"),
+            RustType::Tuple(key_type, val_type) => write!(f, "({key_type},{val_type})"),
             RustType::HashMap(key_type, val_type) => write!(f, "HashMap<{key_type},{val_type}>"),
             RustType::Struct(name) => write!(f, "{name}"),
         }

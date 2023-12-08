@@ -16,9 +16,9 @@ cartype = task(
     kind = "openwhisk",
     action_name = "cartype",
     input_arguments = [
-        arg(
+        argument(
             name="car_type",
-            input_type = String
+            input_type=String
         ),
     ],
     attributes = attributes
@@ -28,11 +28,11 @@ modelavail = task(
     kind = "openwhisk",
     action_name = "modelavail",
     input_arguments = [
-        arg(
+        argument(
             name="car_company_list",
             input_type = HashMap(String, List(String))
         ),
-        arg(
+        argument(
             name="company_name",
             input_type= String
         )
@@ -47,7 +47,7 @@ modelprice = task(
     kind = "openwhisk",
     action_name = "modelsprice",
     input_arguments = [
-        arg(
+        argument(
             name="models",
             input_type= List(String)
         ),
@@ -62,15 +62,15 @@ purchase = task(
     kind = "openwhisk",
     action_name = "purchase",
     input_arguments = [
-        arg(
+        argument(
             name="model_price_list",
             input_type = my_struct
         ),
-        arg(
+        argument(
             name="model_name",
             input_type= String
         ),
-        arg(
+        argument(
             name="price",
             input_type= Int
         ),

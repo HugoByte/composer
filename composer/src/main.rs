@@ -28,7 +28,7 @@ pub use types::*;
 fn main() {
     let mut composer = Composer::default();
 
-    composer.add_config("./config/custom-types-re-structured.star");
+    composer.add_config("./config/map_concat_test(emp_salary).star");
 
     composer.generate(&env::current_dir().unwrap()).unwrap();
 }

@@ -8,8 +8,8 @@ attributes = {
 employee_ids = task(
     kind = "openwhisk",
     action_name = "employee_ids",
-    input_args = [
-        input_args(name = "role", input_type = string() ),  
+    input_arguments = [
+        argument(name = "role", input_type = String),  
     ],
     attributes = attributes,
 )
@@ -17,8 +17,8 @@ employee_ids = task(
 getsalaries = task(
     kind = "openwhisk",
     action_name = "getsalaries",
-    input_args = [
-        input_args(name = "id", input_type = int(32) )
+    input_arguments = [
+        argument(name = "id", input_type = Int)
     ],
     attributes = attributes,
     operation = Operation.map("salary"),
@@ -30,8 +30,8 @@ getsalaries = task(
 getaddress = task(
     kind = "openwhisk",
     action_name = "getaddress",
-    input_args = [
-        input_args(name = "id", input_type = int(32))
+    input_arguments = [
+        argument(name = "id", input_type = Int)
     ],
     attributes = attributes,
     operation = Operation.map("address"),
@@ -43,8 +43,8 @@ getaddress = task(
 salary = task(
     kind = "openwhisk",
     action_name = "salary",
-    input_args = [
-        input_args(name = "details", input_type = hashmap(int(32), "(i32, String)"))
+    input_arguments = [
+        argument(name = "details", input_type = HashMap(Int, Tuple(Int, String)))
     ],
     attributes = attributes,
     operation = Operation.concat(),
