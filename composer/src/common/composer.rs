@@ -1,6 +1,4 @@
-
 use super::*;
-use indicatif::*;
 
 const COMMON: &str = include_str!("../../../boilerplate/src/common.rs");
 const LIB: &str = include_str!("../../../boilerplate/src/lib.rs");
@@ -179,7 +177,41 @@ impl Composer {
         flow
     }
 
-    pub fn copy_boilerplate(&self, types_rs: &str, workflow_name: String, verbose: bool, pb: &mut ProgressBar){
+    pub fn build(&self, verbose: bool, pb: &mut ProgressBar, temp_dir: &PathBuf) {
+        pb.inc(10);
+        if verbose {
+            Command::new("rustup")
+                .current_dir(temp_dir.join("boilerplate"))
+                .args(["target", "add", "wasm32-wasi"])
+                .status()
+                .expect("adding wasm32-wasi rust toolchain command failed to start");
+
+            Command::new("rustup")
+                .args(["default", "nightly"])
+                .status()
+                .expect("building wasm32 command failed to start");
+
+            Command::new("cargo")
+                .current_dir(temp_dir.join("boilerplate"))
+                .args(["build", "--release", "--target", "wasm32-wasi"])
+                .status()
+                .expect("building wasm32 command failed to start");
+        } else {
+            Command::new("cargo")
+                .current_dir(temp_dir.join("boilerplate"))
+                .args(["build", "--release", "--target", "wasm32-wasi", "--quiet"])
+                .status()
+                .expect("building wasm32 command failed to start");
+        }
+    }
+
+    pub fn copy_boilerplate(
+        &self,
+        types_rs: &str,
+        workflow_name: String,
+        verbose: bool,
+        pb: &mut ProgressBar,
+    ) {
         pb.inc(5);
         let temp_dir = std::env::temp_dir().join(&workflow_name);
         let curr = temp_dir.join("boilerplate");
@@ -187,55 +219,39 @@ impl Composer {
         std::fs::create_dir_all(curr.clone()).unwrap();
 
         std::fs::create_dir_all(curr.clone().join("src")).unwrap();
- 
+
         let src_curr = temp_dir.join("boilerplate/src");
         let temp_path = src_curr.as_path().join("common.rs");
-        
+
         std::fs::write(&temp_path, &COMMON[..]).unwrap();
-     
+
         let temp_path = src_curr.as_path().join("lib.rs");
         std::fs::write(&temp_path, &LIB[..]).unwrap();
         let temp_path = src_curr.as_path().join("types.rs");
         std::fs::write(&temp_path, types_rs).unwrap();
-     
+
         let temp_path = src_curr.as_path().join("traits.rs");
         std::fs::write(&temp_path, &TRAIT[..]).unwrap();
-     
+
         let cargo_path = curr.join("Cargo.toml");
         std::fs::write(&cargo_path, &CARGO[..]).unwrap();
 
-        pb.inc(5);
-        if verbose {
-               
-            Command::new("rustup")
-            .current_dir(temp_dir.join("boilerplate"))
-            .args(["target", "add", "wasm32-wasi"])
-            .status()
-            .expect("adding wasm32-wasi rust toolchain command failed to start");
-
-            Command::new("rustup")
-            .args(["default", "nightly"])
-            .status()
-            .expect("building wasm32 command failed to start");
-
-            Command::new("cargo")
-            .current_dir(temp_dir.join("boilerplate"))
-            .args(["build", "--release", "--target", "wasm32-wasi"])
-            .status()
-            .expect("building wasm32 command failed to start");
-
-    } else {
-        Command::new("cargo")
-            .current_dir(temp_dir.join("boilerplate"))
-            .args(["build", "--release", "--target", "wasm32-wasi", "--quiet"])
-            .status()
-            .expect("building wasm32 command failed to start");
-    }
         pb.inc(10);
-        let wasm_path = format!("{}/target/wasm32-wasi/release/boilerplate.wasm",curr.as_path().to_str().unwrap() );
+        let wasm_path = format!(
+            "{}/target/wasm32-wasi/release/boilerplate.wasm",
+            curr.as_path().to_str().unwrap()
+        );
 
-        fs::copy(wasm_path, &std::env::current_dir().unwrap().join(format!("{workflow_name}.wasm"))).unwrap();
+        self.build(verbose, pb, &temp_dir);
 
+        fs::copy(
+            wasm_path,
+            &std::env::current_dir()
+                .unwrap()
+                .join(format!("{workflow_name}.wasm")),
+        )
+        .unwrap();
+        fs::remove_dir_all(temp_dir).unwrap();
     }
 
     fn compile_starlark(&self, config: &str) -> Composer {
@@ -269,6 +285,8 @@ impl Composer {
 
         let int = module.heap().alloc(RustType::Int);
         module.set("Int", int);
+        let uint = module.heap().alloc(RustType::Uint);
+        module.set("Uint", uint);
         let int = module.heap().alloc(RustType::Float);
         module.set("Float", int);
         let int = module.heap().alloc(RustType::String);
@@ -299,16 +317,20 @@ impl Composer {
         pb.inc(10);
         for config in self.config_files.iter() {
             let composer = self.compile_starlark(config);
+            pb.inc(5);
 
             for (workflow_index, workflow) in composer.workflows.borrow().iter().enumerate() {
-               
                 if workflow.tasks.is_empty() {
                     continue;
                 }
                 let workflow_name = format!("{}_{}", workflow.name, workflow.version);
                 pb.inc(10);
-                self.copy_boilerplate(&composer.generate_types_rs_file_code(workflow_index), workflow_name, verbose, pb);
-
+                self.copy_boilerplate(
+                    &composer.generate_types_rs_file_code(workflow_index),
+                    workflow_name,
+                    verbose,
+                    pb,
+                );
             }
         }
 

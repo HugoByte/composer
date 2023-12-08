@@ -50,7 +50,7 @@ fn generate_wasm() {
     if let Commands::Generate(generate) = args.commands {
         for config_file in generate.config.iter() {
             let config_path = PathBuf::from(config_file);
-
+            pb.inc(5);
             if !config_path.is_absolute() {
                 let combined_path = current_path.join(config_path.clone());
 
@@ -63,6 +63,7 @@ fn generate_wasm() {
                 c.add_config(config_path.to_str().unwrap());
             }
             // print!("{:?}", config_path)
+            pb.inc(5);
             c.generate(args.verbose, &mut pb).unwrap();
         }
         pb.finish_with_message("msg")
