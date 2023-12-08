@@ -25,7 +25,7 @@ modelavail = task(
             name="car_company_list",
             input_type = HashMap(String, List(String))
         ),
-        arg(
+        argument(
             name="company_name",
             input_type= String
         )

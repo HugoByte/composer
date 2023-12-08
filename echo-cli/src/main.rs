@@ -4,7 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 #[derive(Parser, Debug)]
-#[command(author, version = "1.0.0", about = "The echo-cli is a CLI tool used to generate the wasm binary files", long_about = None)]
+#[command(author, version = "0.0.1", about = "The echo-cli is a CLI tool used to generate the wasm binary files", long_about = None)]
 struct Args {
     #[clap(subcommand)]
     commands: Commands,
@@ -25,7 +25,6 @@ enum Commands {
 }
 
 #[derive(Parser, Debug)]
-#[command(author, version = "1.0.0", about = "generate the wasm file from the given config file", long_about = None)]
 struct Generate {
     #[clap(short, long, value_parser)]
     config: Vec<String>,
@@ -34,7 +33,6 @@ struct Generate {
 }
 
 #[derive(Parser, Debug)]
-#[command(author, version = "1.0.0", about = "Test the flow of the config file", long_about = None)]
 struct Test {
     #[clap(short, long, value_parser)]
     config: Vec<String>,
@@ -77,22 +75,22 @@ fn main() {
         for path in &generate.config {
             if let Some(extension) = Path::new(path).extension() {
                 if extension != "echo" {
-                    println!("Error: Config file extension must be .echo: {}", path);
+                    eprintln!("Error: Config file extension must be .echo: {}", path);
                     continue;
                 }
             } else {
-                println!("Error: Invalid path format: {}", path);
+                eprintln!("Error: Invalid path format: {}", path);
                 continue;
             }
 
             // Check if file exists and is regular
             if let Ok(metadata) = fs::metadata(path) {
                 if !metadata.is_file() {
-                    println!("Error: Path is not a regular file: {}", path);
+                    eprintln!("Error: Path is not a regular file: {}", path);
                     continue;
                 }
             } else {
-                println!("Error: No such file or directory: {}", path);
+                eprintln!("Error: No such file or directory: {}", path);
                 continue;
             }
 

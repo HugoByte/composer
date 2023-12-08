@@ -1,5 +1,5 @@
 **/target
 **/*.lock
 **/*.vscode
-**/workflow_wasm
+**/*.wasm
 **/temp*

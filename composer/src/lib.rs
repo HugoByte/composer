@@ -1,3 +1,4 @@
+#![allow(non_upper_case_globals)]
 use allocative::Allocative;
 use anyhow::Error;
 use convert_case::{Case, Casing};

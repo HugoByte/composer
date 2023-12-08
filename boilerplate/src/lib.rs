@@ -3,6 +3,8 @@
 #![allow(unused_variables)]
 #![allow(dead_code)]
 #![allow(forgetting_copy_types)]
+#![allow(unused_mut)]
+#![allow(unused_must_use)]
 
 mod common;
 mod traits;
