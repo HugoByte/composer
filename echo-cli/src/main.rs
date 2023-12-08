@@ -25,6 +25,7 @@ enum Commands {
 }
 
 #[derive(Parser, Debug)]
+#[command(author,about = "generate the wasm file from the given config file", long_about = None)]
 struct Generate {
     #[clap(short, long, value_parser)]
     config: Vec<String>,
@@ -33,6 +34,7 @@ struct Generate {
 }
 
 #[derive(Parser, Debug)]
+#[command(author, about = "Test the flow of the config file", long_about = None)]
 struct Test {
     #[clap(short, long, value_parser)]
     config: Vec<String>,
@@ -55,12 +57,11 @@ fn generate_wasm() {
                 if let Ok(absolute_path) = combined_path.canonicalize() {
                     c.add_config(absolute_path.to_str().unwrap());
                 } else {
-                    print!("error");
+                    println!("Error the path does not exist");
                 }
             } else {
                 c.add_config(config_path.to_str().unwrap());
             }
-            // print!("{:?}", config_path)
             pb.inc(5);
             c.generate(args.verbose, &mut pb).unwrap();
         }
@@ -83,7 +84,7 @@ fn main() {
                 continue;
             }
 
-            // Check if file exists and is regular
+            // Checking if the information of file exists or not
             if let Ok(metadata) = fs::metadata(path) {
                 if !metadata.is_file() {
                     eprintln!("Error: Path is not a regular file: {}", path);
