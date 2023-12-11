@@ -9,3 +9,6 @@ pub mod command;
 
 #[path = "./cli.rs"]
 pub mod cli;
+
+#[path = "./tests/mod.rs"]
+pub mod tests;

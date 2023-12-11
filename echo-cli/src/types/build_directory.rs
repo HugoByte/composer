@@ -13,7 +13,7 @@ pub fn build_wasm() {
 
     let args = CLI::parse();
     let mut progress_bar = ProgressBar::new(100);
-
+    
     let mut composer = composer::Composer::default();
     let current_path = std::env::current_dir().unwrap();
 

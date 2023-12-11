@@ -5,6 +5,8 @@ use std::fs;
 use std::path::Path;
 use echo_cli::command::Commands;
 
+
+
 fn main() {
     let args = CLI::parse();
 
