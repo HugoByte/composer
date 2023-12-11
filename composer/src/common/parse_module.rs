@@ -8,7 +8,7 @@ impl Composer {
     /// * A String containing Rust code for creating structs using macros
     ///
     pub fn get_macros(&self) -> String {
-        "use serde_json::Value;
+        "
 use serde_derive::{Serialize, Deserialize};
 use std::collections::HashMap;
 use super::*;

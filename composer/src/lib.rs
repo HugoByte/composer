@@ -1,6 +1,8 @@
+#![allow(non_upper_case_globals)]
 use allocative::Allocative;
 use anyhow::Error;
 use convert_case::{Case, Casing};
+use indicatif::*;
 use serde_derive::{Deserialize, Serialize};
 use starlark::environment::LibraryExtension::*;
 use starlark::environment::{GlobalsBuilder, Module};
@@ -11,12 +13,11 @@ use starlark::{starlark_module, starlark_simple_value, values::starlark_value};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::{self, Display};
+use std::fs;
 use std::io::ErrorKind;
-use std::path::Path;
+use std::path::PathBuf;
 use std::process::Command;
 use std::result::Result::Ok;
-use std::{env, fs};
-use std::path::PathBuf;
 
 mod common;
 mod tests;
@@ -24,11 +25,3 @@ mod types;
 
 pub use common::*;
 pub use types::*;
-
-fn main() {
-    let mut composer = Composer::default();
-
-    composer.add_config("./config/map_concat_test(emp_salary).star");
-
-    composer.generate(&env::current_dir().unwrap()).unwrap();
-}

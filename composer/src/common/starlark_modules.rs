@@ -167,7 +167,6 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
 
 #[starlark_module]
 pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
-
     /// Returns the Rust type for a tuple with specified types of the key and vale
     /// This method will be invoked inside the config file.
     ///

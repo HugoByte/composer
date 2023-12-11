@@ -1,5 +1,5 @@
 attributes = {
-    "api_host" : "http://127.0.0.1:8080",
+    "api_host" : "https://65.20.70.146:31001",
     "auth_key" : "23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",
     "insecure" : "true",
     "namespace" : "guest"   
@@ -9,7 +9,7 @@ employee_ids = task(
     kind = "openwhisk",
     action_name = "employee_ids",
     input_arguments = [
-        argument(name = "role", input_type = String),  
+        argument(name = "role", input_type = String ),  
     ],
     attributes = attributes,
 )
@@ -18,7 +18,7 @@ getsalaries = task(
     kind = "openwhisk",
     action_name = "getsalaries",
     input_arguments = [
-        argument(name = "id", input_type = Int)
+        argument(name = "id", input_type = Int )
     ],
     attributes = attributes,
     operation = Operation.map("salary"),
@@ -55,7 +55,7 @@ salary = task(
 )
 
 employee_salary_workflow = workflows(
-    name = "employee_salary_map_cat_test",
+    name = "employee_salary_test_conact_and_map",
     version = "0.0.1",
     tasks = [employee_ids, getsalaries, getaddress, salary]
 )

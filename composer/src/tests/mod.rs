@@ -212,5 +212,4 @@ mod tests {
         let kind_name = composer.get_task_kind("polkadot").unwrap();
         assert_eq!(&kind_name, "polkadot");
     }
-
 }

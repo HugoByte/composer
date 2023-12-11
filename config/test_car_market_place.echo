@@ -1,10 +1,3 @@
-my_struct = EchoStruct(
-    name = "message",
-    fields = {
-        "result" : HashMap(String, Int) 
-    }
-)
-
 attributes = {
     "api_host": "http://127.0.0.1:8080",
     "auth_key": "23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",
@@ -18,7 +11,7 @@ cartype = task(
     input_arguments = [
         argument(
             name="car_type",
-            input_type=String
+            input_type = String
         ),
     ],
     attributes = attributes
@@ -64,7 +57,7 @@ purchase = task(
     input_arguments = [
         argument(
             name="model_price_list",
-            input_type = my_struct
+            input_type = HashMap(String, Int)
         ),
         argument(
             name="model_name",

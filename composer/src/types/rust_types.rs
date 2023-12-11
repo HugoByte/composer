@@ -4,6 +4,7 @@ use super::*;
 pub enum RustType {
     Null,
     Int,
+    Uint,
     Float,
     Boolean,
     String,
@@ -29,6 +30,7 @@ impl Display for RustType {
         match self {
             RustType::Null => write!(f, "Null"),
             RustType::Int => write!(f, "i32"),
+            RustType::Uint => write!(f, "u32"),
             RustType::Float => write!(f, "f32"),
             RustType::Boolean => write!(f, "bool"),
             RustType::String => write!(f, "String"),
