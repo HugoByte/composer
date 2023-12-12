@@ -48,9 +48,10 @@ fn generate_wasm() {
     let current_path = std::env::current_dir().unwrap(); // Replace with the current directory path
 
     if let Commands::Generate(generate) = args.commands {
+
         for config_file in generate.config.iter() {
             let config_path = PathBuf::from(config_file);
-            pb.inc(5);
+            pb.inc(5 / generate.config.len() as u64);
             if !config_path.is_absolute() {
                 let combined_path = current_path.join(config_path.clone());
 
@@ -62,9 +63,10 @@ fn generate_wasm() {
             } else {
                 c.add_config(config_path.to_str().unwrap());
             }
-            pb.inc(5);
-            c.generate(args.verbose, &mut pb).unwrap();
+            pb.inc(5 /generate.config.len() as u64);
         }
+        
+        c.generate(args.verbose, &mut pb).unwrap();
         pb.finish_with_message("msg")
     }
 }
@@ -96,7 +98,7 @@ fn main() {
             }
 
             // Generate wasm file
-            generate_wasm();
         }
+        generate_wasm();
     }
 }

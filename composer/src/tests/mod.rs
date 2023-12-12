@@ -50,7 +50,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            composer.get_dependencies("get_salaries", 0).unwrap(),
+            composer.get_dependencies("get_salaries", &composer.workflows.borrow()[0]).unwrap(),
             vec!["dependent_task"]
         );
     }
@@ -141,7 +141,7 @@ mod tests {
             .add_workflow("test-workflow".to_string(), "0.0.1".to_string(), tasks)
             .unwrap();
 
-        let flow = composer.get_flow(0);
+        let flow = composer.get_flow(&composer.workflows.borrow()[0]);
 
         assert!(flow[0] == "task0" || flow[0] == "task4");
 

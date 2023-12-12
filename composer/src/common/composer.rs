@@ -97,16 +97,10 @@ impl Composer {
     /// * `Option<Vec<String>>` - An option containing a vector of dependencies if the task is
     ///   found, or None if the task have no dependency
     ///
-    pub fn get_dependencies(&self, task_name: &str, workflow_index: usize) -> Option<Vec<String>> {
+    pub fn get_dependencies(&self, task_name: &str, workflow: &Workflow) -> Option<Vec<String>> {
         let mut dependencies = Vec::<String>::new();
 
-        for task in self.workflows.borrow()[workflow_index]
-            .tasks
-            .get(task_name)
-            .unwrap()
-            .depend_on
-            .iter()
-        {
+        for task in workflow.tasks.get(task_name).unwrap().depend_on.iter() {
             dependencies.push(task.task_name.clone());
         }
 
@@ -130,17 +124,13 @@ impl Composer {
         task_name: &str,
         visited: &mut HashMap<String, bool>,
         flow: &mut Vec<String>,
-        workflow_index: usize,
+        workflow: &Workflow,
     ) {
         visited.insert(task_name.to_string(), true);
 
-        for depend_task in self
-            .get_dependencies(task_name, workflow_index)
-            .unwrap()
-            .iter()
-        {
+        for depend_task in self.get_dependencies(task_name, workflow).unwrap().iter() {
             if !visited[depend_task] {
-                self.dfs(depend_task, visited, flow, workflow_index);
+                self.dfs(depend_task, visited, flow, workflow);
             }
         }
 
@@ -160,17 +150,17 @@ impl Composer {
     /// * `Vec<String>` - A vector containing the list of task names in the order of the
     ///   topological sort
     ///
-    pub fn get_flow(&self, workflow_index: usize) -> Vec<String> {
+    pub fn get_flow(&self, workflow: &Workflow) -> Vec<String> {
         let mut visited = HashMap::<String, bool>::new();
         let mut flow = Vec::<String>::new();
 
-        for task in self.workflows.borrow()[workflow_index].tasks.iter() {
+        for task in workflow.tasks.iter() {
             visited.insert(task.0.to_string(), false);
         }
 
-        for task in self.workflows.borrow()[workflow_index].tasks.iter() {
+        for task in workflow.tasks.iter() {
             if !visited[task.0] {
-                self.dfs(task.0, &mut visited, &mut flow, workflow_index)
+                self.dfs(task.0, &mut visited, &mut flow, workflow)
             }
         }
 
@@ -178,7 +168,8 @@ impl Composer {
     }
 
     pub fn build(&self, verbose: bool, pb: &mut ProgressBar, temp_dir: &PathBuf) {
-        pb.inc(10);
+        pb.inc(10 / self.config_files.len() as u64);
+
         if verbose {
             Command::new("rustup")
                 .current_dir(temp_dir.join("boilerplate"))
@@ -209,52 +200,36 @@ impl Composer {
         &self,
         types_rs: &str,
         workflow_name: String,
-        verbose: bool,
         pb: &mut ProgressBar,
-    ) {
-        pb.inc(5);
-        let temp_dir = std::env::temp_dir().join(&workflow_name);
+    ) -> PathBuf {
+        pb.inc(5 / self.config_files.len() as u64);
+        let temp_dir = std::env::temp_dir().join(workflow_name);
         let curr = temp_dir.join("boilerplate");
-
-        std::fs::create_dir_all(curr.clone()).unwrap();
 
         std::fs::create_dir_all(curr.clone().join("src")).unwrap();
 
         let src_curr = temp_dir.join("boilerplate/src");
         let temp_path = src_curr.as_path().join("common.rs");
 
-        std::fs::write(&temp_path, &COMMON[..]).unwrap();
+        std::fs::write(temp_path, &COMMON[..]).unwrap();
 
         let temp_path = src_curr.as_path().join("lib.rs");
-        std::fs::write(&temp_path, &LIB[..]).unwrap();
+        std::fs::write(temp_path, &LIB[..]).unwrap();
         let temp_path = src_curr.as_path().join("types.rs");
-        std::fs::write(&temp_path, types_rs).unwrap();
+        std::fs::write(temp_path, types_rs).unwrap();
 
         let temp_path = src_curr.as_path().join("traits.rs");
-        std::fs::write(&temp_path, &TRAIT[..]).unwrap();
+        std::fs::write(temp_path, &TRAIT[..]).unwrap();
 
         let cargo_path = curr.join("Cargo.toml");
-        std::fs::write(&cargo_path, &CARGO[..]).unwrap();
+        std::fs::write(cargo_path, &CARGO[..]).unwrap();
 
-        pb.inc(10);
-        let wasm_path = format!(
-            "{}/target/wasm32-wasi/release/boilerplate.wasm",
-            curr.as_path().to_str().unwrap()
-        );
+        pb.inc(10 / self.config_files.len() as u64);
 
-        self.build(verbose, pb, &temp_dir);
-
-        fs::copy(
-            wasm_path,
-            &std::env::current_dir()
-                .unwrap()
-                .join(format!("{workflow_name}.wasm")),
-        )
-        .unwrap();
-        fs::remove_dir_all(temp_dir).unwrap();
+        temp_dir
     }
 
-    fn compile_starlark(&self, config: &str) -> Composer {
+    fn compile_starlark(&self, config: &str) -> Result<(), anyhow::Error> {
         let content: String = std::fs::read_to_string(config).unwrap();
         let ast = AstModule::parse("config", content, &Dialect::Extended).unwrap();
 
@@ -294,15 +269,14 @@ impl Composer {
         let int = module.heap().alloc(RustType::Boolean);
         module.set("Bool", int);
 
-        let composer = Composer::default();
         {
             let mut eval = Evaluator::new(&module);
             // We add a reference to our store
-            eval.extra = Some(&composer);
-            eval.eval_module(ast, &globals).unwrap();
+            eval.extra = Some(self);
+            eval.eval_module(ast, &globals)?;
         }
 
-        composer
+        Ok(())
     }
 
     /// Generates workflow package and builds the WASM file for all of the workflows
@@ -314,24 +288,43 @@ impl Composer {
     ///
     pub fn generate(&self, verbose: bool, pb: &mut ProgressBar) -> Result<(), Error> {
         // Getting the current working directory
-        pb.inc(10);
-        for config in self.config_files.iter() {
-            let composer = self.compile_starlark(config);
-            pb.inc(5);
+        pb.inc(10 / self.config_files.len() as u64);
 
-            for (workflow_index, workflow) in composer.workflows.borrow().iter().enumerate() {
-                if workflow.tasks.is_empty() {
-                    continue;
-                }
-                let workflow_name = format!("{}_{}", workflow.name, workflow.version);
-                pb.inc(10);
-                self.copy_boilerplate(
-                    &composer.generate_types_rs_file_code(workflow_index),
-                    workflow_name,
-                    verbose,
-                    pb,
-                );
+        for config in self.config_files.iter() {
+            self.compile_starlark(config)?;
+            pb.inc(5 / self.config_files.len() as u64);
+        }
+
+        for (workflow_index, workflow) in self.workflows.borrow().iter().enumerate() {
+            if workflow.tasks.is_empty() {
+                continue;
             }
+
+            let workflow_name = format!("{}_{}", workflow.name, workflow.version);
+            pb.inc(10 / self.config_files.len() as u64);
+
+            let temp_dir = self.copy_boilerplate(
+                &self.generate_types_rs_file_code(&self.workflows.borrow()[workflow_index]),
+                workflow_name.clone(),
+                pb,
+            );
+
+            self.build(verbose, pb, &temp_dir);
+
+            let wasm_path = format!(
+                "{}/boilerplate/target/wasm32-wasi/release/boilerplate.wasm",
+                temp_dir.as_path().to_str().unwrap()
+            );
+
+            fs::copy(
+                wasm_path,
+                &std::env::current_dir()
+                    .unwrap()
+                    .join(format!("{workflow_name}.wasm")),
+            )
+            .unwrap();
+
+            // fs::remove_dir_all(temp_dir).unwrap();
         }
 
         Ok(())
