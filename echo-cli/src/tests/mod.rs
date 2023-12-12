@@ -23,7 +23,6 @@ mod tests {
     #[test]
     fn test_invalid_path_format() {
         let invalid_path = "invalid_path";
-        // Assert
         assert!(Path::new(invalid_path).extension().is_none());
     }
 
@@ -35,7 +34,6 @@ mod tests {
 
     #[test]
     fn test_build_struct() {
-        // let build = Commands::Build(Build { config: vec!["config1".to_string(), "config2".to_string()], output: None });
         let build_obj = build::Build {
             config: vec!["config1".to_string(), "config2".to_string()],
             output: None,

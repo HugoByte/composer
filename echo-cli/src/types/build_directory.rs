@@ -1,19 +1,18 @@
+use crate::command::Commands;
+use clap_builder::Parser;
+use indicatif::ProgressBar;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-use clap_builder::Parser;
-use indicatif::ProgressBar;
-use crate::command::Commands;
-
 use crate::cli::CLI;
+
 use std::process;
 
 /// The function `build_wasm` builds a WebAssembly module using a set of configuration files.
 pub fn build_wasm() {
-
     let args = CLI::parse();
     let mut progress_bar = ProgressBar::new(100);
-    
+
     let mut composer = composer::Composer::default();
     let current_path = std::env::current_dir().unwrap();
 
@@ -31,7 +30,7 @@ pub fn build_wasm() {
                     absolute_path.to_str().unwrap().to_string()
                 } else {
                     eprintln!("Error: The path does not exist");
-                    process::exit(1); 
+                    process::exit(1);
                 }
             } else {
                 config_path.to_str().unwrap().to_string()
@@ -49,5 +48,4 @@ pub fn build_wasm() {
         composer.generate(args.verbose, &mut progress_bar).unwrap();
         progress_bar.finish_with_message("msg");
     }
-
 }

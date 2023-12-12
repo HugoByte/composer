@@ -1,9 +1,10 @@
 use clap::Parser;
 use echo_cli::cli::CLI;
-use echo_cli::types::build_wasm;
+// use echo_cli::types::build_wasm;
 use std::fs;
 use std::path::Path;
 use echo_cli::command::Commands;
+use echo_cli::types::build_wasm;
 
 
 fn main() {

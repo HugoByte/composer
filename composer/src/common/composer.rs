@@ -178,7 +178,7 @@ impl Composer {
     }
 
     pub fn build(&self, verbose: bool, progress_bar: &mut ProgressBar, temp_dir: &PathBuf) {
-        progress_bar.inc(10);
+        progress_bar.inc((10 / self.config_files.len()).try_into().unwrap());
         if verbose {
             Command::new("rustup")
                 .current_dir(temp_dir.join("boilerplate"))
@@ -212,7 +212,7 @@ impl Composer {
         verbose: bool,
         progress_bar: &mut ProgressBar,
     ) {
-        progress_bar.inc(5);
+        progress_bar.inc((5 / self.config_files.len()).try_into().unwrap());
         let temp_dir = std::env::temp_dir().join(&workflow_name);
         let curr = temp_dir.join("boilerplate");
 
@@ -236,7 +236,7 @@ impl Composer {
         let cargo_path = curr.join("Cargo.toml");
         std::fs::write(&cargo_path, &CARGO[..]).unwrap();
 
-        progress_bar.inc(10);
+        progress_bar.inc((10 / self.config_files.len()).try_into().unwrap());
         let wasm_path = format!(
             "{}/target/wasm32-wasi/release/boilerplate.wasm",
             curr.as_path().to_str().unwrap()
@@ -314,17 +314,17 @@ impl Composer {
     ///
     pub fn generate(&self, verbose: bool, progress_bar: &mut ProgressBar) -> Result<(), Error> {
         // Getting the current working directory
-        progress_bar.inc(10);
+        progress_bar.inc((10 / self.config_files.len()).try_into().unwrap());
         for config in self.config_files.iter() {
             let composer = self.compile_starlark(config);
-            progress_bar.inc(5);
+            progress_bar.inc((5 / self.config_files.len()).try_into().unwrap());
 
             for (workflow_index, workflow) in composer.workflows.borrow().iter().enumerate() {
                 if workflow.tasks.is_empty() {
                     continue;
                 }
                 let workflow_name = format!("{}_{}", workflow.name, workflow.version);
-                progress_bar.inc(10);
+                progress_bar.inc((10 / self.config_files.len()).try_into().unwrap());
                 self.copy_boilerplate(
                     &composer.generate_types_rs_file_code(workflow_index),
                     workflow_name,
