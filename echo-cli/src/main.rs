@@ -6,7 +6,6 @@ use std::path::Path;
 use echo_cli::command::Commands;
 
 
-
 fn main() {
     let args = CLI::parse();
 
@@ -32,9 +31,8 @@ fn main() {
                 eprintln!("Error: No such file or directory: {}", path);
                 continue;
             }
-
-            // Generate wasm file
-            build_wasm();
         }
+        // Generate wasm file
+        build_wasm();
     }
 }
