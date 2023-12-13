@@ -7,11 +7,11 @@ pub enum Operation {
     Map(String),
 }
 
-impl Operation{
-    pub fn is_map(&self) -> bool{
-        match self{
+impl Operation {
+    pub fn is_map(&self) -> bool {
+        match self {
             Self::Map(_) => true,
-            _ => false
+            _ => false,
         }
     }
 }
@@ -22,6 +22,12 @@ impl Default for Operation {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Allocative, ProvidesStaticType, Clone, Deserialize, Serialize)]
+pub struct Depend {
+    pub task_name: String,
+    pub cur_field: String,
+    pub prev_field: String,
+}
 
 #[derive(
     Debug, Default, PartialEq, Eq, ProvidesStaticType, Allocative, Clone, Deserialize, Serialize,
@@ -35,11 +41,3 @@ pub struct Task {
     pub operation: Operation,
     pub depend_on: Vec<Depend>,
 }
-
-#[derive(Debug, PartialEq, Eq, Allocative, ProvidesStaticType, Clone, Deserialize, Serialize)]
-pub struct Depend {
-    pub task_name: String,
-    pub cur_field: String,
-    pub prev_field: String,
-}
-

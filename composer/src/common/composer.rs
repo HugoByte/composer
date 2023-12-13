@@ -117,7 +117,7 @@ impl Composer {
         }
     }
 
-    pub fn copy_boilerplate(
+    fn copy_boilerplate(
         &self,
         types_rs: &str,
         workflow_name: String,
@@ -225,7 +225,7 @@ impl Composer {
             pb.inc(10 / self.config_files.len() as u64);
 
             let temp_dir = self.copy_boilerplate(
-                &generate_types_rs_file_code(&self,&self.workflows.borrow()[workflow_index]),
+                &generate_types_rs_file_code(&self, &self.workflows.borrow()[workflow_index]),
                 workflow_name.clone(),
                 pb,
             );
@@ -245,7 +245,7 @@ impl Composer {
             )
             .unwrap();
 
-            // fs::remove_dir_all(temp_dir).unwrap();
+            fs::remove_dir_all(temp_dir).unwrap();
         }
 
         Ok(())

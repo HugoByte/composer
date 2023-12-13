@@ -1,12 +1,57 @@
 use super::*;
 
+/// Formats the key-value pairs from the given HashMap into a specific string format
+/// This string will be passed to the macros as arguments
+/// # Arguments
+///
+/// * `map` - A reference to the HashMap containing key-value pairs
+///
+/// # Returns
+///
+/// * A String containing formatted key-value pairs enclosed in square brackets
+///
+pub fn parse_hashmap(map: &HashMap<String, RustType>) -> String {
+    let mut attributes = "[".to_string();
+
+    for (index, (k, v)) in map.iter().enumerate() {
+        attributes = format!("{attributes}{}:{}", k, v);
+
+        if index != map.len() - 1 {
+            attributes = format!("{attributes},")
+        } else {
+            break;
+        }
+    }
+
+    format!("{attributes}]")
+}
+
+/// Validates the kind name of the task and returns the formatted kind if valid
+///
+/// # Arguments
+///
+/// * `kind` - A reference to the kind name of the task
+///
+/// # Returns
+///
+/// * An Ok Result containing the formatted kind if the input is valid
+/// * An Err Result with an ErrorKind::NotFound if the input is not valid
+///
+pub fn get_task_kind(kind: &str) -> Result<String, ErrorKind> {
+    match kind.to_lowercase().as_str() {
+        "openwhisk" => Ok("OpenWhisk".to_string()),
+        "polkadot" => Ok("Polkadot".to_string()),
+        _ => Err(ErrorKind::NotFound),
+    }
+}
+
 /// Returns a string containing Rust code to create structs using macros
 ///
 /// # Returns
 ///
 /// * A String containing Rust code for creating structs using macros
 ///
-pub fn get_macros_code() -> String {
+fn get_macros_code() -> String {
     "
 use serde_derive::{Serialize, Deserialize};
 use std::collections::HashMap;
@@ -162,7 +207,7 @@ macro_rules! impl_concat_setter {
     .to_string()
 }
 
-pub fn get_main_method_code_template(tasks_length: usize) -> String {
+fn get_main_method_code_template(tasks_length: usize) -> String {
     format!(
         "#[allow(dead_code, unused)]
 pub fn main(args: Value) -> Result<Value, String> {{
@@ -203,51 +248,6 @@ pub fn get_attributes(map: &HashMap<String, String>) -> String {
     format!("{attributes}]")
 }
 
-/// Formats the key-value pairs from the given HashMap into a specific string format
-/// This string will be passed to the macros as arguments
-/// # Arguments
-///
-/// * `map` - A reference to the HashMap containing key-value pairs
-///
-/// # Returns
-///
-/// * A String containing formatted key-value pairs enclosed in square brackets
-///
-pub fn parse_hashmap(map: &HashMap<String, RustType>) -> String {
-    let mut attributes = "[".to_string();
-
-    for (index, (k, v)) in map.iter().enumerate() {
-        attributes = format!("{attributes}{}:{}", k, v);
-
-        if index != map.len() - 1 {
-            attributes = format!("{attributes},")
-        } else {
-            break;
-        }
-    }
-
-    format!("{attributes}]")
-}
-
-/// Validates the kind name of the task and returns the formatted kind if valid
-///
-/// # Arguments
-///
-/// * `kind` - A reference to the kind name of the task
-///
-/// # Returns
-///
-/// * An Ok Result containing the formatted kind if the input is valid
-/// * An Err Result with an ErrorKind::NotFound if the input is not valid
-///
-pub fn get_task_kind(kind: &str) -> Result<String, ErrorKind> {
-    match kind.to_lowercase().as_str() {
-        "openwhisk" => Ok("OpenWhisk".to_string()),
-        "polkadot" => Ok("Polkadot".to_string()),
-        _ => Err(ErrorKind::NotFound),
-    }
-}
-
 /// Creates a Rust code to generate a struct with fields representing inputs not
 /// depending on any task
 ///
@@ -260,25 +260,19 @@ pub fn get_task_kind(kind: &str) -> Result<String, ErrorKind> {
 /// * A String containing Rust code to create a struct representing inputs not depending
 ///   on any task
 ///
-pub fn get_common_inputs_type(composer: &Composer, workflow: &Workflow) -> String {
+fn get_task_common_input_type_constructor(composer: &Composer, workflow: &Workflow) -> String {
     let mut common = Vec::<String>::new();
     let mut custom_types = Vec::<String>::new();
 
     let mut default_value_functions = String::new();
 
     for (_, task) in workflow.tasks.iter() {
-        let mut depend = Vec::<String>::new();
-
-        for fields in task.depend_on.iter() {
-            depend.push(fields.cur_field.to_string());
-        }
-
         for input in task.input_arguments.iter() {
             if let RustType::Struct(name) = &input.input_type {
                 custom_types.push(name.to_string());
             }
 
-            if !depend.contains(&input.name) {
+            if !input.is_depend {
                 if let Some(val) = input.default_value.as_ref() {
                     common.push(format!(
                         "#[\"{}_fn\"] {}:{}",
@@ -322,70 +316,62 @@ make_input_struct!(
     )
 }
 
-fn get_setter_build_string(task: &Task, setter_fields: String) -> String {
-    let task_name = task.action_name.to_case(Case::Pascal);
+fn get_task_type_constructors(workflow: &Workflow) -> String {
+    let mut constructors = String::new();
 
-    match &task.operation {
-        Operation::Map(field) => format!(
-            "impl_map_setter!({}, {}, {}, \"{}\");",
-            task_name, setter_fields, task.input_arguments[0].input_type, field
-        ),
-        Operation::Concat => format!(
-            "impl_concat_setter!({}, {});",
-            task_name, task.input_arguments[0].name
-        ),
-        _ => format!("impl_setter!({}, [{}]);", task_name, setter_fields),
-    }
-}
+    for task in workflow.tasks.values() {
+        let mut parameters = String::new();
 
-fn get_task_type_constructor(task: &Task, independent_fields: &Vec<String>) -> String {
-    let commons: Vec<String> = independent_fields
-        .iter()
-        .map(|x| format!("input.{}", x.split(':').collect::<Vec<&str>>()[0]))
-        .collect();
-
-    let commons = commons.join(",");
-
-    format!(
-        "let {} = {}::new({}{}\"{}\".to_string());\n",
-        task.action_name.to_case(Case::Snake),
-        task.action_name.to_case(Case::Pascal),
-        commons,
-        if !commons.is_empty() { ", " } else { "" },
-        task.action_name.clone()
-    )
-}
-
-fn get_independent_fields(
-    task: &Task,
-    depending_tasks: &Vec<String>,
-    input_type_build_string: &mut String,
-) -> Vec<String> {
-    let mut independent_fields = Vec::<String>::new();
-
-    let mut build_string = format!(
-        "make_input_struct!(
-{}Input,
-[",
-        task.action_name.to_case(Case::Pascal)
-    );
-
-    for (index, field) in task.input_arguments.iter().enumerate() {
-        build_string = format!("{build_string}{}:{}", field.name, field.input_type);
-
-        if index != task.input_arguments.len() - 1 {
-            build_string = format!("{build_string},");
-        } else {
-            build_string =
-                format!("{build_string}],\n\t[Debug, Clone, Default, Serialize, Deserialize]);");
+        for argument in task.input_arguments.iter() {
+            if !argument.is_depend {
+                parameters.push_str(&format!("input.{},", argument.name));
+            }
         }
 
-        if !depending_tasks.contains(&field.name) {
+        let constructor = format!(
+            "let {} = {}::new({}\"{}\".to_string());\n",
+            task.action_name.to_case(Case::Snake),
+            task.action_name.to_case(Case::Pascal),
+            parameters,
+            task.action_name.clone()
+        );
+
+        constructors.push_str(&constructor);
+    }
+
+    constructors
+}
+
+fn get_task_input_type_constructors(workflow: &Workflow) -> String {
+    let mut input_type_build_string = String::new();
+
+    for task in workflow.tasks.values() {
+        let mut arguments = Vec::new();
+
+        for field in task.input_arguments.iter() {
+            arguments.push(format!("{}:{}", field.name, field.input_type));
+        }
+
+        input_type_build_string.push_str(&format!(
+            "make_input_struct!(
+                    {}Input,
+                    [{}], [Debug, Clone, Default, Serialize, Deserialize]);",
+            task.action_name.to_case(Case::Pascal),
+            arguments.join(",")
+        ));
+    }
+
+    input_type_build_string
+}
+
+fn get_independent_fields(task: &Task) -> Vec<String> {
+    let mut independent_fields = Vec::<String>::new();
+
+    for field in task.input_arguments.iter() {
+        if !field.is_depend {
             independent_fields.push(format!("{}:{}", field.name, field.input_type));
         }
     }
-
-    input_type_build_string.push_str(&build_string);
 
     independent_fields
 }
@@ -402,28 +388,13 @@ fn get_independent_fields(
 /// * An array of Strings containing Rust code to create structs and objects for the
 ///   specified workflow
 ///
-pub fn get_types_and_constructors(workflow: &Workflow) -> [String; 2] {
-    let mut main_method = get_main_method_code_template(workflow.tasks.len());
-
+fn get_task_main_type_constructors(workflow: &Workflow) -> String {
     let mut input_structs = String::new();
 
     for (task_name, task) in workflow.tasks.iter() {
         let task_name = task_name.to_case(Case::Pascal);
 
-        let mut depend = Vec::<String>::new();
-        let mut setter_fields = Vec::<String>::new();
-
-        for fields in task.depend_on.iter() {
-            depend.push(fields.cur_field.clone());
-            setter_fields.push(format!("{}:\"{}\"", fields.cur_field, fields.prev_field));
-        }
-
-        let mut input_type_build_string = String::new();
-
-        let independent_fields =
-            get_independent_fields(task, &depend, &mut input_type_build_string);
-
-        let setter_macro = get_setter_build_string(task, setter_fields.join(","));
+        let independent_fields = get_independent_fields(task);
 
         let output_field = if task.operation.is_map() {
             "mapout"
@@ -433,7 +404,6 @@ pub fn get_types_and_constructors(workflow: &Workflow) -> [String; 2] {
 
         input_structs = format!(
             "{input_structs}
-{input_type_build_string}
 make_main_struct!(
     {task_name},
     {task_name}Input,
@@ -446,18 +416,52 @@ impl_new!(
     {task_name}Input,
     [{}]
 );
-{setter_macro}
 ",
             get_task_kind(&task.kind).unwrap(),
             get_attributes(&task.attributes),
             output_field,
             independent_fields.join(",")
         );
-
-        main_method.push_str(&get_task_type_constructor(task, &independent_fields));
     }
 
-    [input_structs, main_method]
+    input_structs
+}
+
+fn get_impl_setters_code(workflow: &Workflow) -> String {
+    let mut impl_setters_code = String::new();
+
+    for (task_name, task) in workflow.tasks.iter() {
+        let task_name = task_name.to_case(Case::Pascal);
+
+        let mut setter_fields = Vec::<String>::new();
+
+        for fields in task.depend_on.iter() {
+            setter_fields.push(format!("{}:\"{}\"", fields.cur_field, fields.prev_field));
+        }
+
+        let setter_build_string = match &task.operation {
+            Operation::Map(field) => format!(
+                "impl_map_setter!({}, {}, {}, \"{}\");\n",
+                task_name,
+                setter_fields.join(","),
+                task.input_arguments[0].input_type,
+                field
+            ),
+            Operation::Concat => format!(
+                "impl_concat_setter!({}, {});\n",
+                task_name, task.input_arguments[0].name
+            ),
+            _ => format!(
+                "impl_setter!({}, [{}]);\n",
+                task_name,
+                setter_fields.join(",")
+            ),
+        };
+
+        impl_setters_code.push_str(&setter_build_string);
+    }
+
+    impl_setters_code
 }
 
 /// Generates Rust code to call the `impl_execute_trait!` macro with the arguments as all
@@ -471,24 +475,17 @@ impl_new!(
 ///
 /// * A String containing the Rust code to call the `impl_execute_trait!` macro
 ///
-pub fn get_impl_execute_trait_code(workflow: &Workflow) -> String {
-    let mut build_string = String::from("\nimpl_execute_trait!(");
-    let len = workflow.tasks.len();
+fn get_impl_execute_trait_code(workflow: &Workflow) -> String {
+    let mut task_names = Vec::new();
 
-    for (index, task) in workflow.tasks.iter().enumerate() {
-        build_string = format!("{build_string}{}", task.1.action_name.to_case(Case::Pascal));
-
-        build_string = if index != len - 1 {
-            format!("{build_string},")
-        } else {
-            format!("{build_string});\n")
-        }
+    for task_name in workflow.tasks.keys() {
+        task_names.push(task_name.to_case(Case::Pascal));
     }
 
-    build_string
+    format!("impl_execute_trait!({});", task_names.join(","))
 }
 
-fn get_execute_code(
+fn get_task_flow_type(
     workflow: &Workflow,
     flow: &Vec<String>,
     task_index: usize,
@@ -524,6 +521,52 @@ fn get_execute_code(
     }
 }
 
+fn get_add_nodes_code(flow: &Vec<String>) -> String {
+    let mut add_nodes_code = String::new();
+
+    for i in 0..flow.len() {
+        add_nodes_code.push_str(&format!(
+            "\tlet {}_index = workflow.add_node(Box::new({}));\n",
+            flow[i].to_case(Case::Snake),
+            flow[i].to_case(Case::Snake)
+        ));
+    }
+
+    add_nodes_code
+}
+
+fn get_add_edges_code(workflow: &Workflow, flow: &Vec<String>) -> String {
+    let mut add_edges_code = "\tworkflow.add_edges(&[\n".to_string();
+
+    for index in 0..flow.len() - 1 {
+        for dependent_task_name in workflow
+            .tasks
+            .get(&flow[index + 1])
+            .unwrap()
+            .depend_on
+            .iter()
+        {
+            add_edges_code = format!(
+                "{add_edges_code}\t\t({}_index, {}_index),\n",
+                dependent_task_name.task_name.to_case(Case::Snake),
+                flow[index + 1].to_case(Case::Snake)
+            );
+        }
+    }
+
+    format!("{add_edges_code}\t]);")
+}
+
+fn get_add_execute_worklow_code(workflow: &Workflow, flow: &Vec<String>) -> String {
+    let mut execute_code = "\tlet result = workflow\n\t\t.init()?".to_string();
+
+    for i in 0..flow.len() - 1 {
+        execute_code = get_task_flow_type(&workflow, &flow, i, &execute_code);
+    }
+
+    execute_code
+}
+
 /// Generates Rust code to add workflow nodes and edges
 ///
 /// # Arguments
@@ -534,9 +577,7 @@ fn get_execute_code(
 ///
 /// * An array containing the Rust code to add workflow nodes and edges
 ///
-pub fn get_workflow_nodes_and_edges(workflow: &Workflow) -> String {
-    let mut execute_code = "\tlet result = workflow\n\t\t.init()?".to_string();
-
+fn get_workflow_nodes_and_edges_code(workflow: &Workflow) -> String {
     let flow: Vec<String> = workflow.get_flow();
 
     if flow.is_empty() {
@@ -547,52 +588,21 @@ pub fn get_workflow_nodes_and_edges(workflow: &Workflow) -> String {
         return format!(
             "\
 let {}_index = workflow.add_node(Box::new({}));
-{}\n\t\t.term(None)?;
+\tlet result = workflow\n\t\t.init()?
+\t\t.term(None)?;
 Ok(result)
 ",
             flow[0].to_case(Case::Snake),
-            flow[0].to_case(Case::Snake),
-            execute_code
+            flow[0].to_case(Case::Snake)
         );
     }
 
-    let mut add_nodes_code = String::new();
-    let mut add_edges_code = "\tworkflow.add_edges(&[\n".to_string();
-
-    for i in 0..flow.len() - 1 {
-        add_nodes_code = format!(
-            "{add_nodes_code}\tlet {}_index = workflow.add_node(Box::new({}));\n",
-            flow[i].to_case(Case::Snake),
-            flow[i].to_case(Case::Snake)
-        );
-
-        for dependent_task_name in workflow.tasks.get(&flow[i + 1]).unwrap().depend_on.iter() {
-            add_edges_code = format!(
-                "{add_edges_code}\t\t({}_index, {}_index),\n",
-                dependent_task_name.task_name.to_case(Case::Snake),
-                flow[i + 1].to_case(Case::Snake)
-            );
-        }
-
-        execute_code = get_execute_code(&workflow, &flow, i, &execute_code);
-    }
-
-    add_nodes_code = format!(
-        "{add_nodes_code}\tlet {}_index = workflow.add_node(Box::new({}));\n",
-        flow[flow.len() - 1].to_case(Case::Snake),
-        flow[flow.len() - 1].to_case(Case::Snake)
-    );
-
-    add_edges_code = format!("{add_edges_code}\t]);\n\n{execute_code}");
-
-    add_nodes_code.push_str(&format!(
-        "{}
-let result = serde_json::to_value(result).unwrap();
-Ok(result)",
-        add_edges_code
-    ));
-
-    add_nodes_code
+    format!(
+        "{}\n{}\n{}let result = serde_json::to_value(result).unwrap();\nOk(result)",
+        get_add_nodes_code(&flow),
+        get_add_edges_code(workflow, &flow),
+        get_add_execute_worklow_code(workflow, &flow),
+    )
 }
 
 /// Generates the main Rust code for the workflow package and creates the `types.rs` file
@@ -606,25 +616,17 @@ Ok(result)",
 /// * A String containing the Rust code to be written to `types.rs` file in the workflow package
 ///
 pub fn generate_types_rs_file_code(composer: &Composer, workflow: &Workflow) -> String {
-    let structs = get_types_and_constructors(workflow);
-
     let main_file = format!(
-        "\
-{}            
-{}
-{}
-{}
-{}
-{}
-}}
-",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}}}",
         get_macros_code(),
-        structs[0],
-        get_common_inputs_type(composer, workflow),
+        get_task_input_type_constructors(workflow),
+        get_task_main_type_constructors(workflow),
+        get_impl_setters_code(workflow),
+        get_task_common_input_type_constructor(composer, workflow),
         get_impl_execute_trait_code(workflow),
-        structs[1],
-        get_workflow_nodes_and_edges(workflow)
+        get_main_method_code_template(workflow.tasks.len()),
+        get_task_type_constructors(workflow),
+        get_workflow_nodes_and_edges_code(workflow)
     );
-
     main_file
 }
