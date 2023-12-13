@@ -152,14 +152,16 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
 
         let name = name.to_case(Case::Pascal);
 
-        composer.add_custom_type(
-            &name,
-            format!(
+        composer
+            .custom_types
+            .borrow_mut()
+            .insert(
+                name.to_string(),
+                format!(
                 "make_input_struct!(\n\t{},\n\t{},\n\t[Default, Clone, Debug, Deserialize, Serialize]\n);",
                 &name,
-                composer.parse_hashmap(&fields)
-            ),
-        );
+                parse_hashmap(&fields)
+            ));
 
         Ok(RustType::Struct(name))
     }

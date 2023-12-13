@@ -70,101 +70,27 @@ impl Composer {
         }
     }
 
-    /// Adds a custom type that is created by the user inside the config.
-    /// This method is called by the starlark_module.
+    /// Retrieves user-defined types and creates code to generate corresponding structs
+    /// This method is invoked by the starlark_module
     ///
     /// # Arguments
     ///
-    /// * `type_name` - A string slice that holds the name of the struct for the custom type
-    /// * `build_string` - A string that holds the Rust code, which uses macros to create a struct
-    ///
-    pub fn add_custom_type(&self, type_name: &str, build_string: String) {
-        self.custom_types
-            .borrow_mut()
-            .insert(type_name.to_string(), build_string);
-    }
-
-    /// Finds the list of dependencies that the given task depends on.
-    ///
-    /// # Arguments
-    ///
-    /// * `task_name` - A string slice that holds the name of the task
-    /// * `workflow_index` - A integer that holds the index of the workflow where the given
-    ///   task is stored
+    /// * `workflow_index` - The index of the workflow
     ///
     /// # Returns
     ///
-    /// * `Option<Vec<String>>` - An option containing a vector of dependencies if the task is
-    ///   found, or None if the task have no dependency
+    /// * A String containing code to create user-defined types as structs
     ///
-    pub fn get_dependencies(&self, task_name: &str, workflow: &Workflow) -> Option<Vec<String>> {
-        let mut dependencies = Vec::<String>::new();
+    pub fn get_user_defined_types(&self, types: Vec<String>) -> String {
+        let mut build_string = String::new();
+        let custom_types = self.custom_types.borrow();
 
-        for task in workflow.tasks.get(task_name).unwrap().depend_on.iter() {
-            dependencies.push(task.task_name.clone());
+        for type_ in types.iter() {
+            let typ = custom_types.get(type_).unwrap();
+            build_string = format!("{build_string}{typ}\n");
         }
 
-        Some(dependencies)
-    }
-
-    /// Performs depth-first search (DFS) in the workflow subgraph.
-    /// This method is invoked within the get_flow method to perform `Topological-Sorting`
-    /// # Arguments
-    ///
-    /// * `task_name` - A string slice that holds the name of the task where the DFS should start
-    /// * `visited` - A mutable reference to a HashMap that holds the list of task (node) names
-    ///   and a boolean indicating whether it has been traversed
-    /// * `flow` - A mutable reference to a vector of strings that stores the flow of the DFS
-    ///   traversal
-    /// * `workflow_index` - An integer that holds the index of the workflow where the given
-    ///   task is located
-    ///
-    fn dfs(
-        &self,
-        task_name: &str,
-        visited: &mut HashMap<String, bool>,
-        flow: &mut Vec<String>,
-        workflow: &Workflow,
-    ) {
-        visited.insert(task_name.to_string(), true);
-
-        for depend_task in self.get_dependencies(task_name, workflow).unwrap().iter() {
-            if !visited[depend_task] {
-                self.dfs(depend_task, visited, flow, workflow);
-            }
-        }
-
-        flow.push(task_name.to_string());
-    }
-
-    /// Performs topological sort in the workflow graph.
-    /// This method is invoked by the parse_module.
-    ///
-    /// # Arguments
-    ///
-    /// * `workflow_index` - An integer that holds the index of the workflow for which
-    ///   topological sort is to be performed
-    ///
-    /// # Returns
-    ///
-    /// * `Vec<String>` - A vector containing the list of task names in the order of the
-    ///   topological sort
-    ///
-    pub fn get_flow(&self, workflow: &Workflow) -> Vec<String> {
-        let mut visited = HashMap::<String, bool>::new();
-        let mut flow = Vec::<String>::new();
-
-        for task in workflow.tasks.iter() {
-            visited.insert(task.0.to_string(), false);
-        }
-
-        for task in workflow.tasks.iter() {
-            if !visited[task.0] {
-                self.dfs(task.0, &mut visited, &mut flow, workflow)
-            }
-        }
-
-        flow
+        build_string
     }
 
     pub fn build(&self, verbose: bool, pb: &mut ProgressBar, temp_dir: &PathBuf) {
@@ -176,11 +102,6 @@ impl Composer {
                 .args(["target", "add", "wasm32-wasi"])
                 .status()
                 .expect("adding wasm32-wasi rust toolchain command failed to start");
-
-            Command::new("rustup")
-                .args(["default", "nightly"])
-                .status()
-                .expect("building wasm32 command failed to start");
 
             Command::new("cargo")
                 .current_dir(temp_dir.join("boilerplate"))
@@ -304,7 +225,7 @@ impl Composer {
             pb.inc(10 / self.config_files.len() as u64);
 
             let temp_dir = self.copy_boilerplate(
-                &self.generate_types_rs_file_code(&self.workflows.borrow()[workflow_index]),
+                &generate_types_rs_file_code(&self,&self.workflows.borrow()[workflow_index]),
                 workflow_name.clone(),
                 pb,
             );

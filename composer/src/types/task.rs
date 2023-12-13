@@ -7,6 +7,15 @@ pub enum Operation {
     Map(String),
 }
 
+impl Operation{
+    pub fn is_map(&self) -> bool{
+        match self{
+            Self::Map(_) => true,
+            _ => false
+        }
+    }
+}
+
 impl Default for Operation {
     fn default() -> Operation {
         Self::Normal
