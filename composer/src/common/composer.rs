@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use super::*;
 
 const COMMON: &str = include_str!("../../../boilerplate/src/common.rs");
@@ -304,6 +306,41 @@ impl Composer {
 
         composer
     }
+
+    pub fn add_polkadot(&self, workflow_path: &Path){
+        let dependencies = [""];
+
+        for dependency in dependencies{
+            Command::new("cargo")
+            .current_dir(workflow_path)
+            .arg("add")
+            .args(dependency.split(" "))
+            .status()
+            .expect("Could not able to add {dependency} to the Cargo.toml");
+        }
+    }
+
+    pub fn add_openwhisk(&self, workflow_path: &Path){
+        let dependencies = [ 
+        "openwhisk_macro@0.1.6", 
+        "openwhisk-rust@0.1.2",
+        "sp-runtime --git https://github.com/paritytech/substrate.git --rev eb1a2a8 --no-default-features",
+        "sp-core --git https://github.com/paritytech/substrate.git --rev eb1a2a8 --no-default-features"
+        ];
+        for dependency in dependencies{
+            Command::new("cargo")
+                .current_dir(workflow_path)
+                .arg("add")
+                .args(dependency.split(" "))
+                .status()
+                .expect("could not able to add {dependency} to the Cargo.toml");
+        }
+    }
+
+    pub fn add_cargo_toml_dependencies(&self, workflow_index: usize, workflow_path: &Path ){
+
+    }
+    
 
     /// Generates workflow package and builds the WASM file for all of the workflows
     /// inside the composer
