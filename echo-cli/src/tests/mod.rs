@@ -5,7 +5,6 @@ use std::{
     env, fs,
     path::{Path, PathBuf},
 };
-
 use crate::command::build;
 
 #[cfg(test)]
