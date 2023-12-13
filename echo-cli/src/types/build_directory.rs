@@ -21,7 +21,7 @@ pub fn build_wasm() {
 
         for config_file in build.config.iter() {
             let config_path = PathBuf::from(config_file);
-            progress_bar.inc(5);
+            progress_bar.inc((12 / build.config.len()).try_into().unwrap());
 
             let config_str = if !config_path.is_absolute() {
                 let combined_path = current_path.join(config_path.clone());
@@ -42,7 +42,7 @@ pub fn build_wasm() {
             }
 
             composer.add_config(&config_str);
-            progress_bar.inc(5);
+            progress_bar.inc((12 / build.config.len()).try_into().unwrap());
         }
 
         composer.generate(args.verbose, &mut progress_bar).unwrap();
