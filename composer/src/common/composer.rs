@@ -211,6 +211,8 @@ impl Composer {
         &self,
         types_rs: &str,
         workflow_name: String,
+        workflow_index: usize,
+        workflow_path: &Path,
         verbose: bool,
         pb: &mut ProgressBar,
     ) {
@@ -237,6 +239,7 @@ impl Composer {
 
         let cargo_path = curr.join("Cargo.toml");
         std::fs::write(&cargo_path, &CARGO[..]).unwrap();
+        self.add_cargo_toml_dependencies(workflow_index, workflow_path);
 
         pb.inc(10);
         let wasm_path = format!(
@@ -253,7 +256,8 @@ impl Composer {
                 .join(format!("{workflow_name}.wasm")),
         )
         .unwrap();
-        fs::remove_dir_all(temp_dir).unwrap();
+        // fs::remove_dir_all(temp_dir).unwrap();
+         println!("===============>  {:?}", temp_dir);
     }
 
     fn compile_starlark(&self, config: &str) -> Composer {
@@ -338,7 +342,32 @@ impl Composer {
     }
 
     pub fn add_cargo_toml_dependencies(&self, workflow_index: usize, workflow_path: &Path ){
+        let mut kinds = [false, false];
 
+        for task in self.workflows.borrow()[workflow_index].tasks.values(){
+            match task.kind.to_lowercase().as_str(){
+                "openwhisk" => {
+                    if !kinds[0] {
+                        kinds[0] = true
+                    }
+                }
+                "polkadot" => {
+                    if !kinds[1] {
+                        kinds[1] = true
+                    }
+                }
+                _ => (),
+            }
+            if kinds[0] && kinds[1] {
+                break;
+            }
+        }
+        if kinds[0] {
+            self.add_openwhisk(workflow_path);
+        }
+        if kinds[1] {
+            self.add_polkadot(workflow_path);
+        }
     }
     
 
@@ -349,7 +378,7 @@ impl Composer {
     ///
     /// * `current_path` - A reference to the Path indicating the current working directory
     ///
-    pub fn generate(&self, verbose: bool, pb: &mut ProgressBar) -> Result<(), Error> {
+    pub fn generate(&self, verbose: bool, pb: &mut ProgressBar, workflow_path: &Path) -> Result<(), Error> {
         // Getting the current working directory
         pb.inc(10);
         for config in self.config_files.iter() {
@@ -362,9 +391,11 @@ impl Composer {
                 }
                 let workflow_name = format!("{}_{}", workflow.name, workflow.version);
                 pb.inc(10);
-                self.copy_boilerplate(
+                composer.copy_boilerplate(
                     &composer.generate_types_rs_file_code(workflow_index),
                     workflow_name,
+                    workflow_index,
+                    workflow_path,
                     verbose,
                     pb,
                 );
