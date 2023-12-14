@@ -13,6 +13,9 @@ use serde_derive::{Serialize, Deserialize};
 use std::collections::HashMap;
 use super::*;
 use openwhisk_macro::*;
+use openwhisk_rust::*;
+use substrate_macro::Polkadot;
+
 
 macro_rules! make_input_struct {
     (
@@ -627,5 +630,58 @@ pub fn main(args: Value) -> Result<Value, String> {{
         );
 
         main_file
+    }
+
+    fn get_openwhisk_kind_dependencies(&self) -> String {
+        "\
+openwhisk_macro = \"0.1.6\"
+openwhisk-rust = \"0.1.2\"
+"
+        .to_string()
+    }
+
+    fn get_polkadot_kind_dependencies(&self) -> String {
+        // some of the polkadot dependencies
+        "substrate_macro = \"0.1.3\"".to_string()
+    }
+
+    pub fn generate_cargo_toml_dependencies(&self, workflow_index: usize) -> String {
+        // 0th index-openwhisk, 1st index-polkadot
+        let mut kinds = [false, false];
+
+        for task in self.workflows.borrow()[workflow_index].tasks.values() {
+            match task.kind.to_lowercase().as_str() {
+                "openwhisk" => {
+                    if !kinds[0] {
+                        kinds[0] = true
+                    }
+                }
+                "polkadot" => {
+                    if !kinds[1] {
+                        kinds[1] = true
+                    }
+                }
+                _ => (),
+            }
+
+            if kinds[0] && kinds[1] {
+                break;
+            }
+        }
+
+        let mut toml_dependencies = String::new();
+
+        if kinds[0] {
+            toml_dependencies = format!("{}", self.get_openwhisk_kind_dependencies());
+        }
+
+        if kinds[1] {
+            toml_dependencies = format!(
+                "{toml_dependencies}\n{}",
+                self.get_polkadot_kind_dependencies()
+            );
+        }
+
+        toml_dependencies
     }
 }

@@ -1,4 +1,5 @@
-use std::path::Path;
+use std::{path::Path, fs::OpenOptions};
+use std::io::Write;
 
 use super::*;
 
@@ -212,7 +213,7 @@ impl Composer {
         types_rs: &str,
         workflow_name: String,
         workflow_index: usize,
-        workflow_path: &Path,
+        // workflow_path: &Path,
         verbose: bool,
         pb: &mut ProgressBar,
     ) {
@@ -238,8 +239,21 @@ impl Composer {
         std::fs::write(&temp_path, &TRAIT[..]).unwrap();
 
         let cargo_path = curr.join("Cargo.toml");
+        print!("{:?}", cargo_path);
         std::fs::write(&cargo_path, &CARGO[..]).unwrap();
-        self.add_cargo_toml_dependencies(workflow_index, workflow_path);
+        // // self.add_cargo_toml_dependencies(workflow_index, workflow_path);
+        // self.update_cargo_toml(&cargo_path, workflow_index);
+        
+        let mut cargo_toml = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .open(cargo_path)
+            .unwrap();
+
+        print!("{:?}", cargo_toml);
+        let dependencies = self.generate_cargo_toml_dependencies(workflow_index);
+        writeln!(cargo_toml,"{dependencies}")
+            .expect("could not able to add dependencies to the Cargo.toml");
 
         pb.inc(10);
         let wasm_path = format!(
@@ -256,8 +270,9 @@ impl Composer {
                 .join(format!("{workflow_name}.wasm")),
         )
         .unwrap();
-        // fs::remove_dir_all(temp_dir).unwrap();
-         println!("===============>  {:?}", temp_dir);
+    println!("===============>  {:?}", temp_dir);
+        fs::remove_dir_all(temp_dir).unwrap();
+         
     }
 
     fn compile_starlark(&self, config: &str) -> Composer {
@@ -311,65 +326,11 @@ impl Composer {
         composer
     }
 
-    pub fn add_polkadot(&self, workflow_path: &Path){
-        let dependencies = [""];
+    fn handle_multiple_dependency(){
+        let depend : HashMap<&str, &str> = HashMap::new();
+        
 
-        for dependency in dependencies{
-            Command::new("cargo")
-            .current_dir(workflow_path)
-            .arg("add")
-            .args(dependency.split(" "))
-            .status()
-            .expect("Could not able to add {dependency} to the Cargo.toml");
-        }
     }
-
-    pub fn add_openwhisk(&self, workflow_path: &Path){
-        let dependencies = [ 
-        "openwhisk_macro@0.1.6", 
-        "openwhisk-rust@0.1.2",
-        "sp-runtime --git https://github.com/paritytech/substrate.git --rev eb1a2a8 --no-default-features",
-        "sp-core --git https://github.com/paritytech/substrate.git --rev eb1a2a8 --no-default-features"
-        ];
-        for dependency in dependencies{
-            Command::new("cargo")
-                .current_dir(workflow_path)
-                .arg("add")
-                .args(dependency.split(" "))
-                .status()
-                .expect("could not able to add {dependency} to the Cargo.toml");
-        }
-    }
-
-    pub fn add_cargo_toml_dependencies(&self, workflow_index: usize, workflow_path: &Path ){
-        let mut kinds = [false, false];
-
-        for task in self.workflows.borrow()[workflow_index].tasks.values(){
-            match task.kind.to_lowercase().as_str(){
-                "openwhisk" => {
-                    if !kinds[0] {
-                        kinds[0] = true
-                    }
-                }
-                "polkadot" => {
-                    if !kinds[1] {
-                        kinds[1] = true
-                    }
-                }
-                _ => (),
-            }
-            if kinds[0] && kinds[1] {
-                break;
-            }
-        }
-        if kinds[0] {
-            self.add_openwhisk(workflow_path);
-        }
-        if kinds[1] {
-            self.add_polkadot(workflow_path);
-        }
-    }
-    
 
     /// Generates workflow package and builds the WASM file for all of the workflows
     /// inside the composer
@@ -378,7 +339,7 @@ impl Composer {
     ///
     /// * `current_path` - A reference to the Path indicating the current working directory
     ///
-    pub fn generate(&self, verbose: bool, pb: &mut ProgressBar, workflow_path: &Path) -> Result<(), Error> {
+    pub fn generate(&self, verbose: bool, pb: &mut ProgressBar) -> Result<(), Error> {
         // Getting the current working directory
         pb.inc(10);
         for config in self.config_files.iter() {
@@ -395,10 +356,11 @@ impl Composer {
                     &composer.generate_types_rs_file_code(workflow_index),
                     workflow_name,
                     workflow_index,
-                    workflow_path,
                     verbose,
                     pb,
                 );
+
+                // composer.update_cargo_toml(dest_path, workflow_index)
             }
         }
 

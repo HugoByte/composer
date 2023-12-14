@@ -63,7 +63,7 @@ fn generate_wasm() {
                 c.add_config(config_path.to_str().unwrap());
             }
             pb.inc(5);
-            c.generate(args.verbose, &mut pb, &current_path).unwrap();
+            c.generate(args.verbose, &mut pb).unwrap();
         }
         pb.finish_with_message("msg")
     }
