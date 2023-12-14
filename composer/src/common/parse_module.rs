@@ -305,8 +305,8 @@ fn get_task_common_input_type_constructor(
     let workflow_custom_types = if !workflow_custom_types.is_empty() {
         let mut build_string = String::new();
 
-        for type_ in workflow_custom_types.iter() {
-            let typ = composer_custom_types.get(type_).unwrap();
+        for custom_type in workflow_custom_types.iter() {
+            let typ = composer_custom_types.get(custom_type).unwrap();
             build_string = format!("{build_string}{typ}\n");
         }
 

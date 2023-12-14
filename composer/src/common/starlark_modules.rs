@@ -228,10 +228,10 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     ///
     ///  * A Result containing the Rust type for a list
     ///
-    fn List(type_: Value) -> anyhow::Result<RustType> {
-        let type_: RustType = serde_json::from_str(&type_.to_json()?).unwrap();
+    fn List(rust_type: Value) -> anyhow::Result<RustType> {
+        let rust_type: RustType = serde_json::from_str(&rust_type.to_json()?).unwrap();
 
-        Ok(RustType::List(Box::new(type_)))
+        Ok(RustType::List(Box::new(rust_type)))
     }
 }
 
