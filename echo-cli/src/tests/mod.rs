@@ -75,7 +75,7 @@ mod tests {
     fn test_build_wasm_with_invalid_config_file_extension() {
         let args = CLI {
             commands: Commands::Build(Build {
-                config: vec!["/Users/prathiksha/Documents/Hugobyte/Practice/internal-research-and-sample-code/config/car_market_place.star".to_string()],
+                config: vec!["../config/car_market_place.star".to_string()],
                 output: None,
             }),
             verbose: false,
