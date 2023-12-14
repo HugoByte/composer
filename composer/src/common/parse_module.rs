@@ -1,3 +1,5 @@
+use std::fmt::format;
+
 use super::*;
 
 impl Composer {
@@ -13,8 +15,6 @@ use serde_derive::{Serialize, Deserialize};
 use std::collections::HashMap;
 use super::*;
 use openwhisk_macro::*;
-use openwhisk_rust::*;
-use substrate_macro::Polkadot;
 
 
 macro_rules! make_input_struct {
@@ -195,6 +195,15 @@ macro_rules! impl_concat_setter {
 
         format!("{attributes}]")
     }
+
+    // pub fn format_imports(&self, kind: &str) -> String {
+    //     if kind == "polkadot" {
+    //         "use substrate_macro::Polkadot;".to_string()
+    //     } else {
+    //         "use openwhisk_macro::*;
+    //         use openwhisk_rust::* ;".to_string()
+    //     }
+    // }
 
     /// Formats the key-value pairs from the given HashMap into a specific string format
     /// This string will be passed to the macros as arguments
@@ -602,7 +611,7 @@ impl_new!(
         let workflow_nodes_and_edges = self.get_workflow_nodes_and_edges(workflow_index);
 
         let main_file = format!(
-            "{}            
+            "{} {}         
 {}
 {}
 {}
@@ -619,6 +628,7 @@ pub fn main(args: Value) -> Result<Value, String> {{
     Ok(result)
 }}
 ",
+            self.add_polkadot_openwhisk(workflow_index),
             self.get_macros(),
             structs[0],
             self.get_common_inputs_type(workflow_index),
@@ -634,7 +644,6 @@ pub fn main(args: Value) -> Result<Value, String> {{
 
     fn get_openwhisk_kind_dependencies(&self) -> String {
         "\
-openwhisk_macro = \"0.1.6\"
 openwhisk-rust = \"0.1.2\"
 "
         .to_string()
@@ -642,7 +651,9 @@ openwhisk-rust = \"0.1.2\"
 
     fn get_polkadot_kind_dependencies(&self) -> String {
         // some of the polkadot dependencies
-        "substrate_macro = \"0.1.3\"".to_string()
+        "substrate_macro = \"0.1.3\"
+         openwhisk-rust = \"0.1.2\""
+            .to_string()
     }
 
     pub fn generate_cargo_toml_dependencies(&self, workflow_index: usize) -> String {
@@ -676,10 +687,68 @@ openwhisk-rust = \"0.1.2\"
         }
 
         if kinds[1] {
-            toml_dependencies = format!(
-                "{toml_dependencies}\n{}",
-                self.get_polkadot_kind_dependencies()
-            );
+            toml_dependencies = format!("{}", self.get_polkadot_kind_dependencies());
+        }
+
+        if kinds[0] && kinds[1] {
+            toml_dependencies = self.get_polkadot_kind_dependencies();
+            print!("{:?}", toml_dependencies)
+        }
+
+        toml_dependencies
+    }
+
+    pub fn get_polkadot(&self) -> String {
+        "\
+        use substrate_macro::Polkadot;
+        use openwhisk_rust::*;
+        "
+        .to_string()
+    }
+
+    pub fn get_openwhisk(&self) -> String {
+        "\
+        use openwhisk_rust::*;
+        "
+        .to_string()
+    }
+
+    pub fn add_polkadot_openwhisk(&self, workflow_index: usize) -> String {
+        let mut kinds = [false, false];
+
+        for task in self.workflows.borrow()[workflow_index].tasks.values() {
+            match task.kind.to_lowercase().as_str() {
+                "openwhisk" => {
+                    if !kinds[0] {
+                        kinds[0] = true
+                    }
+                }
+                "polkadot" => {
+                    if !kinds[1] {
+                        kinds[1] = true
+                    }
+                }
+                _ => (),
+            }
+
+            if kinds[0] && kinds[1] {
+                break;
+            }
+        }
+
+        let mut toml_dependencies = String::new();
+
+        if kinds[0] {
+            toml_dependencies = format!("{}", self.get_openwhisk());
+        }
+
+        if kinds[1] {
+            toml_dependencies = format!("{}", self.get_polkadot());
+        }
+
+        if kinds[0] && kinds[1] {
+            toml_dependencies = self.get_polkadot();
+            print!("{}", toml_dependencies);
         }
 
         toml_dependencies

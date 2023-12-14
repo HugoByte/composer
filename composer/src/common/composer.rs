@@ -1,5 +1,5 @@
-use std::{path::Path, fs::OpenOptions};
 use std::io::Write;
+use std::{fs::OpenOptions, path::Path};
 
 use super::*;
 
@@ -241,9 +241,7 @@ impl Composer {
         let cargo_path = curr.join("Cargo.toml");
         print!("{:?}", cargo_path);
         std::fs::write(&cargo_path, &CARGO[..]).unwrap();
-        // // self.add_cargo_toml_dependencies(workflow_index, workflow_path);
-        // self.update_cargo_toml(&cargo_path, workflow_index);
-        
+
         let mut cargo_toml = OpenOptions::new()
             .write(true)
             .append(true)
@@ -252,7 +250,7 @@ impl Composer {
 
         print!("{:?}", cargo_toml);
         let dependencies = self.generate_cargo_toml_dependencies(workflow_index);
-        writeln!(cargo_toml,"{dependencies}")
+        writeln!(cargo_toml, "{dependencies}")
             .expect("could not able to add dependencies to the Cargo.toml");
 
         pb.inc(10);
@@ -270,9 +268,8 @@ impl Composer {
                 .join(format!("{workflow_name}.wasm")),
         )
         .unwrap();
-    println!("===============>  {:?}", temp_dir);
+        println!("===============>  {:?}", temp_dir);
         fs::remove_dir_all(temp_dir).unwrap();
-         
     }
 
     fn compile_starlark(&self, config: &str) -> Composer {
@@ -324,12 +321,6 @@ impl Composer {
         }
 
         composer
-    }
-
-    fn handle_multiple_dependency(){
-        let depend : HashMap<&str, &str> = HashMap::new();
-        
-
     }
 
     /// Generates workflow package and builds the WASM file for all of the workflows
