@@ -7,7 +7,7 @@ const CARGO: &str = include_str!("../../../boilerplate/Cargo.toml");
 
 #[derive(Debug, ProvidesStaticType, Default)]
 pub struct Composer {
-    config_files: Vec<String>,
+    pub config_files: Vec<String>,
     pub workflows: RefCell<Vec<Workflow>>,
     pub custom_types: RefCell<HashMap<String, String>>,
 }
@@ -337,3 +337,4 @@ impl Composer {
         Ok(())
     }
 }
+

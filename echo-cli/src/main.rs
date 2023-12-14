@@ -4,6 +4,7 @@ use echo_cli::command::Commands;
 use echo_cli::types::build_wasm;
 use std::fs;
 use std::path::Path;
+use std::process::exit;
 
 fn main() {
     let args = CLI::parse();
@@ -13,7 +14,7 @@ fn main() {
         if let Some(extension) = Path::new(path).extension() {
             if extension != "echo" {
                 eprintln!("Error: Config file extension must be .echo: {}", path);
-                continue;
+                exit(1);
             }
         } else {
             eprintln!("Error: Invalid path format: {}", path);
