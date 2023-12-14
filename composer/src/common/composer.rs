@@ -70,29 +70,6 @@ impl Composer {
         }
     }
 
-    /// Retrieves user-defined types and creates code to generate corresponding structs
-    /// This method is invoked by the starlark_module
-    ///
-    /// # Arguments
-    ///
-    /// * `workflow_index` - The index of the workflow
-    ///
-    /// # Returns
-    ///
-    /// * A String containing code to create user-defined types as structs
-    ///
-    pub fn get_user_defined_types(&self, types: Vec<String>) -> String {
-        let mut build_string = String::new();
-        let custom_types = self.custom_types.borrow();
-
-        for type_ in types.iter() {
-            let typ = custom_types.get(type_).unwrap();
-            build_string = format!("{build_string}{typ}\n");
-        }
-
-        build_string
-    }
-
     pub fn build(&self, verbose: bool, pb: &mut ProgressBar, temp_dir: &PathBuf) {
         pb.inc(10 / self.config_files.len() as u64);
 
@@ -216,6 +193,8 @@ impl Composer {
             pb.inc(5 / self.config_files.len() as u64);
         }
 
+        let composer_custom_types = self.custom_types.borrow();
+
         for (workflow_index, workflow) in self.workflows.borrow().iter().enumerate() {
             if workflow.tasks.is_empty() {
                 continue;
@@ -225,7 +204,10 @@ impl Composer {
             pb.inc(10 / self.config_files.len() as u64);
 
             let temp_dir = self.copy_boilerplate(
-                &generate_types_rs_file_code(&self, &self.workflows.borrow()[workflow_index]),
+                &generate_types_rs_file_code(
+                    &self.workflows.borrow()[workflow_index],
+                    &composer_custom_types,
+                ),
                 workflow_name.clone(),
                 pb,
             );

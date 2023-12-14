@@ -260,16 +260,19 @@ pub fn get_attributes(map: &HashMap<String, String>) -> String {
 /// * A String containing Rust code to create a struct representing inputs not depending
 ///   on any task
 ///
-fn get_task_common_input_type_constructor(composer: &Composer, workflow: &Workflow) -> String {
+fn get_task_common_input_type_constructor(
+    composer_custom_types: &HashMap<String, String>,
+    workflow: &Workflow,
+) -> String {
     let mut common = Vec::<String>::new();
-    let mut custom_types = Vec::<String>::new();
+    let mut workflow_custom_types = Vec::<String>::new();
 
     let mut default_value_functions = String::new();
 
     for (_, task) in workflow.tasks.iter() {
         for input in task.input_arguments.iter() {
             if let RustType::Struct(name) = &input.input_type {
-                custom_types.push(name.to_string());
+                workflow_custom_types.push(name.to_string());
             }
 
             if !input.is_depend {
@@ -299,13 +302,20 @@ fn get_task_common_input_type_constructor(composer: &Composer, workflow: &Workfl
         }
     }
 
-    let custom_types = if !custom_types.is_empty() {
-        composer.get_user_defined_types(custom_types)
+    let workflow_custom_types = if !workflow_custom_types.is_empty() {
+        let mut build_string = String::new();
+
+        for type_ in workflow_custom_types.iter() {
+            let typ = composer_custom_types.get(type_).unwrap();
+            build_string = format!("{build_string}{typ}\n");
+        }
+
+        build_string
     } else {
         "".to_string()
     };
     format!(
-        "{custom_types}
+        "{workflow_custom_types}
 {default_value_functions}
 make_input_struct!(
     Input,
@@ -615,14 +625,17 @@ Ok(result)
 ///
 /// * A String containing the Rust code to be written to `types.rs` file in the workflow package
 ///
-pub fn generate_types_rs_file_code(composer: &Composer, workflow: &Workflow) -> String {
+pub fn generate_types_rs_file_code(
+    workflow: &Workflow,
+    custom_types: &HashMap<String, String>,
+) -> String {
     let main_file = format!(
         "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}}}",
         get_macros_code(),
         get_task_input_type_constructors(workflow),
         get_task_main_type_constructors(workflow),
         get_impl_setters_code(workflow),
-        get_task_common_input_type_constructor(composer, workflow),
+        get_task_common_input_type_constructor(custom_types, workflow),
         get_impl_execute_trait_code(workflow),
         get_main_method_code_template(workflow.tasks.len()),
         get_task_type_constructors(workflow),
