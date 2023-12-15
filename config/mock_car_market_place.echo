@@ -75,7 +75,7 @@ purchase = task(
 )
 
 workflows(
-    name = "car_market_place",
+    name = "mock_car_market_place",
     version = "0.0.1",
     tasks = [cartype, modelavail, modelprice, purchase]
 )
