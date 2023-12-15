@@ -1,4 +1,3 @@
-
 use super::*;
 
 /// Formats the key-value pairs from the given HashMap into a specific string format
@@ -616,48 +615,171 @@ Ok(result)
     )
 }
 
-    /// Generates the main Rust code for the workflow package and creates the `types.rs` file
-    ///
-    /// # Arguments
-    ///
-    /// * `workflow_index` - The index of the workflow
-    ///
-    /// # Returns
-    ///
-    /// * A String containing the Rust code to be written to `types.rs` file in the workflow package
-    ///
-    pub fn generate_types_rs_file_code(&self, workflow_index: usize) -> String {
-        let structs = self.get_types_and_constructors(workflow_index);
-        let workflow_nodes_and_edges = self.get_workflow_nodes_and_edges(workflow_index);
-
-        let main_file = format!(
-            "{}            
-{}
-{}
-{}
-#[allow(dead_code, unused)]
-pub fn main(args: Value) -> Result<Value, String> {{
-    const LIMIT: usize = {};
-    let mut workflow = WorkflowGraph::new(LIMIT);
-    let input: Input = serde_json::from_value(args).map_err(|e| e.to_string())?;
-
-{}
-{}
-{}
-    let result = serde_json::to_value(result).unwrap();
-    Ok(result)
-}}
-",
-            self.get_macros(),
-            structs[0],
-            self.get_common_inputs_type(workflow_index),
-            self.get_impl_execute_trait_code(workflow_index),
-            self.workflows.borrow()[workflow_index].tasks.len(),
-            structs[1],
-            workflow_nodes_and_edges[0],
-            workflow_nodes_and_edges[1]
-        );
-
-        main_file
-    }
+/// Generates the main Rust code for the workflow package and creates the `types.rs` file
+///
+/// # Arguments
+///
+/// * `workflow_index` - The index of the workflow
+///
+/// # Returns
+///
+/// * A String containing the Rust code to be written to `types.rs` file in the workflow package
+///
+pub fn generate_types_rs_file_code(
+    workflow: &Workflow,
+    custom_types: &HashMap<String, String>,
+) -> String {
+    let main_file = format!(
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}}}",
+        add_polkadot_openwhisk(workflow),
+        get_macros_code(),
+        get_task_input_type_constructors(workflow),
+        get_task_main_type_constructors(workflow),
+        get_impl_setters_code(workflow),
+        get_task_common_input_type_constructor(custom_types, workflow),
+        get_impl_execute_trait_code(workflow),
+        get_main_method_code_template(workflow.tasks.len()),
+        get_task_type_constructors(workflow),
+        get_workflow_nodes_and_edges_code(workflow)
+    );
+    main_file
 }
+
+fn get_openwhisk_kind_dependencies() -> String {
+    "\
+openwhisk-rust = \"0.1.2\"
+
+"
+    .to_string()
+}
+
+fn get_polkadot_kind_dependencies() -> String {
+    // some of the polkadot dependencies
+    "substrate_macro = \"0.1.3\"
+    openwhisk-rust = \"0.1.2\"
+    pallet-staking = { git = \"https://github.com/paritytech/substrate.git\", package = \"pallet-staking\", rev = \"eb1a2a8\" }
+    substrate-api-client = { git = \"https://github.com/HugoByte/substrate-api-client.git\", default-features = false, features = [\"staking-xt\"], branch =\"wasm-support\"}
+sp-core = { version = \"6.0.0\", default-features = false, features = [\"full_crypto\"], git = \"https://github.com/paritytech/substrate.git\", rev = \"eb1a2a8\" }
+sp-runtime = { version = \"6.0.0\", default-features = false, git = \"https://github.com/paritytech/substrate.git\", rev = \"eb1a2a8\" }
+     "
+        .to_string()
+}
+
+pub fn generate_cargo_toml_dependencies( workflow : &Workflow) -> String {
+    // 0th index-openwhisk, 1st index-polkadot
+    let  kinds = get_common_kind(workflow);
+    
+    let mut toml_dependencies = String::new();
+
+    if kinds[0] {
+        toml_dependencies = format!("{}", get_openwhisk_kind_dependencies());
+    }
+
+    if kinds[1] {
+        toml_dependencies = format!("{}", get_polkadot_kind_dependencies());
+    }
+
+    if kinds[0] && kinds[1] {
+        toml_dependencies = get_polkadot_kind_dependencies();
+    }
+
+    toml_dependencies
+}
+
+pub fn get_polkadot() -> String {
+    "\
+    use substrate_macro::Polkadot;
+    use sp_core::H256;
+    use openwhisk_rust::*;
+
+    "
+    .to_string()
+}
+
+pub fn get_openwhisk() -> String {
+    "\
+    use openwhisk_rust::*;
+   
+    
+    "
+    .to_string()
+}
+
+pub fn add_polkadot_openwhisk(workflow : &Workflow) -> String {
+    let kinds = get_common_kind(workflow);
+    
+    let mut toml_dependencies = String::new();
+
+    if kinds[0] {
+        toml_dependencies = format!("{}", get_openwhisk());
+    }
+
+    if kinds[1] {
+        toml_dependencies = format!("{}", get_polkadot());
+    }
+
+    if kinds[0] && kinds[1] {
+        toml_dependencies = get_polkadot();
+    }
+
+    toml_dependencies
+}
+
+pub fn staking_ledger() -> String{
+    "\
+use sp_runtime::AccountId32;
+
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, Debug)]
+ pub struct StakingLedger {
+ pub stash: AccountId32,
+ #[codec(compact)]
+ pub total: u128,
+ #[codec(compact)]
+ pub active: u128,
+ pub unlocking: Vec<u32>,
+ pub claimed_rewards: Vec<u32>,
+}
+    "
+    .to_string()
+}
+
+pub fn get_struct_stake_ledger( workflow: &Workflow) -> String{
+    let kinds = get_common_kind(workflow);
+
+    let mut toml_dependencies = String::new();
+
+    if kinds[1] {
+        toml_dependencies = format!("{}", staking_ledger());
+    }
+
+    toml_dependencies
+
+}
+
+pub fn get_common_kind(workflow: &Workflow) -> [bool; 2]{
+    let mut kinds = [false, false];
+
+    for task in workflow.tasks.values() {
+        // for task in workflow.tasks.values() {
+        match task.kind.to_lowercase().as_str() {
+            "openwhisk" => {
+                if !kinds[0] {
+                    kinds[0] = true
+                }
+            }
+            "polkadot" => {
+                if !kinds[1] {
+                    kinds[1] = true
+                }
+            }
+            _ => (),
+        }
+
+        if kinds[0] && kinds[1] {
+            break;
+        }
+    }
+
+    kinds
+}
+
