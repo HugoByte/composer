@@ -30,11 +30,6 @@ serde = { version = "1.0.192", features = ["derive"] }
 codec = { package = "parity-scale-codec", features = [
     "derive",
 ], version = "3.1.5" }
-sp-core = { version = "6.0.0", default-features = false, features = [
-    "full_crypto",
-], git = "https://github.com/paritytech/substrate.git", rev = "eb1a2a8" }
+substrate-api-client = { git = "https://github.com/HugoByte/substrate-api-client.git", default-features = false, features = ["staking-xt"], branch ="wasm-support"}
+sp-core = { version = "6.0.0", default-features = false, features = ["full_crypto"], git = "https://github.com/paritytech/substrate.git", rev = "eb1a2a8" }
 sp-runtime = { version = "6.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "eb1a2a8" }
-substrate-api-client = { git = "https://github.com/HugoByte/substrate-api-client.git", default-features = false, features = [
-    "staking-xt",
-], branch = "wasm-support" }
-pallet-staking = { git = "https://github.com/paritytech/substrate.git", package = "pallet-staking", rev = "eb1a2a8" }

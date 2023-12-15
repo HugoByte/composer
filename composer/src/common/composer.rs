@@ -213,7 +213,6 @@ impl Composer {
         types_rs: &str,
         workflow_name: String,
         workflow_index: usize,
-        // workflow_path: &Path,
         verbose: bool,
         pb: &mut ProgressBar,
     ) {
@@ -268,7 +267,6 @@ impl Composer {
                 .join(format!("{workflow_name}.wasm")),
         )
         .unwrap();
-        println!("===============>  {:?}", temp_dir);
         fs::remove_dir_all(temp_dir).unwrap();
     }
 

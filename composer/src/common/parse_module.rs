@@ -196,15 +196,6 @@ macro_rules! impl_concat_setter {
         format!("{attributes}]")
     }
 
-    // pub fn format_imports(&self, kind: &str) -> String {
-    //     if kind == "polkadot" {
-    //         "use substrate_macro::Polkadot;".to_string()
-    //     } else {
-    //         "use openwhisk_macro::*;
-    //         use openwhisk_rust::* ;".to_string()
-    //     }
-    // }
-
     /// Formats the key-value pairs from the given HashMap into a specific string format
     /// This string will be passed to the macros as arguments
     /// # Arguments
@@ -645,6 +636,7 @@ pub fn main(args: Value) -> Result<Value, String> {{
     fn get_openwhisk_kind_dependencies(&self) -> String {
         "\
 openwhisk-rust = \"0.1.2\"
+
 "
         .to_string()
     }
@@ -652,7 +644,10 @@ openwhisk-rust = \"0.1.2\"
     fn get_polkadot_kind_dependencies(&self) -> String {
         // some of the polkadot dependencies
         "substrate_macro = \"0.1.3\"
-         openwhisk-rust = \"0.1.2\""
+         openwhisk-rust = \"0.1.2\"
+        pallet-staking = { git = \"https://github.com/paritytech/substrate.git\", package = \"pallet-staking\", rev = \"eb1a2a8\" }
+         
+         "
             .to_string()
     }
 
@@ -702,6 +697,7 @@ openwhisk-rust = \"0.1.2\"
         "\
         use substrate_macro::Polkadot;
         use openwhisk_rust::*;
+    
         "
         .to_string()
     }
