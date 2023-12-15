@@ -11,7 +11,8 @@ cartype = task(
     input_arguments = [
         argument(
             name="car_type",
-            input_type = String
+            input_type = String,
+            default_value = "tesla"
         ),
     ],
     attributes = attributes
