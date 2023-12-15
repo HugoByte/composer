@@ -54,8 +54,6 @@ salary = task(
     ]
 )
 
-
-
 employee_salary_workflow = workflows(
     name = "employee_salary_test_conact_and_map",
     version = "0.0.1",

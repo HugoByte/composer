@@ -27,7 +27,7 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         operation: Option<Value>,
         depend_on: Option<Value>,
     ) -> anyhow::Result<Task> {
-        let input_arguments: Vec<Input> =
+        let mut input_arguments: Vec<Input> =
             serde_json::from_str(&input_arguments.to_json()?).unwrap();
         let attributes: HashMap<String, String> =
             serde_json::from_str(&attributes.to_json()?).unwrap();
@@ -35,6 +35,15 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
             Some(val) => serde_json::from_str(&val.to_json()?).unwrap(),
             None => Vec::default(),
         };
+
+        for depend in depend_on.iter() {
+            for argument in input_arguments.iter_mut() {
+                if argument.name == depend.cur_field {
+                    argument.is_depend = true;
+                    break;
+                }
+            }
+        }
 
         let operation: Operation = match operation {
             Some(op) => serde_json::from_str(&op.to_json()?).unwrap(),
@@ -121,6 +130,7 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
             name,
             input_type,
             default_value,
+            is_depend: false,
         })
     }
 
@@ -152,14 +162,16 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
 
         let name = name.to_case(Case::Pascal);
 
-        composer.add_custom_type(
-            &name,
-            format!(
+        composer
+            .custom_types
+            .borrow_mut()
+            .insert(
+                name.to_string(),
+                format!(
                 "make_input_struct!(\n\t{},\n\t{},\n\t[Default, Clone, Debug, Deserialize, Serialize]\n);",
                 &name,
-                composer.parse_hashmap(&fields)
-            ),
-        );
+                parse_hashmap(&fields)
+            ));
 
         Ok(RustType::Struct(name))
     }
@@ -216,10 +228,10 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     ///
     ///  * A Result containing the Rust type for a list
     ///
-    fn List(type_: Value) -> anyhow::Result<RustType> {
-        let type_: RustType = serde_json::from_str(&type_.to_json()?).unwrap();
+    fn List(rust_type: Value) -> anyhow::Result<RustType> {
+        let rust_type: RustType = serde_json::from_str(&rust_type.to_json()?).unwrap();
 
-        Ok(RustType::List(Box::new(type_)))
+        Ok(RustType::List(Box::new(rust_type)))
     }
 }
 

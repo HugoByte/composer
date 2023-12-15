@@ -73,126 +73,15 @@ impl Composer {
         }
     }
 
-    /// Adds a custom type that is created by the user inside the config.
-    /// This method is called by the starlark_module.
-    ///
-    /// # Arguments
-    ///
-    /// * `type_name` - A string slice that holds the name of the struct for the custom type
-    /// * `build_string` - A string that holds the Rust code, which uses macros to create a struct
-    ///
-    pub fn add_custom_type(&self, type_name: &str, build_string: String) {
-        self.custom_types
-            .borrow_mut()
-            .insert(type_name.to_string(), build_string);
-    }
+    pub fn build(&self, verbose: bool, pb: &mut ProgressBar, temp_dir: &PathBuf) {
+        pb.inc(10 / self.config_files.len() as u64);
 
-    /// Finds the list of dependencies that the given task depends on.
-    ///
-    /// # Arguments
-    ///
-    /// * `task_name` - A string slice that holds the name of the task
-    /// * `workflow_index` - A integer that holds the index of the workflow where the given
-    ///   task is stored
-    ///
-    /// # Returns
-    ///
-    /// * `Option<Vec<String>>` - An option containing a vector of dependencies if the task is
-    ///   found, or None if the task have no dependency
-    ///
-    pub fn get_dependencies(&self, task_name: &str, workflow_index: usize) -> Option<Vec<String>> {
-        let mut dependencies = Vec::<String>::new();
-
-        for task in self.workflows.borrow()[workflow_index]
-            .tasks
-            .get(task_name)
-            .unwrap()
-            .depend_on
-            .iter()
-        {
-            dependencies.push(task.task_name.clone());
-        }
-
-        Some(dependencies)
-    }
-
-    /// Performs depth-first search (DFS) in the workflow subgraph.
-    /// This method is invoked within the get_flow method to perform `Topological-Sorting`
-    /// # Arguments
-    ///
-    /// * `task_name` - A string slice that holds the name of the task where the DFS should start
-    /// * `visited` - A mutable reference to a HashMap that holds the list of task (node) names
-    ///   and a boolean indicating whether it has been traversed
-    /// * `flow` - A mutable reference to a vector of strings that stores the flow of the DFS
-    ///   traversal
-    /// * `workflow_index` - An integer that holds the index of the workflow where the given
-    ///   task is located
-    ///
-    fn dfs(
-        &self,
-        task_name: &str,
-        visited: &mut HashMap<String, bool>,
-        flow: &mut Vec<String>,
-        workflow_index: usize,
-    ) {
-        visited.insert(task_name.to_string(), true);
-
-        for depend_task in self
-            .get_dependencies(task_name, workflow_index)
-            .unwrap()
-            .iter()
-        {
-            if !visited[depend_task] {
-                self.dfs(depend_task, visited, flow, workflow_index);
-            }
-        }
-
-        flow.push(task_name.to_string());
-    }
-
-    /// Performs topological sort in the workflow graph.
-    /// This method is invoked by the parse_module.
-    ///
-    /// # Arguments
-    ///
-    /// * `workflow_index` - An integer that holds the index of the workflow for which
-    ///   topological sort is to be performed
-    ///
-    /// # Returns
-    ///
-    /// * `Vec<String>` - A vector containing the list of task names in the order of the
-    ///   topological sort
-    ///
-    pub fn get_flow(&self, workflow_index: usize) -> Vec<String> {
-        let mut visited = HashMap::<String, bool>::new();
-        let mut flow = Vec::<String>::new();
-
-        for task in self.workflows.borrow()[workflow_index].tasks.iter() {
-            visited.insert(task.0.to_string(), false);
-        }
-
-        for task in self.workflows.borrow()[workflow_index].tasks.iter() {
-            if !visited[task.0] {
-                self.dfs(task.0, &mut visited, &mut flow, workflow_index)
-            }
-        }
-
-        flow
-    }
-
-    pub fn build(&self, verbose: bool, progress_bar: &mut ProgressBar, temp_dir: &PathBuf) {
-        progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
         if verbose {
             Command::new("rustup")
                 .current_dir(temp_dir.join("boilerplate"))
                 .args(["target", "add", "wasm32-wasi"])
                 .status()
                 .expect("adding wasm32-wasi rust toolchain command failed to start");
-
-            Command::new("rustup")
-                .args(["default", "nightly"])
-                .status()
-                .expect("building wasm32 command failed to start");
 
             Command::new("cargo")
                 .current_dir(temp_dir.join("boilerplate"))
@@ -208,78 +97,38 @@ impl Composer {
         }
     }
 
-    pub fn copy_boilerplate(
+    fn copy_boilerplate(
         &self,
         types_rs: &str,
         workflow_name: String,
-        workflow_index: usize,
-        verbose: bool,
         progress_bar: &mut ProgressBar,
-    ) {
+    ) -> PathBuf{
         progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
         let temp_dir = std::env::temp_dir().join(&workflow_name);
         let curr = temp_dir.join("boilerplate");
-
-        std::fs::create_dir_all(curr.clone()).unwrap();
 
         std::fs::create_dir_all(curr.clone().join("src")).unwrap();
 
         let src_curr = temp_dir.join("boilerplate/src");
         let temp_path = src_curr.as_path().join("common.rs");
 
-        std::fs::write(&temp_path, &COMMON[..]).unwrap();
+        std::fs::write(temp_path, &COMMON[..]).unwrap();
 
         let temp_path = src_curr.as_path().join("lib.rs");
-        std::fs::write(&temp_path, &LIB[..]).unwrap();
-
-        let mut lib = OpenOptions::new()
-        .write(true)
-        .append(true)
-        .open(temp_path)
-        .unwrap();
-
-        let library = self.get_struct_stake_ledger(workflow_index);
-        writeln!(lib, "{library}")
-        .expect("could not able to add struct to lib");
-
+        std::fs::write(temp_path, &LIB[..]).unwrap();
         let temp_path = src_curr.as_path().join("types.rs");
-        std::fs::write(&temp_path, types_rs).unwrap();
+        std::fs::write(temp_path, types_rs).unwrap();
 
         let temp_path = src_curr.as_path().join("traits.rs");
-        std::fs::write(&temp_path, &TRAIT[..]).unwrap();
+        std::fs::write(temp_path, &TRAIT[..]).unwrap();
 
         let cargo_path = curr.join("Cargo.toml");
-        std::fs::write(&cargo_path, &CARGO[..]).unwrap();
+        std::fs::write(cargo_path, &CARGO[..]).unwrap();
 
-        let mut cargo_toml = OpenOptions::new()
-            .write(true)
-            .append(true)
-            .open(cargo_path)
-            .unwrap();
-
-        let dependencies = self.generate_cargo_toml_dependencies(workflow_index);
-        writeln!(cargo_toml, "{dependencies}")
-            .expect("could not able to add dependencies to the Cargo.toml");
-
-        progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
-        let wasm_path = format!(
-            "{}/target/wasm32-wasi/release/boilerplate.wasm",
-            curr.as_path().to_str().unwrap()
-        );
-
-        self.build(verbose, progress_bar, &temp_dir);
-
-        fs::copy(
-            wasm_path,
-            &std::env::current_dir()
-                .unwrap()
-                .join(format!("{workflow_name}.wasm")),
-        )
-        .unwrap();
-        fs::remove_dir_all(temp_dir).unwrap();
+        temp_dir
     }
 
-    fn  compile_starlark(&self, config: &str) {
+    fn compile_starlark(&self, config: &str) -> Result<(), anyhow::Error> {
         let content: String = std::fs::read_to_string(config).unwrap();
         let ast = AstModule::parse("config", content, &Dialect::Extended).unwrap();
 
@@ -325,9 +174,10 @@ impl Composer {
             let mut eval = Evaluator::new(&module);
             // We add a reference to our store
             eval.extra = Some(self);
-            eval.eval_module(ast, &globals).unwrap();
+            eval.eval_module(ast, &globals)?;
         }
 
+        Ok(())
     }
 
     /// Generates workflow package and builds the WASM file for all of the workflows
@@ -337,28 +187,51 @@ impl Composer {
     ///
     /// * `current_path` - A reference to the Path indicating the current working directory
     ///
-    pub fn generate(&self, verbose: bool, progress_bar: &mut ProgressBar) -> Result<(), Error> {
+    pub fn generate_wasm(&self, verbose: bool, progress_bar: &mut ProgressBar) -> Result<(), Error> {
         // Getting the current working directory
         progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
+
         for config in self.config_files.iter() {
-            self.compile_starlark(config);
+            self.compile_starlark(config)?; 
             progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
+
         }
 
-        for (workflow_index, workflow) in self.workflows.borrow().iter().enumerate() {
+        let composer_custom_types = self.custom_types.borrow();
 
+        for (workflow_index, workflow) in self.workflows.borrow().iter().enumerate() {
             if workflow.tasks.is_empty() {
                 continue;
             }
+
             let workflow_name = format!("{}_{}", workflow.name, workflow.version);
             progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
-            self.copy_boilerplate(
-                &self.generate_types_rs_file_code(workflow_index),
-                workflow_name,
-                workflow_index,
-                verbose,
+
+            let temp_dir = self.copy_boilerplate(
+                &generate_types_rs_file_code(
+                    &self.workflows.borrow()[workflow_index],
+                    &composer_custom_types,
+                ),
+                workflow_name.clone(),
                 progress_bar,
             );
+
+            self.build(verbose, progress_bar, &temp_dir);
+
+            let wasm_path = format!(
+                "{}/boilerplate/target/wasm32-wasi/release/boilerplate.wasm",
+                temp_dir.as_path().to_str().unwrap()
+            );
+
+            fs::copy(
+                wasm_path,
+                &std::env::current_dir()
+                    .unwrap()
+                    .join(format!("{workflow_name}.wasm")),
+            )
+            .unwrap();
+
+            fs::remove_dir_all(temp_dir).unwrap();
         }
 
         Ok(())
