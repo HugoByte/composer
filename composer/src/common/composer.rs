@@ -7,7 +7,7 @@ const CARGO: &str = include_str!("../../../boilerplate/Cargo.toml");
 
 #[derive(Debug, ProvidesStaticType, Default)]
 pub struct Composer {
-    config_files: Vec<String>,
+    pub config_files: Vec<String>,
     pub workflows: RefCell<Vec<Workflow>>,
     pub custom_types: RefCell<HashMap<String, String>>,
 }
@@ -177,8 +177,8 @@ impl Composer {
         flow
     }
 
-    pub fn build(&self, verbose: bool, pb: &mut ProgressBar, temp_dir: &PathBuf) {
-        pb.inc(10);
+    pub fn build(&self, verbose: bool, progress_bar: &mut ProgressBar, temp_dir: &PathBuf) {
+        progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
         if verbose {
             Command::new("rustup")
                 .current_dir(temp_dir.join("boilerplate"))
@@ -210,9 +210,9 @@ impl Composer {
         types_rs: &str,
         workflow_name: String,
         verbose: bool,
-        pb: &mut ProgressBar,
+        progress_bar: &mut ProgressBar,
     ) {
-        pb.inc(5);
+        progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
         let temp_dir = std::env::temp_dir().join(&workflow_name);
         let curr = temp_dir.join("boilerplate");
 
@@ -236,13 +236,13 @@ impl Composer {
         let cargo_path = curr.join("Cargo.toml");
         std::fs::write(&cargo_path, &CARGO[..]).unwrap();
 
-        pb.inc(10);
+        progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
         let wasm_path = format!(
             "{}/target/wasm32-wasi/release/boilerplate.wasm",
             curr.as_path().to_str().unwrap()
         );
 
-        self.build(verbose, pb, &temp_dir);
+        self.build(verbose, progress_bar, &temp_dir);
 
         fs::copy(
             wasm_path,
@@ -312,24 +312,24 @@ impl Composer {
     ///
     /// * `current_path` - A reference to the Path indicating the current working directory
     ///
-    pub fn generate(&self, verbose: bool, pb: &mut ProgressBar) -> Result<(), Error> {
+    pub fn generate(&self, verbose: bool, progress_bar: &mut ProgressBar) -> Result<(), Error> {
         // Getting the current working directory
-        pb.inc(10);
+        progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
         for config in self.config_files.iter() {
             let composer = self.compile_starlark(config);
-            pb.inc(5);
+            progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
 
             for (workflow_index, workflow) in composer.workflows.borrow().iter().enumerate() {
                 if workflow.tasks.is_empty() {
                     continue;
                 }
                 let workflow_name = format!("{}_{}", workflow.name, workflow.version);
-                pb.inc(10);
+                progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
                 self.copy_boilerplate(
                     &composer.generate_types_rs_file_code(workflow_index),
                     workflow_name,
                     verbose,
-                    pb,
+                    progress_bar,
                 );
             }
         }
@@ -337,3 +337,4 @@ impl Composer {
         Ok(())
     }
 }
+
