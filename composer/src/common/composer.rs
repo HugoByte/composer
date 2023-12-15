@@ -238,7 +238,7 @@ impl Composer {
         .open(temp_path)
         .unwrap();
 
-        let library = self.get_struct_stakeleader(workflow_index);
+        let library = self.get_struct_stake_ledger(workflow_index);
         writeln!(lib, "{library}")
         .expect("could not able to add struct to lib");
 
@@ -316,6 +316,8 @@ impl Composer {
         module.set("Float", int);
         let int = module.heap().alloc(RustType::String);
         module.set("String", int);
+        let int = module.heap().alloc(RustType::Value);
+        module.set("Value", int);
         let int = module.heap().alloc(RustType::Boolean);
         module.set("Bool", int);
 

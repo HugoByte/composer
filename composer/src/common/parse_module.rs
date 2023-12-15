@@ -643,7 +643,7 @@ openwhisk-rust = \"0.1.2\"
     fn get_polkadot_kind_dependencies(&self) -> String {
         // some of the polkadot dependencies
         "substrate_macro = \"0.1.3\"
-         openwhisk-rust = \"0.1.2\"
+        openwhisk-rust = \"0.1.2\"
         pallet-staking = { git = \"https://github.com/paritytech/substrate.git\", package = \"pallet-staking\", rev = \"eb1a2a8\" }
         substrate-api-client = { git = \"https://github.com/HugoByte/substrate-api-client.git\", default-features = false, features = [\"staking-xt\"], branch =\"wasm-support\"}
 sp-core = { version = \"6.0.0\", default-features = false, features = [\"full_crypto\"], git = \"https://github.com/paritytech/substrate.git\", rev = \"eb1a2a8\" }
@@ -654,27 +654,8 @@ sp-runtime = { version = \"6.0.0\", default-features = false, git = \"https://gi
 
     pub fn generate_cargo_toml_dependencies(&self, workflow_index: usize) -> String {
         // 0th index-openwhisk, 1st index-polkadot
-        let mut kinds = [false, false];
-        for task in self.workflows.borrow()[workflow_index].tasks.values() {
-            match task.kind.to_lowercase().as_str() {
-                "openwhisk" => {
-                    if !kinds[0] {
-                        kinds[0] = true
-                    }
-                }
-                "polkadot" => {
-                    if !kinds[1] {
-                        kinds[1] = true
-                    }
-                }
-                _ => (),
-            }
-
-            if kinds[0] && kinds[1] {
-                break;
-            }
-        }
-
+        let  kinds = self.get_common_kind(workflow_index);
+        
         let mut toml_dependencies = String::new();
 
         if kinds[0] {
@@ -695,8 +676,8 @@ sp-runtime = { version = \"6.0.0\", default-features = false, git = \"https://gi
     pub fn get_polkadot(&self) -> String {
         "\
         use substrate_macro::Polkadot;
-        use openwhisk_rust::*;
         use sp_core::H256;
+        use openwhisk_rust::*;
     
         "
         .to_string()
@@ -705,33 +686,15 @@ sp-runtime = { version = \"6.0.0\", default-features = false, git = \"https://gi
     pub fn get_openwhisk(&self) -> String {
         "\
         use openwhisk_rust::*;
+       
+        
         "
         .to_string()
     }
 
     pub fn add_polkadot_openwhisk(&self, workflow_index: usize) -> String {
-        let mut kinds = [false, false];
-
-        for task in self.workflows.borrow()[workflow_index].tasks.values() {
-            match task.kind.to_lowercase().as_str() {
-                "openwhisk" => {
-                    if !kinds[0] {
-                        kinds[0] = true
-                    }
-                }
-                "polkadot" => {
-                    if !kinds[1] {
-                        kinds[1] = true
-                    }
-                }
-                _ => (),
-            }
-
-            if kinds[0] && kinds[1] {
-                break;
-            }
-        }
-
+        let kinds = self.get_common_kind(workflow_index);
+        
         let mut toml_dependencies = String::new();
 
         if kinds[0] {
@@ -767,7 +730,20 @@ sp-runtime = { version = \"6.0.0\", default-features = false, git = \"https://gi
         .to_string()
     }
 
-    pub fn get_struct_stakeleader(&self, workflow_index: usize) -> String{
+    pub fn get_struct_stake_ledger(&self, workflow_index: usize) -> String{
+        let kinds = self.get_common_kind(workflow_index);
+
+        let mut toml_dependencies = String::new();
+
+        if kinds[1] {
+            toml_dependencies = format!("{}", self.staking_ledger());
+        }
+
+        toml_dependencies
+
+    }
+
+    pub fn get_common_kind(&self, workflow_index: usize) -> [bool; 2]{
         let mut kinds = [false, false];
 
         for task in self.workflows.borrow()[workflow_index].tasks.values() {
@@ -789,15 +765,8 @@ sp-runtime = { version = \"6.0.0\", default-features = false, git = \"https://gi
                 break;
             }
         }
-        let mut toml_dependencies = String::new();
-
-        if kinds[1] {
-            toml_dependencies = format!("{}", self.staking_ledger());
-        }
-
-        toml_dependencies
-
+    
+        kinds
     }
-
     
 }
