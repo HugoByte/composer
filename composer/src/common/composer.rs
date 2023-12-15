@@ -1,5 +1,5 @@
 use std::io::Write;
-use std::{fs::OpenOptions, path::Path};
+use std::fs::OpenOptions;
 
 use super::*;
 
@@ -238,7 +238,6 @@ impl Composer {
         std::fs::write(&temp_path, &TRAIT[..]).unwrap();
 
         let cargo_path = curr.join("Cargo.toml");
-        print!("{:?}", cargo_path);
         std::fs::write(&cargo_path, &CARGO[..]).unwrap();
 
         let mut cargo_toml = OpenOptions::new()
@@ -247,12 +246,11 @@ impl Composer {
             .open(cargo_path)
             .unwrap();
 
-        print!("{:?}", cargo_toml);
         let dependencies = self.generate_cargo_toml_dependencies(workflow_index);
         writeln!(cargo_toml, "{dependencies}")
             .expect("could not able to add dependencies to the Cargo.toml");
 
-        pb.inc(10);
+        progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
         let wasm_path = format!(
             "{}/target/wasm32-wasi/release/boilerplate.wasm",
             curr.as_path().to_str().unwrap()
@@ -270,7 +268,7 @@ impl Composer {
         fs::remove_dir_all(temp_dir).unwrap();
     }
 
-    fn compile_starlark(&self, config: &str) -> Composer {
+    fn  compile_starlark(&self, config: &str) {
         let content: String = std::fs::read_to_string(config).unwrap();
         let ast = AstModule::parse("config", content, &Dialect::Extended).unwrap();
 
@@ -310,15 +308,13 @@ impl Composer {
         let int = module.heap().alloc(RustType::Boolean);
         module.set("Bool", int);
 
-        let composer = Composer::default();
         {
             let mut eval = Evaluator::new(&module);
             // We add a reference to our store
-            eval.extra = Some(&composer);
+            eval.extra = Some(self);
             eval.eval_module(ast, &globals).unwrap();
         }
 
-        composer
     }
 
     /// Generates workflow package and builds the WASM file for all of the workflows
@@ -332,25 +328,24 @@ impl Composer {
         // Getting the current working directory
         progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
         for config in self.config_files.iter() {
-            let composer = self.compile_starlark(config);
+            self.compile_starlark(config);
             progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
+        }
 
-            for (workflow_index, workflow) in composer.workflows.borrow().iter().enumerate() {
-                if workflow.tasks.is_empty() {
-                    continue;
-                }
-                let workflow_name = format!("{}_{}", workflow.name, workflow.version);
-                progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
-                self.copy_boilerplate(
-                    &composer.generate_types_rs_file_code(workflow_index),
-                    workflow_name,
-                    workflow_index,
-                    verbose,
-                    progress_bar,
-                );
+        for (workflow_index, workflow) in self.workflows.borrow().iter().enumerate() {
 
-                // composer.update_cargo_toml(dest_path, workflow_index)
+            if workflow.tasks.is_empty() {
+                continue;
             }
+            let workflow_name = format!("{}_{}", workflow.name, workflow.version);
+            progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
+            self.copy_boilerplate(
+                &self.generate_types_rs_file_code(workflow_index),
+                workflow_name,
+                workflow_index,
+                verbose,
+                progress_bar,
+            );
         }
 
         Ok(())

@@ -1,4 +1,3 @@
-use std::fmt::format;
 
 use super::*;
 
@@ -654,7 +653,6 @@ openwhisk-rust = \"0.1.2\"
     pub fn generate_cargo_toml_dependencies(&self, workflow_index: usize) -> String {
         // 0th index-openwhisk, 1st index-polkadot
         let mut kinds = [false, false];
-
         for task in self.workflows.borrow()[workflow_index].tasks.values() {
             match task.kind.to_lowercase().as_str() {
                 "openwhisk" => {
@@ -687,7 +685,6 @@ openwhisk-rust = \"0.1.2\"
 
         if kinds[0] && kinds[1] {
             toml_dependencies = self.get_polkadot_kind_dependencies();
-            print!("{:?}", toml_dependencies)
         }
 
         toml_dependencies
@@ -744,7 +741,6 @@ openwhisk-rust = \"0.1.2\"
 
         if kinds[0] && kinds[1] {
             toml_dependencies = self.get_polkadot();
-            print!("{}", toml_dependencies);
         }
 
         toml_dependencies
