@@ -231,6 +231,17 @@ impl Composer {
 
         let temp_path = src_curr.as_path().join("lib.rs");
         std::fs::write(&temp_path, &LIB[..]).unwrap();
+
+        let mut lib = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(temp_path)
+        .unwrap();
+
+        let library = self.get_struct_stakeleader(workflow_index);
+        writeln!(lib, "{library}")
+        .expect("could not able to add struct to lib");
+
         let temp_path = src_curr.as_path().join("types.rs");
         std::fs::write(&temp_path, types_rs).unwrap();
 

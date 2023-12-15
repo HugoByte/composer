@@ -601,7 +601,7 @@ impl_new!(
         let workflow_nodes_and_edges = self.get_workflow_nodes_and_edges(workflow_index);
 
         let main_file = format!(
-            "{} {}         
+            "{} {}       
 {}
 {}
 {}
@@ -645,7 +645,9 @@ openwhisk-rust = \"0.1.2\"
         "substrate_macro = \"0.1.3\"
          openwhisk-rust = \"0.1.2\"
         pallet-staking = { git = \"https://github.com/paritytech/substrate.git\", package = \"pallet-staking\", rev = \"eb1a2a8\" }
-         
+        substrate-api-client = { git = \"https://github.com/HugoByte/substrate-api-client.git\", default-features = false, features = [\"staking-xt\"], branch =\"wasm-support\"}
+sp-core = { version = \"6.0.0\", default-features = false, features = [\"full_crypto\"], git = \"https://github.com/paritytech/substrate.git\", rev = \"eb1a2a8\" }
+sp-runtime = { version = \"6.0.0\", default-features = false, git = \"https://github.com/paritytech/substrate.git\", rev = \"eb1a2a8\" }
          "
             .to_string()
     }
@@ -694,6 +696,7 @@ openwhisk-rust = \"0.1.2\"
         "\
         use substrate_macro::Polkadot;
         use openwhisk_rust::*;
+        use sp_core::H256;
     
         "
         .to_string()
@@ -745,4 +748,56 @@ openwhisk-rust = \"0.1.2\"
 
         toml_dependencies
     }
+
+    pub fn staking_ledger(&self) -> String{
+        "\
+    use sp_runtime::AccountId32;
+
+    #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, Debug)]
+     pub struct StakingLedger {
+     pub stash: AccountId32,
+     #[codec(compact)]
+     pub total: u128,
+     #[codec(compact)]
+     pub active: u128,
+     pub unlocking: Vec<u32>,
+     pub claimed_rewards: Vec<u32>,
+ }
+        "
+        .to_string()
+    }
+
+    pub fn get_struct_stakeleader(&self, workflow_index: usize) -> String{
+        let mut kinds = [false, false];
+
+        for task in self.workflows.borrow()[workflow_index].tasks.values() {
+            match task.kind.to_lowercase().as_str() {
+                "openwhisk" => {
+                    if !kinds[0] {
+                        kinds[0] = true
+                    }
+                }
+                "polkadot" => {
+                    if !kinds[1] {
+                        kinds[1] = true
+                    }
+                }
+                _ => (),
+            }
+
+            if kinds[0] && kinds[1] {
+                break;
+            }
+        }
+        let mut toml_dependencies = String::new();
+
+        if kinds[1] {
+            toml_dependencies = format!("{}", self.staking_ledger());
+        }
+
+        toml_dependencies
+
+    }
+
+    
 }
