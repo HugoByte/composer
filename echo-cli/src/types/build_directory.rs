@@ -44,7 +44,7 @@ pub fn build_wasm(args: &CLI) {
                 progress_bar.inc((12 / build.config.len()).try_into().unwrap());
             }
 
-            composer.generate(args.verbose, &mut progress_bar).unwrap();
+            composer.generate_wasm(args.verbose, &mut progress_bar).unwrap();
             progress_bar.finish_with_message("msg");
         }
     }

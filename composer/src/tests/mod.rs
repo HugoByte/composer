@@ -50,7 +50,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            composer.get_dependencies("get_salaries", 0).unwrap(),
+            composer.workflows.borrow()[0].get_dependencies("get_salaries").unwrap(),
             vec!["dependent_task"]
         );
     }
@@ -141,7 +141,7 @@ mod tests {
             .add_workflow("test-workflow".to_string(), "0.0.1".to_string(), tasks)
             .unwrap();
 
-        let flow = composer.get_flow(0);
+        let flow = composer.workflows.borrow()[0].get_flow();
 
         assert!(flow[0] == "task0" || flow[0] == "task4");
 
@@ -184,7 +184,7 @@ mod tests {
         let composer_task = &composer.workflows.borrow()[0].tasks;
 
         let attributes =
-            composer.get_attributes(&composer_task.get("test-task").unwrap().attributes);
+            parse_module::get_attributes(&composer_task.get("test-task").unwrap().attributes);
 
         println!("{:#?}", attributes);
 
@@ -196,20 +196,17 @@ mod tests {
 
     #[test]
     fn get_task_kind_test_pass() {
-        let composer = Composer::default();
-
-        let kind_name = composer.get_task_kind("polkadot").unwrap();
+        let kind_name = get_task_kind("polkadot").unwrap();
         assert_eq!(&kind_name, "Polkadot");
 
-        let kind_name = composer.get_task_kind("openwhisk").unwrap();
+        let kind_name = get_task_kind("openwhisk").unwrap();
         assert_eq!(&kind_name, "OpenWhisk");
     }
 
     #[test]
     #[should_panic]
     fn get_task_kind_test_fail() {
-        let composer = Composer::default();
-        let kind_name = composer.get_task_kind("polkadot").unwrap();
+        let kind_name = get_task_kind("polkadot").unwrap();
         assert_eq!(&kind_name, "polkadot");
     }
 }
