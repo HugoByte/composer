@@ -8,9 +8,9 @@ use std::path::Path;
 
 /// The main function checks if the given configuration files exist and have the correct extension, and
 /// then proceeds to generate a wasm file.
-/// 
+///
 /// Returns:
-/// 
+///
 /// The main function is returning a Result type with the Ok variant if the function executes
 /// successfully, and the Err variant if there is an error. The Ok(()) value indicates that the function
 /// returns a unit type, which means it doesn't return any meaningful value.
@@ -36,6 +36,9 @@ fn main() -> Result<(), CliError> {
         }
     }
     // Generate wasm file
-    build_wasm(&args).unwrap();
-    Ok(())
+    let result = build_wasm(&args);
+    match result {
+        Ok(_) => Ok(()),
+        Err(err) => Err(err),
+    }
 }
