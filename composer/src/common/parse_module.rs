@@ -56,7 +56,7 @@ fn get_macros_code() -> String {
 use serde_derive::{Serialize, Deserialize};
 use std::collections::HashMap;
 use super::*;
-use openwhisk_macro::*;
+use openwhisk_rust::*;
 
 macro_rules! make_input_struct {
     (
@@ -630,7 +630,8 @@ pub fn generate_types_rs_file_code(
     custom_types: &HashMap<String, String>,
 ) -> String {
     let main_file = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}}}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}}}",
+        add_polkadot_openwhisk(workflow),
         get_macros_code(),
         get_task_input_type_constructors(workflow),
         get_task_main_type_constructors(workflow),
@@ -642,4 +643,154 @@ pub fn generate_types_rs_file_code(
         get_workflow_nodes_and_edges_code(workflow)
     );
     main_file
+}
+
+fn get_openwhisk_kind_dependencies() -> String {
+    "\
+
+openwhisk_macro = \"0.1.6\"
+
+"
+    .to_string()
+}
+
+fn get_polkadot_kind_dependencies() -> String {
+    // some of the polkadot dependencies
+    "substrate_macro = \"0.1.3\"
+    pallet-staking = { git = \"https://github.com/paritytech/substrate.git\", package = \"pallet-staking\", rev = \"eb1a2a8\" }
+    substrate-api-client = { git = \"https://github.com/HugoByte/substrate-api-client.git\", default-features = false, features = [\"staking-xt\"], branch =\"wasm-support\"}
+sp-core = { version = \"6.0.0\", default-features = false, features = [\"full_crypto\"], git = \"https://github.com/paritytech/substrate.git\", rev = \"eb1a2a8\" }
+sp-runtime = { version = \"6.0.0\", default-features = false, git = \"https://github.com/paritytech/substrate.git\", rev = \"eb1a2a8\" }
+     "
+        .to_string()
+}
+
+pub fn generate_cargo_toml_dependencies(workflow: &Workflow) -> String {
+    // 0th index-openwhisk, 1st index-polkadot
+    let kinds = get_common_kind(workflow);
+
+    let mut toml_dependencies = String::new();
+
+    if kinds[0] {
+        toml_dependencies = format!("{}", get_openwhisk_kind_dependencies());
+    }
+
+    if kinds[1] {
+        toml_dependencies = format!("{}", get_polkadot_kind_dependencies());
+    }
+
+    if kinds[0] && kinds[1] {
+        toml_dependencies = handle_multiple_dependency();
+    }
+
+    toml_dependencies
+}
+
+pub fn handle_multiple_dependency() -> String {
+    let openwhisk_dependency = get_openwhisk_kind_dependencies();
+    let polkadot_dependency = get_polkadot_kind_dependencies();
+
+    let combined_dependencies = format!("{}{}", openwhisk_dependency, polkadot_dependency);
+    combined_dependencies
+}
+
+pub fn get_polkadot() -> String {
+    "\
+    use substrate_macro::Polkadot;
+    use sp_core::H256;
+
+    "
+    .to_string()
+}
+
+pub fn get_openwhisk() -> String {
+    "\
+    use openwhisk_macro::*;
+    
+    "
+    .to_string()
+}
+
+pub fn add_polkadot_openwhisk(workflow: &Workflow) -> String {
+    let kinds = get_common_kind(workflow);
+
+    let mut toml_dependencies = String::new();
+
+    if kinds[0] {
+        toml_dependencies = format!("{}", get_openwhisk());
+    }
+
+    if kinds[1] {
+        toml_dependencies = format!("{}", get_polkadot());
+    }
+
+    if kinds[0] && kinds[1] {
+        toml_dependencies = handle_multiple_kinds();
+    }
+
+    toml_dependencies
+}
+
+pub fn staking_ledger() -> String {
+    "\
+use sp_runtime::AccountId32;
+
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, Debug)]
+ pub struct StakingLedger {
+ pub stash: AccountId32,
+ #[codec(compact)]
+ pub total: u128,
+ #[codec(compact)]
+ pub active: u128,
+ pub unlocking: Vec<u32>,
+ pub claimed_rewards: Vec<u32>,
+}
+    "
+    .to_string()
+}
+
+pub fn get_struct_stake_ledger(workflow: &Workflow) -> String {
+    let kinds = get_common_kind(workflow);
+
+    let mut toml_dependencies = String::new();
+
+    if kinds[1] {
+        toml_dependencies = format!("{}", staking_ledger());
+    }
+
+    toml_dependencies
+}
+
+pub fn get_common_kind(workflow: &Workflow) -> [bool; 2] {
+    let mut kinds = [false, false];
+
+    for task in workflow.tasks.values() {
+        match task.kind.to_lowercase().as_str() {
+            "openwhisk" => {
+                if !kinds[0] {
+                    kinds[0] = true
+                }
+            }
+            "polkadot" => {
+                if !kinds[1] {
+                    kinds[1] = true
+                }
+            }
+            _ => (),
+        }
+
+        if kinds[0] && kinds[1] {
+            break;
+        }
+    }
+
+    kinds
+}
+
+pub fn handle_multiple_kinds() -> String {
+    let openwhisk = get_openwhisk();
+    let polkadot = get_polkadot();
+
+    let combined_dependencies = format!("{}{}", openwhisk, polkadot);
+    combined_dependencies
 }

@@ -1,3 +1,6 @@
+use std::fs::OpenOptions;
+use std::io::Write;
+
 use super::*;
 
 const COMMON: &str = include_str!("../../../boilerplate/src/common.rs");
@@ -98,8 +101,9 @@ impl Composer {
         &self,
         types_rs: &str,
         workflow_name: String,
+        workflow: &Workflow,
         progress_bar: &mut ProgressBar,
-    ) -> PathBuf{
+    ) -> PathBuf {
         progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
         let temp_dir = std::env::temp_dir().join(&workflow_name);
         let curr = temp_dir.join("boilerplate");
@@ -112,7 +116,17 @@ impl Composer {
         std::fs::write(temp_path, &COMMON[..]).unwrap();
 
         let temp_path = src_curr.as_path().join("lib.rs");
-        std::fs::write(temp_path, &LIB[..]).unwrap();
+        std::fs::write(temp_path.clone(), &LIB[..]).unwrap();
+
+        let mut lib = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .open(temp_path)
+            .unwrap();
+
+        let library = get_struct_stake_ledger(workflow);
+        writeln!(lib, "{library}").expect("could not able to add struct to lib");
+
         let temp_path = src_curr.as_path().join("types.rs");
         std::fs::write(temp_path, types_rs).unwrap();
 
@@ -120,7 +134,17 @@ impl Composer {
         std::fs::write(temp_path, &TRAIT[..]).unwrap();
 
         let cargo_path = curr.join("Cargo.toml");
-        std::fs::write(cargo_path, &CARGO[..]).unwrap();
+        std::fs::write(cargo_path.clone(), &CARGO[..]).unwrap();
+
+        let mut cargo_toml = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .open(cargo_path)
+            .unwrap();
+
+        let dependencies = generate_cargo_toml_dependencies(workflow);
+        writeln!(cargo_toml, "{dependencies}")
+            .expect("could not able to add dependencies to the Cargo.toml");
 
         temp_dir
     }
@@ -162,6 +186,8 @@ impl Composer {
         module.set("Float", int);
         let int = module.heap().alloc(RustType::String);
         module.set("String", int);
+        let int = module.heap().alloc(RustType::Value);
+        module.set("Value", int);
         let int = module.heap().alloc(RustType::Boolean);
         module.set("Bool", int);
 
@@ -182,14 +208,17 @@ impl Composer {
     ///
     /// * `current_path` - A reference to the Path indicating the current working directory
     ///
-    pub fn generate_wasm(&self, verbose: bool, progress_bar: &mut ProgressBar) -> Result<(), Error> {
+    pub fn generate_wasm(
+        &self,
+        verbose: bool,
+        progress_bar: &mut ProgressBar,
+    ) -> Result<(), Error> {
         // Getting the current working directory
         progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
 
         for config in self.config_files.iter() {
-            self.compile_starlark(config)?; 
+            self.compile_starlark(config)?;
             progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
-
         }
 
         let composer_custom_types = self.custom_types.borrow();
@@ -208,6 +237,7 @@ impl Composer {
                     &composer_custom_types,
                 ),
                 workflow_name.clone(),
+                workflow,
                 progress_bar,
             );
 
@@ -225,11 +255,9 @@ impl Composer {
                     .join(format!("{workflow_name}.wasm")),
             )
             .unwrap();
-
             fs::remove_dir_all(temp_dir).unwrap();
         }
 
         Ok(())
     }
 }
-
