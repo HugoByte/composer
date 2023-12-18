@@ -760,7 +760,6 @@ pub fn get_common_kind(workflow: &Workflow) -> [bool; 2]{
     let mut kinds = [false, false];
 
     for task in workflow.tasks.values() {
-        // for task in workflow.tasks.values() {
         match task.kind.to_lowercase().as_str() {
             "openwhisk" => {
                 if !kinds[0] {
