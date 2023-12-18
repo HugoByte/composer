@@ -24,7 +24,7 @@ serde_derive = "1.0.192"
 paste = "1.0.7"
 dyn-clone = "1.0.7"
 workflow_macro = "0.0.3"
-openwhisk_macro = "0.1.6"
+openwhisk-rust = "0.1.2"
 serde_json = { version = "1.0", features = ["raw_value"] }
 serde = { version = "1.0.192", features = ["derive"] }
 codec = { package = "parity-scale-codec", features = [
