@@ -1,24 +1,30 @@
 use clap::Parser;
 use echo_cli::cli::CLI;
 use echo_cli::command::Commands;
+use echo_cli::error::error::CliError;
 use echo_cli::types::build_wasm;
 use std::fs;
 use std::path::Path;
-use std::process::exit;
 
-fn main() {
+/// The main function checks if the given configuration files exist and have the correct extension, and
+/// then proceeds to generate a wasm file.
+/// 
+/// Returns:
+/// 
+/// The main function is returning a Result type with the Ok variant if the function executes
+/// successfully, and the Err variant if there is an error. The Ok(()) value indicates that the function
+/// returns a unit type, which means it doesn't return any meaningful value.
+fn main() -> Result<(), CliError> {
     let args = CLI::parse();
 
     let Commands::Build(build) = &args.commands;
     for path in &build.config {
         if let Some(extension) = Path::new(path).extension() {
             if extension != "echo" {
-                eprintln!("Error: Config file extension must be .echo: {}", path);
-                exit(1);
+                return Err(CliError::InvalidConfigFileExtension);
             }
         } else {
-            eprintln!("Error: Invalid path format: {}", path);
-            continue;
+            return Err(CliError::PathDoesNotExist);
         }
 
         // Checking if the information of file exists or not
@@ -27,11 +33,9 @@ fn main() {
                 eprintln!("Error: Path is not a regular file: {}", path);
                 continue;
             }
-        } else {
-            eprintln!("Error: No such file or directory: {}", path);
-            continue;
         }
     }
     // Generate wasm file
-    build_wasm(&args);
+    build_wasm(&args).unwrap();
+    Ok(())
 }
