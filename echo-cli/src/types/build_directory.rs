@@ -8,14 +8,14 @@ use crate::cli::CLI;
 
 /// The function `build_wasm` takes command line arguments and builds a WebAssembly module based on the
 /// provided configuration files.
-/// 
+///
 /// Arguments:
-/// 
+///
 /// * `args`: The `args` parameter is of type `&CLI`, which is a reference to a struct representing
 /// command line arguments.
-/// 
+///
 /// Returns:
-/// 
+///
 /// The function `build_wasm` returns a `Result` enum with the success case containing a `String`
 /// indicating that the Wasm was generated successfully, and the error case containing a `CliError`
 /// indicating the reason for failure.
@@ -49,11 +49,15 @@ pub fn build_wasm(args: &CLI) -> Result<String, CliError> {
                 progress_bar.inc(12 / build.config.len() as u64);
             }
 
-            composer
-                .generate_wasm(args.verbose, &mut progress_bar)
-                .unwrap();
-            progress_bar.finish_with_message("Wasm generated");
-            return Ok("Wasm generated successfully".to_string());
+            match composer.generate_wasm(args.verbose, &mut progress_bar) {
+                Ok(_) => {
+                    progress_bar.finish_with_message("Wasm generated");
+                    Ok("Wasm generated successfully".to_string())
+                }
+                Err(err) => {
+                    Err(CliError::Error { err })
+                }
+            }
         }
     }
 }
