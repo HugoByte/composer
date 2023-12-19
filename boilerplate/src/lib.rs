@@ -26,21 +26,7 @@ use types::*;
 extern crate alloc;
 use codec::{Decode, Encode};
 use core::alloc::Layout;
-use sp_core::H256;
-use sp_runtime::AccountId32;
-use substrate_macro::Polkadot;
-use openwhisk_rust::*;
 
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, Debug)]
-pub struct StakingLedger {
-    pub stash: AccountId32,
-    #[codec(compact)]
-    pub total: u128,
-    #[codec(compact)]
-    pub active: u128,
-    pub unlocking: Vec<u32>,
-    pub claimed_rewards: Vec<u32>,
-}
 
 #[no_mangle]
 pub fn _start(ptr: *mut u8, length: i32) {
@@ -68,4 +54,3 @@ pub fn _start(ptr: *mut u8, length: i32) {
         set_output(ptr as i32, size);
     }
 }
-
