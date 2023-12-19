@@ -3,6 +3,14 @@ mod tests {
     use super::super::*;
 
     #[test]
+    fn add_config_test(){
+        let mut composer = Composer::default();
+        composer.add_config("path/to/the/config/file");
+
+        assert!(composer.config_files.contains(&"path/to/the/config/file".to_string()));
+    }
+
+    #[test]
     fn add_workflow_test_pass() {
         let composer = Composer::default();
 
@@ -21,7 +29,6 @@ mod tests {
             .unwrap();
 
         let composer_workflow = &composer.workflows.borrow()[0];
-
         assert_eq!(composer_workflow, &workflow1);
     }
 
@@ -209,4 +216,5 @@ mod tests {
         let kind_name = get_task_kind("polkadot").unwrap();
         assert_eq!(&kind_name, "polkadot");
     }
+
 }

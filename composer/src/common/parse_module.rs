@@ -1,31 +1,5 @@
 use super::*;
 
-/// Formats the key-value pairs from the given HashMap into a specific string format
-/// This string will be passed to the macros as arguments
-/// # Arguments
-///
-/// * `map` - A reference to the HashMap containing key-value pairs
-///
-/// # Returns
-///
-/// * A String containing formatted key-value pairs enclosed in square brackets
-///
-pub fn parse_hashmap(map: &HashMap<String, RustType>) -> String {
-    let mut attributes = "[".to_string();
-
-    for (index, (k, v)) in map.iter().enumerate() {
-        attributes = format!("{attributes}{}:{}", k, v);
-
-        if index != map.len() - 1 {
-            attributes = format!("{attributes},")
-        } else {
-            break;
-        }
-    }
-
-    format!("{attributes}]")
-}
-
 /// Validates the kind name of the task and returns the formatted kind if valid
 ///
 /// # Arguments
@@ -218,6 +192,21 @@ pub fn main(args: Value) -> Result<Value, String> {{
     )
 }
 
+#[test]
+fn test_get_main_method_code_template() {
+    let output = get_main_method_code_template(4);
+
+    assert_eq!(
+        &output,
+        "#[allow(dead_code, unused)]
+pub fn main(args: Value) -> Result<Value, String> {
+    const LIMIT: usize = 4;
+    let mut workflow = WorkflowGraph::new(LIMIT);
+    let input: Input = serde_json::from_value(args).map_err(|e| e.to_string())?;
+"
+    );
+}
+
 /// Formats the attributes from the given HashMap into a specific string format
 /// This string will be passed to the macros as arguments
 ///
@@ -230,22 +219,93 @@ pub fn main(args: Value) -> Result<Value, String> {{
 /// * A String containing formatted attribute key-value pairs enclosed in square brackets
 ///
 /// This formats the value of the attributes as enclosed by double quots
-pub fn get_attributes(map: &HashMap<String, String>) -> String {
-    let mut attributes = "[".to_string();
+pub fn get_attributes(attributes: &HashMap<String, String>) -> String {
+    let mut build_string = Vec::new();
 
-    for (index, (k, v)) in map.iter().enumerate() {
-        let k = k.to_case(Case::Pascal);
+    for (key, value) in attributes {
+        build_string.push(format!("{}:\"{}\"", key.to_case(Case::Pascal), value));
+    }
 
-        attributes = format!("{attributes}{}:\"{}\"", k, v);
+    format!("[{}]", build_string.join(","))
+}
 
-        if index != map.len() - 1 {
-            attributes = format!("{attributes},")
-        } else {
-            break;
+#[test]
+fn test_get_attributes() {
+    let mut attributes = HashMap::new();
+    attributes.insert("key".to_string(), "value".to_string());
+
+    let output = get_attributes(&attributes);
+    assert_eq!(output, "[Key:\"value\"]");
+}
+
+fn get_default_value_functions_code(workflow: &Workflow) -> String {
+    let mut default_value_functions = String::new();
+
+    for task in workflow.tasks.values() {
+        for input in task.input_arguments.iter() {
+            if !input.is_depend {
+                if let Some(val) = input.default_value.as_ref() {
+                    let content = match input.input_type {
+                        RustType::String => format!("{val:?}.to_string()"),
+                        _ => format!(
+                            "let val = serde_json::from_str::<{}>({:?}).unwrap();val",
+                            input.input_type, val
+                        ),
+                    };
+
+                    let make_fn = format!(
+                        "pub fn {}_fn() -> {}{{{}}}\n",
+                        input.name, input.input_type, content
+                    );
+
+                    default_value_functions.push_str(&make_fn);
+                }
+            };
         }
     }
 
-    format!("{attributes}]")
+    default_value_functions
+}
+
+#[test]
+fn test_get_default_value_functions_code() {
+    let task1 = Task {
+        action_name: "task0".to_string(),
+        input_arguments: vec![
+            Input {
+                name: "argument_1".to_string(),
+                input_type: RustType::String,
+                default_value: Some("value_x".to_string()),
+                ..Default::default()
+            },
+            Input {
+                name: "argument_2".to_string(),
+                input_type: RustType::List(Box::new(RustType::String)),
+                default_value: Some("[\"val1,\"val2\"]".to_string()),
+                ..Default::default()
+            },
+        ],
+        ..Default::default()
+    };
+
+    let mut tasks = HashMap::new();
+    tasks.insert("task1".to_string(), task1);
+
+    let workflow = Workflow {
+        name: "test-workflow".to_string(),
+        version: "0.0.1".to_string(),
+        tasks,
+    };
+
+    let output = get_default_value_functions_code(&workflow);
+
+    assert_eq!(
+        output,
+        "\
+pub fn argument_1_fn() -> String{\"value_x\".to_string()}
+pub fn argument_2_fn() -> Vec<String>{let val = serde_json::from_str::<Vec<String>>(\"[\\\"val1,\\\"val2\\\"]\").unwrap();val}
+"
+    )
 }
 
 /// Creates a Rust code to generate a struct with fields representing inputs not
@@ -267,38 +327,22 @@ fn get_task_common_input_type_constructor(
     let mut common = Vec::<String>::new();
     let mut workflow_custom_types = Vec::<String>::new();
 
-    let mut default_value_functions = String::new();
-
-    for (_, task) in workflow.tasks.iter() {
+    for task in workflow.tasks.values() {
         for input in task.input_arguments.iter() {
             if let RustType::Struct(name) = &input.input_type {
                 workflow_custom_types.push(name.to_string());
             }
 
             if !input.is_depend {
-                if let Some(val) = input.default_value.as_ref() {
+                if input.default_value.as_ref().is_some() {
                     common.push(format!(
                         "#[\"{}_fn\"] {}:{}",
                         input.name, input.name, input.input_type
                     ));
-
-                    let content = match input.input_type {
-                        RustType::String => format!("{val:?}.to_string()"),
-                        _ => format!(
-                            "let val = serde_json::from_str::<{}>({:?}).unwrap();\n\tval",
-                            input.input_type, val
-                        ),
-                    };
-
-                    let make_fn = format!(
-                        "pub fn {}_fn() -> {}{{\n\t{}\n}}\n",
-                        input.name, input.input_type, content
-                    );
-                    default_value_functions = format!("{default_value_functions}{make_fn}");
                 } else {
                     common.push(format!("{}:{}", input.name, input.input_type));
-                }
-            };
+                };
+            }
         }
     }
 
@@ -307,7 +351,7 @@ fn get_task_common_input_type_constructor(
 
         for custom_type in workflow_custom_types.iter() {
             let typ = composer_custom_types.get(custom_type).unwrap();
-            build_string = format!("{build_string}{typ}\n");
+            build_string = format!("{build_string}{typ}");
         }
 
         build_string
@@ -316,14 +360,95 @@ fn get_task_common_input_type_constructor(
     };
     format!(
         "{workflow_custom_types}
-{default_value_functions}
 make_input_struct!(
-    Input,
-    [{}],
-    [Debug, Clone, Default, Serialize, Deserialize]
+Input,
+[{}],
+[Debug, Clone, Default, Serialize, Deserialize]
 );",
         common.join(",")
     )
+}
+
+#[test]
+fn test_get_task_common_input_type_constructor() {
+    let task0 = Task {
+        action_name: "task0".to_string(),
+        input_arguments: vec![
+            Input {
+                name: "argument_1".to_string(),
+                input_type: RustType::Boolean,
+                is_depend: true,
+                ..Default::default()
+            },
+            Input {
+                name: "argument_2".to_string(),
+                input_type: RustType::Int,
+                ..Default::default()
+            },
+            Input {
+                name: "argument_3".to_string(),
+                input_type: RustType::List(Box::new(RustType::Uint)),
+                ..Default::default()
+            },
+            Input {
+                name: "argument_4".to_string(),
+                input_type: RustType::Float,
+                is_depend: true,
+                ..Default::default()
+            },
+            Input {
+                name: "argument_5".to_string(),
+                input_type: RustType::String,
+                ..Default::default()
+            },
+            Input {
+                name: "argument_6".to_string(),
+                input_type: RustType::HashMap(Box::new(RustType::Int), Box::new(RustType::Float)),
+                ..Default::default()
+            },
+            Input {
+                name: "argument_7".to_string(),
+                input_type: RustType::Tuple(Box::new(RustType::Int), Box::new(RustType::Float)),
+                ..Default::default()
+            },
+            Input {
+                name: "argument_8".to_string(),
+                input_type: RustType::Struct("Struct1".to_string()),
+                ..Default::default()
+            },
+        ],
+        ..Default::default()
+    };
+
+    let mut tasks = HashMap::new();
+    tasks.insert("task0".to_string(), task0);
+
+    let workflow = Workflow {
+        name: "test-workflow".to_string(),
+        version: "0.0.1".to_string(),
+        tasks,
+    };
+
+    let mut custom_types = HashMap::new();
+
+    custom_types.insert(
+        "Struct1".to_string(),
+        "make_input_struct!(\nStruct1,\n{field1:i32},\n[Default, Clone, Debug, Deserialize, Serialize]\n);".to_string());
+
+    let output = get_task_common_input_type_constructor(&custom_types, &workflow);
+    assert_eq!(
+        &output,
+        "\
+make_input_struct!(
+Struct1,
+{field1:i32},
+[Default, Clone, Debug, Deserialize, Serialize]
+);
+make_input_struct!(
+Input,
+[argument_2:i32,argument_3:Vec<u32>,argument_5:String,argument_6:HashMap<i32,f32>,argument_7:(i32,f32),argument_8:Struct1],
+[Debug, Clone, Default, Serialize, Deserialize]
+);")
 }
 
 fn get_task_type_constructors(workflow: &Workflow) -> String {
@@ -352,6 +477,42 @@ fn get_task_type_constructors(workflow: &Workflow) -> String {
     constructors
 }
 
+#[test]
+fn test_get_task_type_constructors() {
+    let task0 = Task {
+        action_name: "task0".to_string(),
+        input_arguments: vec![
+            Input {
+                name: "argument_1".to_string(),
+                input_type: RustType::Boolean,
+                ..Default::default()
+            },
+            Input {
+                name: "argument_2".to_string(),
+                input_type: RustType::Int,
+                ..Default::default()
+            },
+        ],
+        ..Default::default()
+    };
+
+    let mut tasks = HashMap::new();
+    tasks.insert("task0".to_string(), task0);
+
+    let workflow = Workflow {
+        name: "test-workflow".to_string(),
+        version: "0.0.1".to_string(),
+        tasks,
+    };
+
+    let output = get_task_type_constructors(&workflow);
+
+    assert_eq!(
+        output,
+        "let task_0 = Task0::new(input.argument_1,input.argument_2,\"task0\".to_string());\n"
+    );
+}
+
 fn get_task_input_type_constructors(workflow: &Workflow) -> String {
     let mut input_type_build_string = String::new();
 
@@ -363,15 +524,55 @@ fn get_task_input_type_constructors(workflow: &Workflow) -> String {
         }
 
         input_type_build_string.push_str(&format!(
-            "make_input_struct!(
-                    {}Input,
-                    [{}], [Debug, Clone, Default, Serialize, Deserialize]);",
+            "make_input_struct!(\n{}Input,\n[{}],\n[Debug, Clone, Default, Serialize, Deserialize]\n);",
             task.action_name.to_case(Case::Pascal),
             arguments.join(",")
         ));
     }
 
     input_type_build_string
+}
+
+#[test]
+fn test_get_task_input_type_constructors() {
+    let task0 = Task {
+        action_name: "task0".to_string(),
+        input_arguments: vec![
+            Input {
+                name: "argument_1".to_string(),
+                input_type: RustType::Boolean,
+                ..Default::default()
+            },
+            Input {
+                name: "argument_2".to_string(),
+                input_type: RustType::Int,
+                ..Default::default()
+            },
+        ],
+        ..Default::default()
+    };
+
+    let mut tasks = HashMap::new();
+    tasks.insert("task0".to_string(), task0);
+
+    let workflow = Workflow {
+        name: "test-workflow".to_string(),
+        version: "0.0.1".to_string(),
+        tasks,
+    };
+
+    let output = get_task_input_type_constructors(&workflow);
+
+    println!("{:?}", output);
+
+    assert_eq!(
+        output,
+        "make_input_struct!(
+Task0Input,
+[argument_1:bool,argument_2:i32],
+[Debug, Clone, Default, Serialize, Deserialize]
+);"
+    );
 }
 
 fn get_independent_fields(task: &Task) -> Vec<String> {
@@ -384,6 +585,31 @@ fn get_independent_fields(task: &Task) -> Vec<String> {
     }
 
     independent_fields
+}
+
+#[test]
+fn test_get_independent_fields() {
+    let task0 = Task {
+        action_name: "task0".to_string(),
+        input_arguments: vec![
+            Input {
+                name: "argument_1".to_string(),
+                input_type: RustType::Boolean,
+                is_depend: true,
+                ..Default::default()
+            },
+            Input {
+                name: "argument_2".to_string(),
+                input_type: RustType::Int,
+                ..Default::default()
+            },
+        ],
+        ..Default::default()
+    };
+
+    let output = get_independent_fields(&task0);
+
+    assert_eq!(output, vec!["argument_2:i32"]);
 }
 
 /// Generates Rust code to create structs for each task and its input, and creates object
@@ -437,6 +663,56 @@ impl_new!(
     input_structs
 }
 
+#[test]
+fn test_get_task_main_type_constructors() {
+    let task0 = Task {
+        action_name: "task0".to_string(),
+        kind: "Openwhisk".to_string(),
+        input_arguments: vec![
+            Input {
+                name: "argument_1".to_string(),
+                input_type: RustType::Boolean,
+                ..Default::default()
+            },
+            Input {
+                name: "argument_2".to_string(),
+                input_type: RustType::Int,
+                ..Default::default()
+            },
+        ],
+        ..Default::default()
+    };
+
+    let mut tasks = HashMap::new();
+    tasks.insert("task0".to_string(), task0);
+
+    let workflow = Workflow {
+        name: "test-workflow".to_string(),
+        version: "0.0.1".to_string(),
+        tasks,
+    };
+
+    let output = get_task_main_type_constructors(&workflow);
+
+    assert_eq!(
+        output,
+        "
+make_main_struct!(
+    Task0,
+    Task0Input,
+    [Debug, Clone, Default, Serialize, Deserialize, OpenWhisk],
+    [],
+    output
+);
+impl_new!(
+    Task0,
+    Task0Input,
+    [argument_1:bool,argument_2:i32]
+);
+"
+    );
+}
+
 fn get_impl_setters_code(workflow: &Workflow) -> String {
     let mut impl_setters_code = String::new();
 
@@ -474,6 +750,49 @@ fn get_impl_setters_code(workflow: &Workflow) -> String {
     impl_setters_code
 }
 
+#[test]
+fn test_get_impl_setters_code() {
+    let task0 = Task {
+        action_name: "task0".to_string(),
+        kind: "Openwhisk".to_string(),
+        input_arguments: vec![
+            Input {
+                name: "argument_1".to_string(),
+                input_type: RustType::Boolean,
+                is_depend: true,
+                ..Default::default()
+            },
+            Input {
+                name: "argument_2".to_string(),
+                input_type: RustType::Int,
+                ..Default::default()
+            },
+        ],
+        depend_on: vec![Depend {
+            task_name: "task1".to_string(),
+            cur_field: "argument_1".to_string(),
+            prev_field: "data_field".to_string(),
+        }],
+        ..Default::default()
+    };
+
+    let mut tasks = HashMap::new();
+    tasks.insert("task0".to_string(), task0);
+
+    let workflow = Workflow {
+        name: "test-workflow".to_string(),
+        version: "0.0.1".to_string(),
+        tasks,
+    };
+
+    let output = get_impl_setters_code(&workflow);
+
+    assert_eq!(
+        output,
+        "impl_setter!(Task0, [argument_1:\"data_field\"]);\n"
+    );
+}
+
 /// Generates Rust code to call the `impl_execute_trait!` macro with the arguments as all
 /// of the task names
 ///
@@ -495,40 +814,35 @@ fn get_impl_execute_trait_code(workflow: &Workflow) -> String {
     format!("impl_execute_trait!({});", task_names.join(","))
 }
 
-fn get_task_flow_type(
-    workflow: &Workflow,
-    flow: &Vec<String>,
-    task_index: usize,
-    execute_code: &str,
-) -> String {
-    if task_index + 1 == flow.len() - 1 {
-        match workflow
-            .tasks
-            .get(&flow[task_index + 1])
-            .unwrap()
-            .depend_on
-            .len()
-        {
-            0 | 1 => {
-                format!(
-                    "{execute_code}\n\t\t.term(Some({}_index))?;",
-                    flow[task_index + 1].to_case(Case::Snake)
-                )
-            }
+#[test]
+fn test_get_impl_execute_trait_code() {
+    let task0 = Task {
+        action_name: "task0".to_string(),
+        kind: "Openwhisk".to_string(),
+        ..Default::default()
+    };
 
-            _ => {
-                format!(
-                    "{execute_code}\n\t\t.pipe({}_index)?\n\t\t.term(None)?;",
-                    flow[task_index + 1].to_case(Case::Snake)
-                )
-            }
-        }
-    } else {
-        format!(
-            "{execute_code}\n\t\t.pipe({}_index)?",
-            flow[task_index + 1].to_case(Case::Snake)
-        )
-    }
+    let task1 = Task {
+        action_name: "task1".to_string(),
+        kind: "Openwhisk".to_string(),
+        ..Default::default()
+    };
+
+    let mut tasks = HashMap::new();
+    tasks.insert("task0".to_string(), task0);
+    tasks.insert("task1".to_string(), task1);
+
+    let workflow = Workflow {
+        name: "test-workflow".to_string(),
+        version: "0.0.1".to_string(),
+        tasks,
+    };
+
+    let output = get_impl_execute_trait_code(&workflow);
+    assert!(
+        output == "impl_execute_trait!(Task0,Task1);"
+            || output == "impl_execute_trait!(Task1,Task0);"
+    );
 }
 
 fn get_add_nodes_code(flow: &Vec<String>) -> String {
@@ -536,7 +850,7 @@ fn get_add_nodes_code(flow: &Vec<String>) -> String {
 
     for i in 0..flow.len() {
         add_nodes_code.push_str(&format!(
-            "\tlet {}_index = workflow.add_node(Box::new({}));\n",
+            "let {}_index = workflow.add_node(Box::new({}));\n",
             flow[i].to_case(Case::Snake),
             flow[i].to_case(Case::Snake)
         ));
@@ -545,8 +859,32 @@ fn get_add_nodes_code(flow: &Vec<String>) -> String {
     add_nodes_code
 }
 
+#[test]
+fn test_get_add_nodes_code() {
+    let flow = vec![
+        "task0".to_string(),
+        "task2".to_string(),
+        "task1".to_string(),
+        "task4".to_string(),
+        "task3".to_string(),
+    ];
+
+    let output = get_add_nodes_code(&flow);
+
+    assert_eq!(
+        output,
+        "\
+let task_0_index = workflow.add_node(Box::new(task_0));
+let task_2_index = workflow.add_node(Box::new(task_2));
+let task_1_index = workflow.add_node(Box::new(task_1));
+let task_4_index = workflow.add_node(Box::new(task_4));
+let task_3_index = workflow.add_node(Box::new(task_3));
+"
+    )
+}
+
 fn get_add_edges_code(workflow: &Workflow, flow: &Vec<String>) -> String {
-    let mut add_edges_code = "\tworkflow.add_edges(&[\n".to_string();
+    let mut add_edges_code = "workflow.add_edges(&[\n".to_string();
 
     for index in 0..flow.len() - 1 {
         for dependent_task_name in workflow
@@ -557,24 +895,221 @@ fn get_add_edges_code(workflow: &Workflow, flow: &Vec<String>) -> String {
             .iter()
         {
             add_edges_code = format!(
-                "{add_edges_code}\t\t({}_index, {}_index),\n",
+                "{add_edges_code}({}_index, {}_index),\n",
                 dependent_task_name.task_name.to_case(Case::Snake),
                 flow[index + 1].to_case(Case::Snake)
             );
         }
     }
 
-    format!("{add_edges_code}\t]);")
+    format!("{add_edges_code}]);")
 }
 
-fn get_add_execute_worklow_code(workflow: &Workflow, flow: &Vec<String>) -> String {
-    let mut execute_code = "\tlet result = workflow\n\t\t.init()?".to_string();
+#[test]
+fn test_get_add_edges_code() {
+    let task0 = Task {
+        action_name: "task0".to_string(),
+        ..Default::default()
+    };
+    let task1 = Task {
+        action_name: "task1".to_string(),
+        depend_on: vec![Depend {
+            task_name: "task0".to_string(),
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
 
-    for i in 0..flow.len() - 1 {
-        execute_code = get_task_flow_type(&workflow, &flow, i, &execute_code);
+    let task2 = Task {
+        action_name: "task2".to_string(),
+        depend_on: vec![
+            Depend {
+                task_name: "task1".to_string(),
+                ..Default::default()
+            },
+            Depend {
+                task_name: "task0".to_string(),
+                ..Default::default()
+            },
+        ],
+        ..Default::default()
+    };
+
+    let task3 = Task {
+        action_name: "task3".to_string(),
+        depend_on: vec![Depend {
+            task_name: "task2".to_string(),
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
+
+    let task4 = Task {
+        action_name: "task4".to_string(),
+        depend_on: vec![
+            Depend {
+                task_name: "task3".to_string(),
+                ..Default::default()
+            },
+            Depend {
+                task_name: "task2".to_string(),
+                ..Default::default()
+            },
+        ],
+        ..Default::default()
+    };
+
+    let mut tasks = HashMap::new();
+    tasks.insert("task0".to_string(), task0);
+    tasks.insert("task1".to_string(), task1);
+    tasks.insert("task2".to_string(), task2);
+    tasks.insert("task3".to_string(), task3);
+    tasks.insert("task4".to_string(), task4);
+
+    let workflow = Workflow {
+        name: "test-workflow".to_string(),
+        version: "0.0.1".to_string(),
+        tasks,
+    };
+
+    let flow = workflow.get_flow();
+
+    let output = get_add_edges_code(&workflow, &flow);
+
+    assert_eq!(
+        output,
+        "\
+workflow.add_edges(&[
+(task_0_index, task_1_index),
+(task_1_index, task_2_index),
+(task_0_index, task_2_index),
+(task_2_index, task_3_index),
+(task_3_index, task_4_index),
+(task_2_index, task_4_index),
+]);"
+    );
+}
+
+fn get_add_execute_workflow_code(workflow: &Workflow, flow: &Vec<String>) -> String {
+    let mut execute_code = "let result = workflow\n.init()?".to_string();
+
+    for task_index in 0..flow.len() - 1 {
+        execute_code = if task_index + 1 == flow.len() - 1 {
+            match workflow
+                .tasks
+                .get(&flow[task_index + 1])
+                .unwrap()
+                .depend_on
+                .len()
+            {
+                0 | 1 => {
+                    format!(
+                        "{execute_code}\n.term(Some({}_index))?;",
+                        flow[task_index + 1].to_case(Case::Snake)
+                    )
+                }
+
+                _ => {
+                    format!(
+                        "{execute_code}\n.pipe({}_index)?\n.term(None)?;",
+                        flow[task_index + 1].to_case(Case::Snake)
+                    )
+                }
+            }
+        } else {
+            format!(
+                "{execute_code}\n.pipe({}_index)?",
+                flow[task_index + 1].to_case(Case::Snake)
+            )
+        }
     }
 
     execute_code
+}
+
+#[test]
+fn test_get_add_execute_workflow_code(){
+    let task0 = Task {
+        action_name: "task0".to_string(),
+        ..Default::default()
+    };
+    let task1 = Task {
+        action_name: "task1".to_string(),
+        depend_on: vec![Depend {
+            task_name: "task0".to_string(),
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
+
+    let task2 = Task {
+        action_name: "task2".to_string(),
+        depend_on: vec![
+            Depend {
+                task_name: "task1".to_string(),
+                ..Default::default()
+            },
+            Depend {
+                task_name: "task0".to_string(),
+                ..Default::default()
+            },
+        ],
+        ..Default::default()
+    };
+
+    let task3 = Task {
+        action_name: "task3".to_string(),
+        depend_on: vec![Depend {
+            task_name: "task2".to_string(),
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
+
+    let task4 = Task {
+        action_name: "task4".to_string(),
+        depend_on: vec![
+            Depend {
+                task_name: "task3".to_string(),
+                ..Default::default()
+            },
+            Depend {
+                task_name: "task2".to_string(),
+                ..Default::default()
+            },
+        ],
+        ..Default::default()
+    };
+
+    let mut tasks = HashMap::new();
+    tasks.insert("task0".to_string(), task0);
+    tasks.insert("task1".to_string(), task1);
+    tasks.insert("task2".to_string(), task2);
+    tasks.insert("task3".to_string(), task3);
+    tasks.insert("task4".to_string(), task4);
+
+    let workflow = Workflow {
+        name: "test-workflow".to_string(),
+        version: "0.0.1".to_string(),
+        tasks,
+    };
+
+    let flow = workflow.get_flow();
+
+    let output = get_add_execute_workflow_code(&workflow, &flow);
+    
+    assert_eq!(
+        output,
+        "\
+let result = workflow
+.init()?
+.pipe(task_1_index)?
+.pipe(task_2_index)?
+.pipe(task_3_index)?
+.pipe(task_4_index)?
+.term(None)?;"
+    );
+
 }
 
 /// Generates Rust code to add workflow nodes and edges
@@ -611,7 +1146,7 @@ Ok(result)
         "{}\n{}\n{}let result = serde_json::to_value(result).unwrap();\nOk(result)",
         get_add_nodes_code(&flow),
         get_add_edges_code(workflow, &flow),
-        get_add_execute_worklow_code(workflow, &flow),
+        get_add_execute_workflow_code(workflow, &flow),
     )
 }
 
@@ -630,12 +1165,13 @@ pub fn generate_types_rs_file_code(
     custom_types: &HashMap<String, String>,
 ) -> String {
     let main_file = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}}}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}}}",
         add_polkadot_openwhisk(workflow),
         get_macros_code(),
         get_task_input_type_constructors(workflow),
         get_task_main_type_constructors(workflow),
         get_impl_setters_code(workflow),
+        get_default_value_functions_code(workflow),
         get_task_common_input_type_constructor(custom_types, workflow),
         get_impl_execute_trait_code(workflow),
         get_main_method_code_template(workflow.tasks.len()),
@@ -646,8 +1182,7 @@ pub fn generate_types_rs_file_code(
 }
 
 fn get_openwhisk_kind_dependencies() -> String {
-    "\
-
+    "
 openwhisk_macro = \"0.1.6\"
 
 "

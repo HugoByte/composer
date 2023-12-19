@@ -159,8 +159,15 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         let fields: HashMap<String, RustType> = serde_json::from_str(&fields.to_json()?).unwrap();
 
         let composer = eval.extra.unwrap().downcast_ref::<Composer>().unwrap();
-
         let name = name.to_case(Case::Pascal);
+
+        let mut build_string = Vec::new();
+
+        for (key, value) in fields {
+            build_string.push(format!("{}:{}", key, value));
+        }
+
+        let build_string = format!("[{}]", build_string.join(","));
 
         composer
             .custom_types
@@ -168,9 +175,9 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
             .insert(
                 name.to_string(),
                 format!(
-                "make_input_struct!(\n\t{},\n\t{},\n\t[Default, Clone, Debug, Deserialize, Serialize]\n);",
+                "make_input_struct!(\n{},\n{},\n[Default, Clone, Debug, Deserialize, Serialize]\n);",
                 &name,
-                parse_hashmap(&fields)
+                build_string
             ));
 
         Ok(RustType::Struct(name))
@@ -222,16 +229,15 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     ///
     /// # Arguments
     ///
-    /// * `type_` - The type of the element in the list
+    /// * `type_of` - The type of the element in the list
     ///
     /// # Returns
     ///
     ///  * A Result containing the Rust type for a list
     ///
-    fn List(rust_type: Value) -> anyhow::Result<RustType> {
-        let rust_type: RustType = serde_json::from_str(&rust_type.to_json()?).unwrap();
-
-        Ok(RustType::List(Box::new(rust_type)))
+    fn List(type_of: Value) -> anyhow::Result<RustType> {
+        let type_of: RustType = serde_json::from_str(&type_of.to_json()?).unwrap();
+        Ok(RustType::List(Box::new(type_of)))
     }
 }
 
