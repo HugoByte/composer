@@ -23,7 +23,7 @@ impl Execute<Context> for Validate {
 
     fn execute(self, mut context: Context) -> Result<Self::Output> {
         context.init(self.source, self.build_directory, None)?;
-        context.parse();
+        context.parse()?;
         Ok(())
     }
 }

@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-
 use composer_library::{Composer, OutputDirectory, SourceFiles};
 
 use crate::types::{BuildDirectory, Parser, Result};
@@ -46,8 +45,8 @@ impl Context {
         Ok(())
     }
 
-    pub fn parse(&self) {
-        let _ = &self.parser.parse(&self.source_files.as_ref().unwrap());
+    pub fn parse(&self) -> Result<()>{
+        self.parser.parse(&self.source_files.as_ref().unwrap())
     }
 
     pub fn build(&self) {

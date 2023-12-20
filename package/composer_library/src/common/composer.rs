@@ -315,10 +315,10 @@ impl Composer {
             // We add a reference to our store
             eval.set_loader(&mut loader);
             eval.extra = Some(self);
-            eval.eval_module(ast, &globals).unwrap();
+            eval.eval_module(ast, &globals)?;
         }
 
-        Ok(module.freeze().unwrap())
+        Ok(module.freeze()?)
     }
 
     pub fn build_directory(&self, build_path: &PathBuf ,out_path: &PathBuf, quiet: bool) {

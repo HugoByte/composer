@@ -11,12 +11,9 @@ use types::Context;
 
 use std::backtrace;
 
-
 fn set_panic_hook() {
-    
     #[cfg(not(debug_assertions))]
     std::panic::set_hook({
-        
         Box::new(move |e| {
             eprintln!(
                 "thread `{}` {}",
@@ -47,7 +44,7 @@ pub fn handle_error<T>(res: types::Result<T>) -> T {
     match res {
         Ok(t) => t,
         Err(err) => {
-            eprintln!("{err}");
+            eprintln!("{:?}", err);
             exit(err.code());
         }
     }
@@ -59,9 +56,12 @@ pub fn run_with_args(cli: CLI) -> types::Result<()> {
         context.quiet();
     }
     match cli.command {
-        Commands::Build { command } => command.execute(context)?,
+        Commands::Build { command } => {
+            let asd = command.execute(context);
+            println!("{:?} kkkk", asd)
+        }
         Commands::Create { command } => command.execute(),
-        Commands::Validate{ command} => command.execute(context)?,
+        Commands::Validate { command } => command.execute(context)?,
     };
 
     Ok(())

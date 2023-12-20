@@ -1,11 +1,13 @@
 use std::fmt::Display;
 
 use crate::types::Exception;
+use anyhow::Error;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum IOError {
     PathNotFound,
+    Anyhow(Error),
     Other(String)
 }
 
@@ -18,6 +20,7 @@ impl Exception for IOError {
         match self {
             IOError::PathNotFound => 1,
             IOError::Other(_) => 2,
+            IOError::Anyhow(_) => 3,
         }
     }
 }
