@@ -1,0 +1,39 @@
+[package]
+name = "package"
+version = "0.1.0"
+edition = "2021"
+
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "composer"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "1.0.137", optional = true, features = ["derive"] }
+thiserror = "1.0"
+tempfile = "3.2.0"
+itertools = "0.10.5"
+walkdir = "2"
+starlark = "0.10.0"
+bumpalo = "3.11.1"
+anyhow = "1.0.65"
+once_cell = { version = "1.15.0", optional = true }
+composer_library = { path =  "./composer_library"}
+sys-info = "0.9.1"
+
+[dependencies.clap]
+version = "3.2"
+features = [ "derive", "env" ]
+
+[profile.dev]
+opt-level = 0
+debug = true
+debug-assertions = true
+
+[profile.release]
+opt-level = 3
+debug = false
+debug-assertions = false

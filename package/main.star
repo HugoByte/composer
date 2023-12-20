@@ -1,0 +1,76 @@
+load("test.star", "attributes")
+
+cartype = task(
+    kind = "openwhisk",
+    action_name = "cartype",
+    input_arguments = [
+        argument(
+            name="car_type",
+            input_type = String
+        ),
+    ],
+    attributes = attributes
+)
+
+modelavail = task(
+    kind = "openwhisk",
+    action_name = "modelavail",
+    input_arguments = [
+        argument(
+            name="car_company_list",
+            input_type = HashMap(String, List(String))
+        ),
+        argument(
+            name="company_name",
+            input_type= String
+        )
+    ],
+    attributes = attributes,
+    depend_on = [
+        depend(task_name = "cartype", cur_field = "car_company_list", prev_field = "car_company_list")
+    ]
+)
+
+modelprice = task(
+    kind = "openwhisk",
+    action_name = "modelsprice",
+    input_arguments = [
+        argument(
+            name="models",
+            input_type= List(String)
+        ),
+    ],
+    attributes = attributes,
+    depend_on = [
+        depend(task_name = "modelavail", cur_field = "models", prev_field = "models")
+    ]
+)
+
+purchase = task(
+    kind = "openwhisk",
+    action_name = "purchase",
+    input_arguments = [
+        argument(
+            name="model_price_list",
+            input_type = HashMap(String, Int)
+        ),
+        argument(
+            name="model_name",
+            input_type= String
+        ),
+        argument(
+            name="price",
+            input_type= Int
+        ),
+    ],
+    attributes = attributes,
+    depend_on = [
+        depend(task_name = "modelsprice", cur_field = "model_price_list", prev_field = "model_price_list")
+    ]
+)
+
+workflows(
+    name = "mock_car_market_place",
+    version = "0.0.1",
+    tasks = [cartype, modelavail, modelprice, purchase]
+)
