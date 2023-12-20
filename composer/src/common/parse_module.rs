@@ -177,6 +177,32 @@ macro_rules! impl_concat_setter {
             }
         }
     }
+}
+
+#[allow(unused)]
+macro_rules! impl_combine_setter {
+    (
+        $name:ty,
+        [$(
+            $(($value_input:ident))?
+            $([$index:expr])?
+            $element:ident : $key:expr),*]
+    ) => {
+        impl $name{
+            pub fn setter(&mut self, value: Value) {
+
+                let value: Vec<Value> = serde_json::from_value(value).unwrap();
+                $(
+                    if stringify!($($value_input)*).is_empty(){
+                        let val = value[$($index)*].get($key).unwrap();
+                        self.input.$element = serde_json::from_value(val.clone()).unwrap();
+                    }else{
+                        self.input.$element = serde_json::from_value(value[$($index)*].to_owned()).unwrap();
+                    }
+                )*
+            }
+        }
+    }
 }"
     .to_string()
 }
@@ -721,8 +747,44 @@ fn get_impl_setters_code(workflow: &Workflow) -> String {
 
         let mut setter_fields = Vec::<String>::new();
 
-        for fields in task.depend_on.iter() {
-            setter_fields.push(format!("{}:\"{}\"", fields.cur_field, fields.prev_field));
+        let mut set = HashMap::<String, i32>::new();
+        let mut index: i32 = 0;
+
+        for dependent in task.depend_on.iter() {
+
+            let current_index = if let Some(current_index) = set.get(&dependent.task_name){
+                index -=1;
+                current_index
+            }else{
+                set.insert(dependent.task_name.to_string(), index);
+                &index 
+            };
+
+                if task.operation.is_combine() {
+                    let dependent_task = workflow.tasks.get(&dependent.task_name).unwrap();
+
+                    if dependent_task.operation.is_map() {
+                        setter_fields.push(format!(
+                            "(value)[{}]{}:\"{}\"",
+                            current_index,
+                            dependent.cur_field,
+                            dependent.prev_field
+                        ));
+                    } else {
+                        setter_fields.push(format!(
+                            "[{}]{}:\"{}\"",
+                            current_index,
+                            dependent.cur_field, dependent.prev_field
+                        ));
+                    }
+                } else {
+                    setter_fields.push(format!(
+                        "{}:\"{}\"",
+                        dependent.cur_field, dependent.prev_field
+                    ));
+                }
+
+                index += 1;
         }
 
         let setter_build_string = match &task.operation {
@@ -736,6 +798,11 @@ fn get_impl_setters_code(workflow: &Workflow) -> String {
             Operation::Concat => format!(
                 "impl_concat_setter!({}, {});\n",
                 task_name, task.input_arguments[0].name
+            ),
+            Operation::Combine => format!(
+                "impl_combine_setter!({},[{}]);\n",
+                task_name,
+                setter_fields.join(","),
             ),
             _ => format!(
                 "impl_setter!({}, [{}]);\n",
@@ -887,18 +954,25 @@ fn get_add_edges_code(workflow: &Workflow, flow: &Vec<String>) -> String {
     let mut add_edges_code = "workflow.add_edges(&[\n".to_string();
 
     for index in 0..flow.len() - 1 {
-        for dependent_task_name in workflow
+
+        let mut set = HashSet::<String>::new();
+
+        for dependent_task in workflow
             .tasks
             .get(&flow[index + 1])
             .unwrap()
             .depend_on
             .iter()
         {
-            add_edges_code = format!(
-                "{add_edges_code}({}_index, {}_index),\n",
-                dependent_task_name.task_name.to_case(Case::Snake),
-                flow[index + 1].to_case(Case::Snake)
-            );
+            if !set.contains(&dependent_task.task_name) {
+                add_edges_code = format!(
+                    "{add_edges_code}({}_index, {}_index),\n",
+                    dependent_task.task_name.to_case(Case::Snake),
+                    flow[index + 1].to_case(Case::Snake)
+                );
+
+                set.insert(dependent_task.task_name.clone());
+            }
         }
     }
 
@@ -1028,7 +1102,7 @@ fn get_add_execute_workflow_code(workflow: &Workflow, flow: &Vec<String>) -> Str
 }
 
 #[test]
-fn test_get_add_execute_workflow_code(){
+fn test_get_add_execute_workflow_code() {
     let task0 = Task {
         action_name: "task0".to_string(),
         ..Default::default()
@@ -1097,7 +1171,7 @@ fn test_get_add_execute_workflow_code(){
     let flow = workflow.get_flow();
 
     let output = get_add_execute_workflow_code(&workflow, &flow);
-    
+
     assert_eq!(
         output,
         "\
@@ -1109,7 +1183,6 @@ let result = workflow
 .pipe(task_4_index)?
 .term(None)?;"
     );
-
 }
 
 /// Generates Rust code to add workflow nodes and edges

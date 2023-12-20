@@ -265,6 +265,17 @@ pub fn starlark_operation_module(builder: &mut GlobalsBuilder) {
         Ok(Operation::Concat)
     }
 
+    /// Returns `Operation::Concat` task-operation type to the config file
+    /// This method will be invoked inside the config file
+    ///
+    /// # Returns
+    ///
+    /// * A Result containing Operation::Concat
+    ///   
+    fn combine() -> anyhow::Result<Operation> {
+        Ok(Operation::Combine)
+    }
+
     /// Returns `Operation::Map(field)` task-operation type to the config file
     /// This method will be invoked inside the config file
     ///
