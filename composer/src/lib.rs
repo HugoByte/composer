@@ -11,7 +11,7 @@ use starlark::syntax::{AstModule, Dialect};
 use starlark::values::{ProvidesStaticType, StarlarkValue, Value};
 use starlark::{starlark_module, starlark_simple_value, values::starlark_value};
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Display};
 use std::fs;
 use std::io::ErrorKind;
