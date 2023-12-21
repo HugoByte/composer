@@ -2,7 +2,6 @@
 use allocative::Allocative;
 use anyhow::Error;
 use convert_case::{Case, Casing};
-use indicatif::*;
 use serde_derive::{Deserialize, Serialize};
 use starlark::environment::LibraryExtension::*;
 use starlark::environment::{GlobalsBuilder, Module};
