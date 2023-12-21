@@ -1,7 +1,8 @@
 use std::fmt::Display;
 
-use crate::types::Exception;
+
 use anyhow::Error;
+use composer_primitives::Exception;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
