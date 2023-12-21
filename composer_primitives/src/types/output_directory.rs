@@ -1,11 +1,7 @@
-
-use std::{
-    env::current_dir,
-    path::PathBuf,
-};
 use anyhow::Error;
+use std::{env::current_dir, path::PathBuf};
 
-#[derive(Clone, Debug )]
+#[derive(Clone, Debug)]
 pub struct OutputDirectory {
     base: PathBuf,
 }
@@ -25,9 +21,7 @@ impl OutputDirectory {
             None => current_dir().unwrap(),
         };
 
-        Ok(OutputDirectory {
-            base,
-        })
+        Ok(OutputDirectory { base })
     }
 
     pub fn base(&self) -> &PathBuf {

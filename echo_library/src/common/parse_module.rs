@@ -751,40 +751,36 @@ fn get_impl_setters_code(workflow: &Workflow) -> String {
         let mut index: i32 = 0;
 
         for dependent in task.depend_on.iter() {
-
-            let current_index = if let Some(current_index) = set.get(&dependent.task_name){
-                index -=1;
+            let current_index = if let Some(current_index) = set.get(&dependent.task_name) {
+                index -= 1;
                 current_index
-            }else{
+            } else {
                 set.insert(dependent.task_name.to_string(), index);
-                &index 
+                &index
             };
 
-                if task.operation.is_combine() {
-                    let dependent_task = workflow.tasks.get(&dependent.task_name).unwrap();
+            if task.operation.is_combine() {
+                let dependent_task = workflow.tasks.get(&dependent.task_name).unwrap();
 
-                    if dependent_task.operation.is_map() {
-                        setter_fields.push(format!(
-                            "(value)[{}]{}:\"{}\"",
-                            current_index,
-                            dependent.cur_field,
-                            dependent.prev_field
-                        ));
-                    } else {
-                        setter_fields.push(format!(
-                            "[{}]{}:\"{}\"",
-                            current_index,
-                            dependent.cur_field, dependent.prev_field
-                        ));
-                    }
+                if dependent_task.operation.is_map() {
+                    setter_fields.push(format!(
+                        "(value)[{}]{}:\"{}\"",
+                        current_index, dependent.cur_field, dependent.prev_field
+                    ));
                 } else {
                     setter_fields.push(format!(
-                        "{}:\"{}\"",
-                        dependent.cur_field, dependent.prev_field
+                        "[{}]{}:\"{}\"",
+                        current_index, dependent.cur_field, dependent.prev_field
                     ));
                 }
+            } else {
+                setter_fields.push(format!(
+                    "{}:\"{}\"",
+                    dependent.cur_field, dependent.prev_field
+                ));
+            }
 
-                index += 1;
+            index += 1;
         }
 
         let setter_build_string = match &task.operation {
@@ -954,7 +950,6 @@ fn get_add_edges_code(workflow: &Workflow, flow: &Vec<String>) -> String {
     let mut add_edges_code = "workflow.add_edges(&[\n".to_string();
 
     for index in 0..flow.len() - 1 {
-
         let mut set = HashSet::<String>::new();
 
         for dependent_task in workflow

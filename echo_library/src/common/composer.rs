@@ -1,9 +1,9 @@
 use std::fs::OpenOptions;
 use std::io::Write;
 
+use composer_primitives::types::SourceFiles;
 use starlark::environment::FrozenModule;
 use starlark::eval::ReturnFileLoader;
-use composer_primitives::types::SourceFiles;
 
 use super::*;
 
@@ -77,9 +77,12 @@ impl Composer {
         }
     }
 
-    pub fn build(&self, verbose: bool, 
+    pub fn build(
+        &self,
+        verbose: bool,
         // pb: &mut ProgressBar,
-         temp_dir: &PathBuf) {
+        temp_dir: &PathBuf,
+    ) {
         // pb.inc(10 / self.config_files.len() as u64);
 
         if verbose {
@@ -108,8 +111,7 @@ impl Composer {
         temp_dir: &PathBuf,
         types_rs: &str,
         workflow_name: String,
-        workflow: &Workflow
-        // progress_bar: &mut ProgressBar,
+        workflow: &Workflow, // progress_bar: &mut ProgressBar,
     ) -> PathBuf {
         // progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
         let temp_dir = temp_dir.join(&workflow_name);
@@ -157,10 +159,8 @@ impl Composer {
     }
 }
 
-
 impl Composer {
     pub fn compile(&self, module: &str, files: &SourceFiles) -> Result<FrozenModule, Error> {
-
         let ast: AstModule = AstModule::parse_file(
             files
                 .files()
@@ -234,7 +234,7 @@ impl Composer {
         Ok(module.freeze()?)
     }
 
-    pub fn build_directory(&self, build_path: &PathBuf ,out_path: &PathBuf, quiet: bool) {
+    pub fn build_directory(&self, build_path: &PathBuf, out_path: &PathBuf, quiet: bool) {
         let composer_custom_types = self.custom_types.borrow();
 
         for (workflow_index, workflow) in self.workflows.borrow().iter().enumerate() {
@@ -248,7 +248,8 @@ impl Composer {
                 &composer_custom_types,
             );
 
-            let temp_dir = self.copy_boilerplate(build_path, &types_rs, workflow_name.clone(), &workflow);
+            let temp_dir =
+                self.copy_boilerplate(build_path, &types_rs, workflow_name.clone(), &workflow);
 
             self.build(quiet, &temp_dir);
 
@@ -261,7 +262,8 @@ impl Composer {
 
             fs::copy(
                 wasm_path,
-                &out_path.join("output")
+                &out_path
+                    .join("output")
                     .join(format!("{workflow_name}.wasm")),
             )
             .unwrap();

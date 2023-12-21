@@ -1,18 +1,13 @@
-use std::{
-    env::current_dir,
-    ffi::OsStr,
-    fs,
-    path::PathBuf,
-};
 use anyhow::Error;
+use std::{env::current_dir, ffi::OsStr, fs, path::PathBuf};
 
 use itertools::Either;
-use walkdir::WalkDir;
 use std::collections::HashSet;
+use walkdir::WalkDir;
 
 use crate::constant::FILE_EXTENSION;
 
-#[derive(Clone, Debug  )]
+#[derive(Clone, Debug)]
 pub struct SourceFiles {
     base: PathBuf,
     files: HashSet<PathBuf>,
@@ -72,5 +67,4 @@ impl SourceFiles {
     pub fn base(&self) -> &PathBuf {
         &self.base
     }
-    
 }
