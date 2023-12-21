@@ -1,8 +1,8 @@
-use composer_library::{Composer, OutputDirectory, SourceFiles};
+use composer_primitives::{SourceFiles, result, errors::IOError, BuildDirectory, OutputDirectory};
+use echo_library::Composer;
 
-use crate::errors::IOError;
 
-use super::{Parser, result};
+use super::Parser;
 
 pub static FILE_EXTENSION: &str = "star";
 pub static ENTRY_FILE: &str = "main";
@@ -17,7 +17,7 @@ impl Parser for Composer {
 
     fn build(
         &self,
-        build_directory: &super::BuildDirectory,
+        build_directory: &BuildDirectory,
         output_directory: &OutputDirectory,
         quiet: bool,
     ) {

@@ -1,7 +1,8 @@
-use crate::types::{Context, Result, Execute};
+use crate::types::Context;
 use clap::StructOpt;
 use std::path::PathBuf;
 
+use super::*;
 /// Compile and build program command.
 #[derive(StructOpt, Debug)]
 pub struct Build {

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
-use composer_library::{Composer, OutputDirectory, SourceFiles};
-
-use crate::types::{BuildDirectory, Parser, Result};
+use echo_library::Composer;
+use composer_primitives::{types::BuildDirectory, OutputDirectory, SourceFiles};
+use crate::types::{ Parser, Result};
 
 pub(crate) struct Context {
     build_directory: Option<BuildDirectory>,

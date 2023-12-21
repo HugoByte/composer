@@ -5,7 +5,7 @@ pub(crate) use lib::*;
 use clap::Parser;
 use cli::*;
 use commands::*;
-use lib::types::Execute;
+use composer_primitives::{Result, Execute};
 use std::process::exit;
 use types::Context;
 
@@ -38,7 +38,7 @@ fn set_panic_hook() {
 }
 
 #[cfg(not(tarpaulin_include))]
-pub fn handle_error<T>(res: types::Result<T>) -> T {
+pub fn handle_error<T>(res: Result<T>) -> T {
     match res {
         Ok(t) => t,
         Err(err) => {
@@ -48,7 +48,7 @@ pub fn handle_error<T>(res: types::Result<T>) -> T {
     }
 }
 
-pub fn run_with_args(cli: CLI) -> types::Result<()> {
+pub fn run_with_args(cli: CLI) -> Result<()> {
     let mut context = handle_error(Context::new());
     if !cli.quiet() {
         context.quiet();

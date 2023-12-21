@@ -1,8 +1,10 @@
 use clap::StructOpt;
 
 use std::path::PathBuf;
+use crate::types::Context;
 
-use crate::types::{Context, Result, Execute};
+use super::*;
+
 
 /// Compile the config file.
 #[derive(StructOpt, Debug)]

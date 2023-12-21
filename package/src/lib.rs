@@ -1,10 +1,7 @@
-pub use composer_library::*;
+pub use echo_library::*;
 
 #[path = "./types/mod.rs"]
 pub mod types;
-
-#[path = "./errors/mod.rs"]
-pub mod errors;
 
 #[path = "./commands/mod.rs"]
 pub mod commands;

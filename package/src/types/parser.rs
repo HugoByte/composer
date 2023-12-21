@@ -1,6 +1,5 @@
-use composer_library::{SourceFiles, OutputDirectory};
-
-use super::{BuildDirectory, Result};
+use composer_primitives::{BuildDirectory, SourceFiles, OutputDirectory};
+use super::*;
 
 pub trait Parser {
     fn parse(&self, source: &SourceFiles) -> Result<()>;
