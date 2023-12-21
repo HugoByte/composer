@@ -19,7 +19,7 @@ impl OutputDirectory {
                 } else if path.is_dir() {
                     path
                 } else {
-                    return Err(Error::msg("message"));
+                    return Err(Error::msg("PathNotFound"));
                 }
             }
             None => current_dir().unwrap(),

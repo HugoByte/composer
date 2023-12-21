@@ -25,8 +25,7 @@ impl SourceFiles {
                 } else if path.is_dir() {
                     path
                 } else {
-                    // return Err(Box::new(errors::IOError::PathNotFound));
-                    return Err(Error::msg("message"));
+                    return Err(Error::msg("PathNotFound"));
                 }
             }
             None => current_dir().unwrap(),

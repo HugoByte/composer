@@ -1,6 +1,6 @@
-use composer_primitives::{SourceFiles, result, errors::IOError, BuildDirectory, OutputDirectory};
+use composer_primitives::{SourceFiles, result, BuildDirectory, OutputDirectory};
 use echo_library::Composer;
-
+use crate::errors::IOError;
 
 use super::Parser;
 
