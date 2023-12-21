@@ -1,11 +1,10 @@
-use composer_primitives::{SourceFiles, result, BuildDirectory, OutputDirectory};
+use composer_primitives::{SourceFiles, result, BuildDirectory, OutputDirectory, constant::{ENTRY_FILE, FILE_EXTENSION}};
 use echo_library::Composer;
 use crate::errors::IOError;
 
 use super::Parser;
 
-pub static FILE_EXTENSION: &str = "star";
-pub static ENTRY_FILE: &str = "main";
+
 
 impl Parser for Composer {
     fn parse(&self, files: &SourceFiles) -> result::Result<()> {

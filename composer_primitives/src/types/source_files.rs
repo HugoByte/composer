@@ -10,6 +10,8 @@ use itertools::Either;
 use walkdir::WalkDir;
 use std::collections::HashSet;
 
+use crate::constant::FILE_EXTENSION;
+
 #[derive(Clone, Debug  )]
 pub struct SourceFiles {
     base: PathBuf,
@@ -43,7 +45,7 @@ impl SourceFiles {
                             .into_iter()
                             .filter_map(|e| e.ok())
                             .filter(move |e| {
-                                e.path().extension() == Some(OsStr::new("star"))
+                                e.path().extension() == Some(OsStr::new(FILE_EXTENSION))
                             })
                             .map(|e| e.into_path()),
                     )
@@ -51,7 +53,7 @@ impl SourceFiles {
                     Either::Right(Box::new(
                         vec![item.path()]
                             .into_iter()
-                            .filter(|e| e.extension() == Some(OsStr::new("star"))),
+                            .filter(|e| e.extension() == Some(OsStr::new(FILE_EXTENSION))),
                     ))
                 }
             })

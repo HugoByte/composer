@@ -60,7 +60,7 @@ purchase = task(
         ),
         argument(
             name="model_name",
-            input_type= Strin
+            input_type= String
         ),
         argument(
             name="price",
