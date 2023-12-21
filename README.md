@@ -66,9 +66,10 @@
 
 Echo-cli, a command-line interface created to streamline the creation of WebAssembly (Wasm) binary files through configuration files. Its primary function is the build command. This tool provides developers with an easy-to-use and customizable solution for generating Wasm binaries, making the process more intuitive and efficient.
 
-![Allow Push Notification](../internal-research-and-sample-code/images/cli.png)
+![Allow Image](images/cli.png)
 
-For a better understanding of echo-cli, [refer ](../internal-research-and-sample-code/echo-cli/README.md)
+For a better understanding of echo-cli, [refer ](echo-cli/README.md)
+
 
 ## Testing 
 

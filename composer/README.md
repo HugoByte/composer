@@ -7,7 +7,7 @@ The Echo-Library is a library that enables you to define and create workflows an
 ## Key Features
 
 1. **Workflow Management:**
-   - Define workflows using echo Starlark language, a concise and readable domain-specific language.
+   - Define workflows using echo language, a concise and readable domain-specific language.
    - Organize workflows into distinct tasks with clear dependencies.
 
 2. **Code generation:**
