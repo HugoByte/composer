@@ -1,28 +1,66 @@
-# internal-r-d
+# Composer-v2
 
 [![License: Apache-2.0](https://img.shields.io/github/license/icon-project/IBC-Integration.svg?style=flat-square)](https://www.apache.org/licenses/LICENSE-2.0)
 
 ## Introduction
 
- The Composer and Echo-cli tandem empower developers with a comprehensive solution for defining, managing, and executing workflows with ease. By harnessing Rust's capabilities, these tools provide a solid foundation for creating efficient and optimized WebAssembly files, offering developers a versatile toolkit to streamline their development processes.
+ The Echo-Library and Echo-Cli tandem empower developers with a comprehensive solution for defining, managing, and executing workflows with ease. By harnessing Rust's capabilities, these tools provide a solid foundation for creating efficient and optimized WebAssembly files, offering developers a versatile toolkit to streamline their development processes.
 
 ## Prerequisite
 
-- Ensure [Rust](https://www.rust-lang.org/tools/install) is installed.
+- Ensure [Rust](https://www.rust-lang.org/tools/install) is installed and updated to the latest version.
   
-## Composer Feature
+## Getting started
 
-1. **Workflow Management:**
-   - Define workflows using echo Starlark language, a concise and readable domain-specific language.
-   - Organize workflows into distinct tasks with clear dependencies.
+- Clone the repository
+  
+  ```
+  git clone https://github.com/HugoByte/internal-research-and-sample-code.git
+  ```
 
-2. **WASM Compilation:**
-   - Compile workflows into WASM files for efficient execution across various platforms.
-   - Customize the build process with options for verbose or quiet output.
+- change the directory to `composer-dev`
 
-3. **Input Handling Optimisation:**
-   - Automatically generate Rust structs representing common inputs for workflow tasks.
-   - Incorporate default values and custom data types as needed.
+- Installing the build-libraries
+  
+  ```
+  brew install llvm@11  
+  ```
+
+  ```
+  export CC=/opt/homebrew/Cellar/llvm@11/11.1.0_4/bin/clang-11 && export AR=/opt/homebrew/Cellar/llvm@11/11.1.0_4/bin/llvm-ar
+  ```
+
+- Installing the echo-library
+
+  ```
+  cargo install --path package
+  ```
+
+- Run
+  
+  ```
+  composer
+  ```
+
+## Examples
+
+- Building the current package
+  
+  ```
+  composer build
+  ```
+
+- Validating the config file
+  
+  ```
+  composer validate
+  ```
+
+- Creating the new Package
+  
+  ```
+  composer create <package_name>
+  ```
 
 ## Echo-CLI
 

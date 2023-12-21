@@ -68,11 +68,6 @@ echo-cli build --config config/car_market_place.echo
 
 ![Allow Push Notification](../images/example.png)
 
-## References
-
-- [clap](https://crates.io/crates/clap)
-- [clap-builder](https://crates.io/crates/clap_builder)
-
 ## License
 
 Licensed under [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0)
