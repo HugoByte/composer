@@ -5,7 +5,7 @@ pub(crate) use lib::*;
 use clap::Parser;
 use cli::*;
 use commands::*;
-use composer_primitives::{Result, Execute};
+use composer_primitives::{Execute, Result};
 use std::process::exit;
 use types::Context;
 
@@ -18,7 +18,10 @@ fn set_panic_hook() {
                 std::thread::current().name().unwrap_or("<unnamed>"),
                 e
             );
-            eprintln!("stack backtrace: \n{:?}", std::backtrace::Backtrace::capture());
+            eprintln!(
+                "stack backtrace: \n{:?}",
+                std::backtrace::Backtrace::capture()
+            );
             eprintln!("error: internal composer error: unexpected panic\n");
             eprintln!("note: the composer unexpectedly panicked. this is a bug.\n");
             eprintln!(

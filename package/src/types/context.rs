@@ -1,7 +1,10 @@
-use std::path::PathBuf;
+use crate::{
+    errors::IOError,
+    types::{Parser, Result},
+};
+use composer_primitives::{types::BuildDirectory, Exception, OutputDirectory, SourceFiles};
 use echo_library::Composer;
-use composer_primitives::{types::BuildDirectory, OutputDirectory, SourceFiles, Exception};
-use crate::{types::{ Parser, Result}, errors::IOError};
+use std::path::PathBuf;
 
 pub(crate) struct Context {
     build_directory: Option<BuildDirectory>,
@@ -38,14 +41,17 @@ impl Context {
         build_directory: Option<PathBuf>,
         output_directory: Option<PathBuf>,
     ) -> Result<()> {
-        self.build_directory = Some(BuildDirectory::new(build_directory).map_err(|x| Box::new(IOError::Anyhow(x)) as  Box<dyn Exception>)?);
+        self.build_directory = Some(
+            BuildDirectory::new(build_directory)
+                .map_err(|x| Box::new(IOError::Anyhow(x)) as Box<dyn Exception>)?,
+        );
         self.source_files = Some(SourceFiles::new(source).unwrap());
         self.output_directory = Some(OutputDirectory::new(output_directory).unwrap());
 
         Ok(())
     }
 
-    pub fn parse(&self) -> Result<()>{
+    pub fn parse(&self) -> Result<()> {
         self.parser.parse(&self.source_files.as_ref().unwrap())
     }
 

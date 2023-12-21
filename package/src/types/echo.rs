@@ -1,15 +1,16 @@
-use composer_primitives::{SourceFiles, result, BuildDirectory, OutputDirectory, constant::{ENTRY_FILE, FILE_EXTENSION}};
-use echo_library::Composer;
 use crate::errors::IOError;
+use composer_primitives::{
+    constant::{ENTRY_FILE, FILE_EXTENSION},
+    result, BuildDirectory, OutputDirectory, SourceFiles,
+};
+use echo_library::Composer;
 
 use super::Parser;
 
-
-
 impl Parser for Composer {
     fn parse(&self, files: &SourceFiles) -> result::Result<()> {
-        match self.compile(&format!("{}.{}", ENTRY_FILE, FILE_EXTENSION), files){
-            Ok(_) =>  Ok(()),
+        match self.compile(&format!("{}.{}", ENTRY_FILE, FILE_EXTENSION), files) {
+            Ok(_) => Ok(()),
             Err(err) => Err(Box::new(IOError::Anyhow(err))),
         }
     }
