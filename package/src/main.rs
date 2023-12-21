@@ -9,8 +9,6 @@ use lib::types::Execute;
 use std::process::exit;
 use types::Context;
 
-use std::backtrace;
-
 fn set_panic_hook() {
     #[cfg(not(debug_assertions))]
     std::panic::set_hook({
@@ -56,10 +54,7 @@ pub fn run_with_args(cli: CLI) -> types::Result<()> {
         context.quiet();
     }
     match cli.command {
-        Commands::Build { command } => {
-            let asd = command.execute(context);
-            println!("{:?} kkkk", asd)
-        }
+        Commands::Build { command } => command.execute(context)?,
         Commands::Create { command } => command.execute(),
         Commands::Validate { command } => command.execute(context)?,
     };

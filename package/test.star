@@ -1,10 +1,5 @@
 
-attributes = {
-    "api_host": "http://127.0.0.1:8080",
-    "auth_key": "23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",
-    "insecure": "true",
-    "namespace": "guest",
-}
+
 
 attributes = {
     "api_host" : "https://65.20.70.146:31001",

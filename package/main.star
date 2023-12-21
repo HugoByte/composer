@@ -1,5 +1,9 @@
-load("test.star", "attributes")
-
+attributes = {
+    "api_host": "http://127.0.0.1:8080",
+    "auth_key": "23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",
+    "insecure": "true",
+    "namespace": "guest",
+}
 cartype = task(
     kind = "openwhisk",
     action_name = "cartype",
@@ -56,7 +60,7 @@ purchase = task(
         ),
         argument(
             name="model_name",
-            input_type= String
+            input_type= Strin
         ),
         argument(
             name="price",

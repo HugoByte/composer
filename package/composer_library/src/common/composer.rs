@@ -1,4 +1,8 @@
-use starlark::{environment::FrozenModule, eval::ReturnFileLoader};
+use std::fs::OpenOptions;
+use std::io::Write;
+
+use starlark::environment::FrozenModule;
+use starlark::eval::ReturnFileLoader;
 
 use super::*;
 
@@ -72,12 +76,9 @@ impl Composer {
         }
     }
 
-    pub fn build(
-        &self,
-        verbose: bool,
+    pub fn build(&self, verbose: bool, 
         // pb: &mut ProgressBar,
-        temp_dir: &PathBuf,
-    ) {
+         temp_dir: &PathBuf) {
         // pb.inc(10 / self.config_files.len() as u64);
 
         if verbose {
@@ -101,12 +102,15 @@ impl Composer {
         }
     }
 
-    pub fn copy_boilerplate(
+    fn copy_boilerplate(
         &self,
         temp_dir: &PathBuf,
         types_rs: &str,
         workflow_name: String,
+        workflow: &Workflow
+        // progress_bar: &mut ProgressBar,
     ) -> PathBuf {
+        // progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
         let temp_dir = temp_dir.join(&workflow_name);
         let curr = temp_dir.join("boilerplate");
 
@@ -118,7 +122,17 @@ impl Composer {
         std::fs::write(temp_path, &COMMON[..]).unwrap();
 
         let temp_path = src_curr.as_path().join("lib.rs");
-        std::fs::write(temp_path, &LIB[..]).unwrap();
+        std::fs::write(temp_path.clone(), &LIB[..]).unwrap();
+
+        let mut lib = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .open(temp_path)
+            .unwrap();
+
+        let library = get_struct_stake_ledger(workflow);
+        writeln!(lib, "{library}").expect("could not able to add struct to lib");
+
         let temp_path = src_curr.as_path().join("types.rs");
         std::fs::write(temp_path, types_rs).unwrap();
 
@@ -126,7 +140,17 @@ impl Composer {
         std::fs::write(temp_path, &TRAIT[..]).unwrap();
 
         let cargo_path = curr.join("Cargo.toml");
-        std::fs::write(cargo_path, &CARGO[..]).unwrap();
+        std::fs::write(cargo_path.clone(), &CARGO[..]).unwrap();
+
+        let mut cargo_toml = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .open(cargo_path)
+            .unwrap();
+
+        let dependencies = generate_cargo_toml_dependencies(workflow);
+        writeln!(cargo_toml, "{dependencies}")
+            .expect("could not able to add dependencies to the Cargo.toml");
 
         temp_dir
     }
@@ -168,6 +192,8 @@ impl Composer {
         module.set("Float", int);
         let int = module.heap().alloc(RustType::String);
         module.set("String", int);
+        let int = module.heap().alloc(RustType::Value);
+        module.set("Value", int);
         let int = module.heap().alloc(RustType::Boolean);
         module.set("Bool", int);
 
@@ -209,7 +235,7 @@ impl Composer {
             }
 
             let workflow_name = format!("{}_{}", workflow.name, workflow.version);
-            progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
+            // progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
 
             // let temp_dir = self.copy_boilerplate(
             //     &generate_types_rs_file_code(
@@ -217,13 +243,11 @@ impl Composer {
             //         &composer_custom_types,
             //     ),
             //     workflow_name.clone(),
-            //     // progress_bar,
+            //     workflow,
+            //     progress_bar,
             // );
 
-            // self.build(
-            //     verbose, // progress_bar,
-            //     &temp_dir,
-            // );
+            // self.build(verbose, progress_bar, &temp_dir);
 
             // let wasm_path = format!(
             //     "{}/boilerplate/target/wasm32-wasi/release/boilerplate.wasm",
@@ -237,13 +261,13 @@ impl Composer {
             //         .join(format!("{workflow_name}.wasm")),
             // )
             // .unwrap();
-
             // fs::remove_dir_all(temp_dir).unwrap();
         }
 
         Ok(())
     }
 }
+
 
 impl Composer {
     pub fn compile(&self, module: &str, files: &SourceFiles) -> Result<FrozenModule, Error> {
@@ -335,7 +359,7 @@ impl Composer {
                 &composer_custom_types,
             );
 
-            let temp_dir = self.copy_boilerplate(build_path, &types_rs, workflow_name.clone());
+            let temp_dir = self.copy_boilerplate(build_path, &types_rs, workflow_name.clone(), &workflow);
 
             self.build(quiet, &temp_dir);
 
