@@ -349,7 +349,7 @@ pub fn argument_2_fn() -> Vec<String>{let val = serde_json::from_str::<Vec<Strin
 fn get_task_common_input_type_constructor(
     composer_custom_types: &HashMap<String, String>,
     workflow: &Workflow,
-) -> String {
+) -> Result<String, Error> {
     let mut common = Vec::<String>::new();
     let mut workflow_custom_types = Vec::<String>::new();
 
@@ -376,7 +376,10 @@ fn get_task_common_input_type_constructor(
         let mut build_string = String::new();
 
         for custom_type in workflow_custom_types.iter() {
-            let typ = composer_custom_types.get(custom_type).unwrap();
+            let typ = match composer_custom_types.get(custom_type) {
+                Some(t) => t,
+                None => return Err(Error::msg("Missing custom type in workflow")),
+            };
             build_string = format!("{build_string}{typ}");
         }
 
@@ -384,7 +387,7 @@ fn get_task_common_input_type_constructor(
     } else {
         "".to_string()
     };
-    format!(
+    Ok(format!(
         "{workflow_custom_types}
 make_input_struct!(
 Input,
@@ -392,7 +395,7 @@ Input,
 [Debug, Clone, Default, Serialize, Deserialize]
 );",
         common.join(",")
-    )
+    ))
 }
 
 #[test]
@@ -463,7 +466,7 @@ fn test_get_task_common_input_type_constructor() {
 
     let output = get_task_common_input_type_constructor(&custom_types, &workflow);
     assert_eq!(
-        &output,
+        &output.unwrap(),
         "\
 make_input_struct!(
 Struct1,
@@ -650,7 +653,7 @@ fn test_get_independent_fields() {
 /// * An array of Strings containing Rust code to create structs and objects for the
 ///   specified workflow
 ///
-fn get_task_main_type_constructors(workflow: &Workflow) -> String {
+fn get_task_main_type_constructors(workflow: &Workflow) -> Result<String, Error> {
     let mut input_structs = String::new();
 
     for (task_name, task) in workflow.tasks.iter() {
@@ -686,7 +689,7 @@ impl_new!(
         );
     }
 
-    input_structs
+    Ok(input_structs)
 }
 
 #[test]
@@ -721,7 +724,7 @@ fn test_get_task_main_type_constructors() {
     let output = get_task_main_type_constructors(&workflow);
 
     assert_eq!(
-        output,
+        output.unwrap(),
         "
 make_main_struct!(
     Task0,
@@ -739,7 +742,7 @@ impl_new!(
     );
 }
 
-fn get_impl_setters_code(workflow: &Workflow) -> String {
+fn get_impl_setters_code(workflow: &Workflow) -> Result<String, Error> {
     let mut impl_setters_code = String::new();
 
     for (task_name, task) in workflow.tasks.iter() {
@@ -760,7 +763,10 @@ fn get_impl_setters_code(workflow: &Workflow) -> String {
             };
 
             if task.operation.is_combine() {
-                let dependent_task = workflow.tasks.get(&dependent.task_name).unwrap();
+                let dependent_task = match workflow.tasks.get(&dependent.task_name) {
+                    Some(t) => t,
+                    None => return Err(Error::msg("Missing custom type in workflow")),
+                };
 
                 if dependent_task.operation.is_map() {
                     setter_fields.push(format!(
@@ -810,7 +816,7 @@ fn get_impl_setters_code(workflow: &Workflow) -> String {
         impl_setters_code.push_str(&setter_build_string);
     }
 
-    impl_setters_code
+    Ok(impl_setters_code)
 }
 
 #[test]
@@ -851,7 +857,7 @@ fn test_get_impl_setters_code() {
     let output = get_impl_setters_code(&workflow);
 
     assert_eq!(
-        output,
+        output.unwrap(),
         "impl_setter!(Task0, [argument_1:\"data_field\"]);\n"
     );
 }
@@ -946,32 +952,31 @@ let task_3_index = workflow.add_node(Box::new(task_3));
     )
 }
 
-fn get_add_edges_code(workflow: &Workflow, flow: &Vec<String>) -> String {
+fn get_add_edges_code(workflow: &Workflow, flow: &Vec<String>) -> Result<String, Error> {
     let mut add_edges_code = "workflow.add_edges(&[\n".to_string();
 
     for index in 0..flow.len() - 1 {
-        let mut set = HashSet::<String>::new();
+        if let Some(dependent_task) = workflow.tasks.get(&flow[index + 1]) {
+            let mut set = HashSet::<String>::new();
 
-        for dependent_task in workflow
-            .tasks
-            .get(&flow[index + 1])
-            .unwrap()
-            .depend_on
-            .iter()
-        {
-            if !set.contains(&dependent_task.task_name) {
-                add_edges_code = format!(
-                    "{add_edges_code}({}_index, {}_index),\n",
-                    dependent_task.task_name.to_case(Case::Snake),
-                    flow[index + 1].to_case(Case::Snake)
-                );
+            for dependent_task in dependent_task.depend_on.iter() {
+                if !set.contains(&dependent_task.task_name) {
+                    add_edges_code += &format!(
+                        "    ({}, {}),\n",
+                        dependent_task.task_name.to_case(Case::Snake),
+                        flow[index + 1].to_case(Case::Snake)
+                    );
 
-                set.insert(dependent_task.task_name.clone());
+                    set.insert(dependent_task.task_name.clone());
+                }
             }
+        } else {
+            return Err(Error::msg("Not found"));
         }
     }
 
-    format!("{add_edges_code}]);")
+    add_edges_code += "]);";
+    Ok(add_edges_code)
 }
 
 #[test]
@@ -1046,7 +1051,7 @@ fn test_get_add_edges_code() {
     let output = get_add_edges_code(&workflow, &flow);
 
     assert_eq!(
-        output,
+        output.unwrap(),
         "\
 workflow.add_edges(&[
 (task_0_index, task_1_index),
@@ -1059,7 +1064,7 @@ workflow.add_edges(&[
     );
 }
 
-fn get_add_execute_workflow_code(workflow: &Workflow, flow: &Vec<String>) -> String {
+fn get_add_execute_workflow_code(workflow: &Workflow, flow: &Vec<String>) -> Result<String, Error> {
     let mut execute_code = "let result = workflow\n.init()?".to_string();
 
     for task_index in 0..flow.len() - 1 {
@@ -1093,91 +1098,7 @@ fn get_add_execute_workflow_code(workflow: &Workflow, flow: &Vec<String>) -> Str
         }
     }
 
-    execute_code
-}
-
-#[test]
-fn test_get_add_execute_workflow_code() {
-    let task0 = Task {
-        action_name: "task0".to_string(),
-        ..Default::default()
-    };
-    let task1 = Task {
-        action_name: "task1".to_string(),
-        depend_on: vec![Depend {
-            task_name: "task0".to_string(),
-            ..Default::default()
-        }],
-        ..Default::default()
-    };
-
-    let task2 = Task {
-        action_name: "task2".to_string(),
-        depend_on: vec![
-            Depend {
-                task_name: "task1".to_string(),
-                ..Default::default()
-            },
-            Depend {
-                task_name: "task0".to_string(),
-                ..Default::default()
-            },
-        ],
-        ..Default::default()
-    };
-
-    let task3 = Task {
-        action_name: "task3".to_string(),
-        depend_on: vec![Depend {
-            task_name: "task2".to_string(),
-            ..Default::default()
-        }],
-        ..Default::default()
-    };
-
-    let task4 = Task {
-        action_name: "task4".to_string(),
-        depend_on: vec![
-            Depend {
-                task_name: "task3".to_string(),
-                ..Default::default()
-            },
-            Depend {
-                task_name: "task2".to_string(),
-                ..Default::default()
-            },
-        ],
-        ..Default::default()
-    };
-
-    let mut tasks = HashMap::new();
-    tasks.insert("task0".to_string(), task0);
-    tasks.insert("task1".to_string(), task1);
-    tasks.insert("task2".to_string(), task2);
-    tasks.insert("task3".to_string(), task3);
-    tasks.insert("task4".to_string(), task4);
-
-    let workflow = Workflow {
-        name: "test-workflow".to_string(),
-        version: "0.0.1".to_string(),
-        tasks,
-    };
-
-    let flow = workflow.get_flow();
-
-    let output = get_add_execute_workflow_code(&workflow, &flow);
-
-    assert_eq!(
-        output,
-        "\
-let result = workflow
-.init()?
-.pipe(task_1_index)?
-.pipe(task_2_index)?
-.pipe(task_3_index)?
-.pipe(task_4_index)?
-.term(None)?;"
-    );
+    Ok(execute_code)
 }
 
 /// Generates Rust code to add workflow nodes and edges
@@ -1190,15 +1111,15 @@ let result = workflow
 ///
 /// * An array containing the Rust code to add workflow nodes and edges
 ///
-fn get_workflow_nodes_and_edges_code(workflow: &Workflow) -> String {
+fn get_workflow_nodes_and_edges_code(workflow: &Workflow) -> Result<String, Error> {
     let flow: Vec<String> = workflow.get_flow();
 
     if flow.is_empty() {
-        return "".to_string();
+        return Ok("".to_string());
     }
 
     if flow.len() == 1 {
-        return format!(
+        return Ok(format!(
             "\
 let {}_index = workflow.add_node(Box::new({}));
 \tlet result = workflow\n\t\t.init()?
@@ -1207,15 +1128,15 @@ Ok(result)
 ",
             flow[0].to_case(Case::Snake),
             flow[0].to_case(Case::Snake)
-        );
+        ));
     }
 
-    format!(
+    Ok(format!(
         "{}\n{}\n{}let result = serde_json::to_value(result).unwrap();\nOk(result)",
         get_add_nodes_code(&flow),
-        get_add_edges_code(workflow, &flow),
-        get_add_execute_workflow_code(workflow, &flow),
-    )
+        get_add_edges_code(workflow, &flow)?,
+        get_add_execute_workflow_code(workflow, &flow)?,
+    ))
 }
 
 /// Generates the main Rust code for the workflow package and creates the `types.rs` file
@@ -1231,22 +1152,22 @@ Ok(result)
 pub fn generate_types_rs_file_code(
     workflow: &Workflow,
     custom_types: &HashMap<String, String>,
-) -> String {
+) -> Result<String, Error> {
     let main_file = format!(
         "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}}}",
         add_polkadot_openwhisk(workflow),
         get_macros_code(),
         get_task_input_type_constructors(workflow),
-        get_task_main_type_constructors(workflow),
-        get_impl_setters_code(workflow),
+        get_task_main_type_constructors(workflow)?,
+        get_impl_setters_code(workflow)?,
         get_default_value_functions_code(workflow),
-        get_task_common_input_type_constructor(custom_types, workflow),
+        get_task_common_input_type_constructor(custom_types, workflow)?,
         get_impl_execute_trait_code(workflow),
         get_main_method_code_template(workflow.tasks.len()),
         get_task_type_constructors(workflow),
-        get_workflow_nodes_and_edges_code(workflow)
+        get_workflow_nodes_and_edges_code(workflow)?
     );
-    main_file
+    Ok(main_file)
 }
 
 fn get_openwhisk_kind_dependencies() -> String {
@@ -1396,4 +1317,88 @@ pub fn handle_multiple_kinds() -> String {
 
     let combined_dependencies = format!("{}{}", openwhisk, polkadot);
     combined_dependencies
+}
+
+#[test]
+fn test_get_add_execute_workflow_code() {
+    let task0 = Task {
+        action_name: "task0".to_string(),
+        ..Default::default()
+    };
+    let task1 = Task {
+        action_name: "task1".to_string(),
+        depend_on: vec![Depend {
+            task_name: "task0".to_string(),
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
+
+    let task2 = Task {
+        action_name: "task2".to_string(),
+        depend_on: vec![
+            Depend {
+                task_name: "task1".to_string(),
+                ..Default::default()
+            },
+            Depend {
+                task_name: "task0".to_string(),
+                ..Default::default()
+            },
+        ],
+        ..Default::default()
+    };
+
+    let task3 = Task {
+        action_name: "task3".to_string(),
+        depend_on: vec![Depend {
+            task_name: "task2".to_string(),
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
+
+    let task4 = Task {
+        action_name: "task4".to_string(),
+        depend_on: vec![
+            Depend {
+                task_name: "task3".to_string(),
+                ..Default::default()
+            },
+            Depend {
+                task_name: "task2".to_string(),
+                ..Default::default()
+            },
+        ],
+        ..Default::default()
+    };
+
+    let mut tasks = HashMap::new();
+    tasks.insert("task0".to_string(), task0);
+    tasks.insert("task1".to_string(), task1);
+    tasks.insert("task2".to_string(), task2);
+    tasks.insert("task3".to_string(), task3);
+    tasks.insert("task4".to_string(), task4);
+
+    let workflow = Workflow {
+        name: "test-workflow".to_string(),
+        version: "0.0.1".to_string(),
+        tasks,
+    };
+
+    let flow = workflow.get_flow();
+
+    let output = get_add_execute_workflow_code(&workflow, &flow);
+
+    assert_eq!(
+        output.unwrap(),
+        "\
+let result = workflow
+.init()?
+.pipe(task_1_index)?
+.pipe(task_2_index)?
+.pipe(task_3_index)?
+.pipe(task_4_index)?
+.term(None)?;"
+    );
 }

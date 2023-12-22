@@ -1,6 +1,7 @@
 use std::fs::OpenOptions;
 use std::io::Write;
 
+use anyhow::Ok;
 use composer_primitives::types::SourceFiles;
 use starlark::environment::FrozenModule;
 use starlark::eval::ReturnFileLoader;
@@ -80,30 +81,29 @@ impl Composer {
     pub fn build(
         &self,
         verbose: bool,
-        // pb: &mut ProgressBar,
         temp_dir: &PathBuf,
-    ) {
-        // pb.inc(10 / self.config_files.len() as u64);
+    )  -> Result<(),Error>{
 
         if verbose {
             Command::new("rustup")
                 .current_dir(temp_dir.join("boilerplate"))
                 .args(["target", "add", "wasm32-wasi"])
-                .status()
-                .expect("adding wasm32-wasi rust toolchain command failed to start");
+                .status()?;
+                // .expect("adding wasm32-wasi rust toolchain command failed to start");
 
             Command::new("cargo")
                 .current_dir(temp_dir.join("boilerplate"))
                 .args(["build", "--release", "--target", "wasm32-wasi"])
-                .status()
-                .expect("building wasm32 command failed to start");
+                .status()?;
+                // .expect("building wasm32 command failed to start");
         } else {
             Command::new("cargo")
                 .current_dir(temp_dir.join("boilerplate"))
                 .args(["build", "--release", "--target", "wasm32-wasi", "--quiet"])
-                .status()
-                .expect("building wasm32 command failed to start");
+                .status()?;
+                // .expect("building wasm32 command failed to start");
         }
+    Ok(())
     }
 
     fn copy_boilerplate(
@@ -111,9 +111,9 @@ impl Composer {
         temp_dir: &PathBuf,
         types_rs: &str,
         workflow_name: String,
-        workflow: &Workflow, // progress_bar: &mut ProgressBar,
+        workflow: &Workflow, 
     ) -> Result<PathBuf, Error> {
-        // progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
+       
         let temp_dir = temp_dir.join(&workflow_name);
         let curr = temp_dir.join("boilerplate");
 
@@ -173,7 +173,6 @@ impl Composer {
 
         let mut loads = Vec::new();
 
-        // let binding:&Vec<AstLoad> = ast.loads().as_ref();
         for load in ast.loads() {
             loads.push((
                 load.module_id.to_owned(),
@@ -248,19 +247,11 @@ impl Composer {
             let types_rs = generate_types_rs_file_code(
                 &self.workflows.borrow()[workflow_index],
                 &composer_custom_types,
-            );
-            let temp_dir_result =
-                self.copy_boilerplate(build_path, &types_rs, workflow_name.clone(), &workflow);
+            )?;
+            let temp_dir =
+                self.copy_boilerplate(build_path, &types_rs, workflow_name.clone(), &workflow)?;
 
-            let temp_dir = match temp_dir_result {
-                Ok(path) => path,
-                Err(err) => {
-                    eprintln!("Failed to copy boilerplate: {}", err);
-                    continue;
-                }
-            };
-
-            self.build(quiet, &temp_dir);
+            self.build(quiet, &temp_dir)?;
 
             let wasm_path = format!(
                 "{}/boilerplate/target/wasm32-wasi/release/boilerplate.wasm",
