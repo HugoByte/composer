@@ -9,3 +9,6 @@ pub mod cli;
 
 #[path = "./tests/mod.rs"]
 pub mod tests;
+
+#[path = "./error/mod.rs"]
+pub mod error;
