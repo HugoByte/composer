@@ -8,7 +8,7 @@ use std::path::PathBuf;
 
 pub(crate) struct Context {
     build_directory: Option<BuildDirectory>,
-    output_directory: Option<OutputDirectory>,
+    pub output_directory: Option<OutputDirectory>,
     source_files: Option<SourceFiles>,
     parser: Box<dyn Parser>,
     quiet: bool,

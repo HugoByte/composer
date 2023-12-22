@@ -56,6 +56,7 @@ pub fn run_with_args(cli: CLI) -> Result<()> {
     if !cli.quiet() {
         context.quiet();
     }
+
     match cli.command {
         Commands::Build { command } => command.execute(context)?,
         Commands::Create { command } => command.execute(),

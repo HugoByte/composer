@@ -18,14 +18,6 @@ pub struct CLI {
 
     #[structopt(subcommand)]
     pub command: Commands,
-
-    #[structopt(
-        long,
-        global = true,
-        help = "Optional path to output workflow wasm",
-        parse(from_os_str)
-    )]
-    pub output: Option<PathBuf>,
 }
 
 impl CLI {
