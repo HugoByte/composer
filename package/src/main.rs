@@ -6,6 +6,7 @@ use clap::Parser;
 use cli::*;
 use commands::*;
 use composer_primitives::{Result, Execute};
+use package::errors::IOError;
 use std::process::exit;
 use types::Context;
 
@@ -55,7 +56,7 @@ pub fn run_with_args(cli: CLI) -> Result<()> {
     }
     match cli.command {
         Commands::Build { command } => command.execute(context)?,
-        Commands::Create { command } => command.execute(),
+        Commands::Create { command } => command.execute()?,
         Commands::Validate { command } => command.execute(context)?,
     };
 

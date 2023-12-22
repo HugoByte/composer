@@ -1,4 +1,5 @@
 use super::*;
+use anyhow::anyhow;
 
 #[starlark_module]
 pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
@@ -28,11 +29,11 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         depend_on: Option<Value>,
     ) -> anyhow::Result<Task> {
         let mut input_arguments: Vec<Input> =
-            serde_json::from_str(&input_arguments.to_json()?).unwrap();
+            serde_json::from_str(&input_arguments.to_json()?).map_err(|err| anyhow!("Failed to parse input arguments: {}", err))?;
         let attributes: HashMap<String, String> =
-            serde_json::from_str(&attributes.to_json()?).unwrap();
+            serde_json::from_str(&attributes.to_json()?).map_err(|err| anyhow!("Failed to parse attributes: {}", err))?;
         let depend_on: Vec<Depend> = match depend_on {
-            Some(val) => serde_json::from_str(&val.to_json()?).unwrap(),
+            Some(val) => serde_json::from_str(&val.to_json()?).map_err(|err| anyhow!("Failed to parse depend-on: {}", err))?,
             None => Vec::default(),
         };
 
@@ -46,7 +47,7 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         }
 
         let operation: Operation = match operation {
-            Some(op) => serde_json::from_str(&op.to_json()?).unwrap(),
+            Some(op) => serde_json::from_str(&op.to_json()?).map_err(|err| anyhow!("Failed to parse the value: {}", err))?,
             _ => Operation::Normal,
         };
 
@@ -81,7 +82,7 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         tasks: Value,
         eval: &mut Evaluator,
     ) -> anyhow::Result<Workflow> {
-        let tasks: Vec<Task> = serde_json::from_str(&tasks.to_json()?).unwrap();
+        let tasks: Vec<Task> = serde_json::from_str(&tasks.to_json()?).map_err(|err| anyhow!("Failed to parse task value: {}", err))?;
 
         let mut task_hashmap = HashMap::new();
 
@@ -94,11 +95,11 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         }
 
         eval.extra
-            .unwrap()
-            .downcast_ref::<Composer>()
-            .unwrap()
-            .add_workflow(name.clone(), version.clone(), task_hashmap.clone())
-            .unwrap();
+        .as_ref()
+        .and_then(|extra| extra.downcast_ref::<Composer>())
+        .ok_or_else(|| anyhow!("Failed to obtain Composer from Evaluator"))?
+        .add_workflow(name.clone(), version.clone(), task_hashmap.clone())
+        .map_err(|err| anyhow!("Failed to add workflow: {}", err))?;
 
         Ok(Workflow {
             name,
@@ -124,7 +125,7 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         input_type: Value,
         default_value: Option<String>,
     ) -> anyhow::Result<Input> {
-        let input_type: RustType = serde_json::from_str(&input_type.to_json()?).unwrap();
+        let input_type: RustType = serde_json::from_str(&input_type.to_json()?).map_err(|err| anyhow!("Failed to parse input arguments: {}", err))?;
 
         Ok(Input {
             name,
@@ -156,9 +157,14 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
     /// * A Result containing the name of the user-defined type
     ///
     fn EchoStruct(name: String, fields: Value, eval: &mut Evaluator) -> anyhow::Result<RustType> {
-        let fields: HashMap<String, RustType> = serde_json::from_str(&fields.to_json()?).unwrap();
+        let fields: HashMap<String, RustType> = serde_json::from_str(&fields.to_json()?)
+        .map_err(|err| anyhow!("Failed to parse fields: {}", err))?;
 
-        let composer = eval.extra.unwrap().downcast_ref::<Composer>().unwrap();
+        let composer = eval
+        .extra
+        .as_ref()
+        .and_then(|extra| extra.downcast_ref::<Composer>())
+        .ok_or_else(|| anyhow!("Failed to obtain Composer from Evaluator"))?;
         let name = name.to_case(Case::Pascal);
 
         let mut build_string = Vec::new();
@@ -199,8 +205,8 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     /// * A Result containing the Rust type for a map
     ///
     fn Tuple(type_1: Value, type_2: Value) -> anyhow::Result<RustType> {
-        let type_1: RustType = serde_json::from_str(&type_1.to_json()?).unwrap();
-        let type_2: RustType = serde_json::from_str(&type_2.to_json()?).unwrap();
+        let type_1: RustType = serde_json::from_str(&type_1.to_json()?).map_err(|err| anyhow!("Failed to parse values: {}", err))?;
+        let type_2: RustType = serde_json::from_str(&type_2.to_json()?).map_err(|err| anyhow!("Failed to parse values: {}", err))?;
 
         Ok(RustType::Tuple(Box::new(type_1), Box::new(type_2)))
     }
@@ -218,8 +224,8 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     /// * A Result containing the Rust type for a map
     ///
     fn HashMap(type_1: Value, type_2: Value) -> anyhow::Result<RustType> {
-        let type_1: RustType = serde_json::from_str(&type_1.to_json()?).unwrap();
-        let type_2: RustType = serde_json::from_str(&type_2.to_json()?).unwrap();
+        let type_1: RustType = serde_json::from_str(&type_1.to_json()?).map_err(|err| anyhow!("Failed to parse values: {}", err))?;
+        let type_2: RustType = serde_json::from_str(&type_2.to_json()?).map_err(|err| anyhow!("Failed to parse values: {}", err))?;
 
         Ok(RustType::HashMap(Box::new(type_1), Box::new(type_2)))
     }
@@ -236,7 +242,7 @@ pub fn starlark_datatype_module(builder: &mut GlobalsBuilder) {
     ///  * A Result containing the Rust type for a list
     ///
     fn List(type_of: Value) -> anyhow::Result<RustType> {
-        let type_of: RustType = serde_json::from_str(&type_of.to_json()?).unwrap();
+        let type_of: RustType = serde_json::from_str(&type_of.to_json()?).map_err(|err| anyhow!("Failed to parse values: {}", err))?;
         Ok(RustType::List(Box::new(type_of)))
     }
 }

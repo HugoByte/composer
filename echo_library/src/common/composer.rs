@@ -1,9 +1,9 @@
 use std::fs::OpenOptions;
 use std::io::Write;
 
+use composer_primitives::types::SourceFiles;
 use starlark::environment::FrozenModule;
 use starlark::eval::ReturnFileLoader;
-use composer_primitives::types::SourceFiles;
 
 use super::*;
 
@@ -77,9 +77,12 @@ impl Composer {
         }
     }
 
-    pub fn build(&self, verbose: bool, 
+    pub fn build(
+        &self,
+        verbose: bool,
         // pb: &mut ProgressBar,
-         temp_dir: &PathBuf) {
+        temp_dir: &PathBuf,
+    ) {
         // pb.inc(10 / self.config_files.len() as u64);
 
         if verbose {
@@ -108,59 +111,54 @@ impl Composer {
         temp_dir: &PathBuf,
         types_rs: &str,
         workflow_name: String,
-        workflow: &Workflow
-        // progress_bar: &mut ProgressBar,
-    ) -> PathBuf {
+        workflow: &Workflow, // progress_bar: &mut ProgressBar,
+    ) -> Result<PathBuf, Error> {
         // progress_bar.inc((12 / self.config_files.len()).try_into().unwrap());
         let temp_dir = temp_dir.join(&workflow_name);
         let curr = temp_dir.join("boilerplate");
 
-        std::fs::create_dir_all(curr.clone().join("src")).unwrap();
+        std::fs::create_dir_all(curr.clone().join("src"))?;
 
         let src_curr = temp_dir.join("boilerplate/src");
         let temp_path = src_curr.as_path().join("common.rs");
 
-        std::fs::write(temp_path, &COMMON[..]).unwrap();
+        std::fs::write(temp_path, &COMMON[..])?;
 
         let temp_path = src_curr.as_path().join("lib.rs");
-        std::fs::write(temp_path.clone(), &LIB[..]).unwrap();
+        std::fs::write(temp_path.clone(), &LIB[..])?;
 
         let mut lib = OpenOptions::new()
             .write(true)
             .append(true)
-            .open(temp_path)
-            .unwrap();
+            .open(temp_path)?;
 
         let library = get_struct_stake_ledger(workflow);
         writeln!(lib, "{library}").expect("could not able to add struct to lib");
 
         let temp_path = src_curr.as_path().join("types.rs");
-        std::fs::write(temp_path, types_rs).unwrap();
+        std::fs::write(temp_path, types_rs)?;
 
         let temp_path = src_curr.as_path().join("traits.rs");
-        std::fs::write(temp_path, &TRAIT[..]).unwrap();
+        std::fs::write(temp_path, &TRAIT[..])?;
 
         let cargo_path = curr.join("Cargo.toml");
-        std::fs::write(cargo_path.clone(), &CARGO[..]).unwrap();
+        std::fs::write(cargo_path.clone(), &CARGO[..])?;
 
         let mut cargo_toml = OpenOptions::new()
             .write(true)
             .append(true)
-            .open(cargo_path)
-            .unwrap();
+            .open(cargo_path)?;
 
         let dependencies = generate_cargo_toml_dependencies(workflow);
         writeln!(cargo_toml, "{dependencies}")
             .expect("could not able to add dependencies to the Cargo.toml");
 
-        temp_dir
+        Ok(temp_dir)
     }
 }
 
-
 impl Composer {
     pub fn compile(&self, module: &str, files: &SourceFiles) -> Result<FrozenModule, Error> {
-
         let ast: AstModule = AstModule::parse_file(
             files
                 .files()
@@ -171,8 +169,7 @@ impl Composer {
                 )))
                 .unwrap(),
             &Dialect::Extended,
-        )
-        .unwrap();
+        )?;
 
         let mut loads = Vec::new();
 
@@ -234,7 +231,12 @@ impl Composer {
         Ok(module.freeze()?)
     }
 
-    pub fn build_directory(&self, build_path: &PathBuf ,out_path: &PathBuf, quiet: bool) {
+    pub fn build_directory(
+        &self,
+        build_path: &PathBuf,
+        out_path: &PathBuf,
+        quiet: bool,
+    ) -> Result<(), Error> {
         let composer_custom_types = self.custom_types.borrow();
 
         for (workflow_index, workflow) in self.workflows.borrow().iter().enumerate() {
@@ -247,8 +249,16 @@ impl Composer {
                 &self.workflows.borrow()[workflow_index],
                 &composer_custom_types,
             );
+            let temp_dir_result =
+                self.copy_boilerplate(build_path, &types_rs, workflow_name.clone(), &workflow);
 
-            let temp_dir = self.copy_boilerplate(build_path, &types_rs, workflow_name.clone(), &workflow);
+            let temp_dir = match temp_dir_result {
+                Ok(path) => path,
+                Err(err) => {
+                    eprintln!("Failed to copy boilerplate: {}", err);
+                    continue;
+                }
+            };
 
             self.build(quiet, &temp_dir);
 
@@ -257,16 +267,17 @@ impl Composer {
                 temp_dir.as_path().to_str().unwrap()
             );
 
-            fs::create_dir_all(out_path.join("output")).unwrap();
+            fs::create_dir_all(out_path.join("output"))?;
 
             fs::copy(
                 wasm_path,
-                &out_path.join("output")
+                &out_path
+                    .join("output")
                     .join(format!("{workflow_name}.wasm")),
-            )
-            .unwrap();
+            )?;
 
-            fs::remove_dir_all(temp_dir).unwrap();
+            fs::remove_dir_all(temp_dir)?;
         }
+        Ok(())
     }
 }

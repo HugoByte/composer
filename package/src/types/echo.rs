@@ -19,7 +19,8 @@ impl Parser for Composer {
         build_directory: &BuildDirectory,
         output_directory: &OutputDirectory,
         quiet: bool,
-    ) {
+    ) -> result::Result<()> {
         self.build_directory(&build_directory.path, &output_directory.base(), quiet);
+        Ok(())
     }
 }
