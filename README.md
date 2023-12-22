@@ -4,6 +4,8 @@
 
 ## Introduction
 
+The Composer is an integrated software package, encompassing both the Echo Library and Echo CLI components. This comprehensive solution is specifically tailored to streamline the process of generating WebAssembly (Wasm) files. The Echo Library serves as a foundational building block, offering a rich set of functionalities, while the Echo CLI excels in orchestrating the creation of Wasm files based on a specified list of configuration files. This sophisticated combination empowers developers by providing a seamless and organized approach to translating configuration parameters into fully functional web applications, enhancing the overall development experience.
+
  The Echo-Library and Echo-Cli tandem empower developers with a comprehensive solution for defining, managing, and executing workflows with ease. By harnessing Rust's capabilities, these tools provide a solid foundation for creating efficient and optimized WebAssembly files, offering developers a versatile toolkit to streamline their development processes.
 
 ## Prerequisite
@@ -29,6 +31,7 @@
   ```
   export CC=/opt/homebrew/Cellar/llvm@11/11.1.0_4/bin/clang-11 && export AR=/opt/homebrew/Cellar/llvm@11/11.1.0_4/bin/llvm-ar
   ```
+  *Note: This is required only for polkadot*
 
 - Installing the echo-library
 
@@ -61,17 +64,6 @@
   ```
   composer create <package_name>
   ```
-
-## Echo-CLI
-
-Echo-cli, a command-line interface created to streamline the creation of WebAssembly (Wasm) binary files through configuration files. Its primary function is the build command. This tool provides developers with an easy-to-use and customizable solution for generating Wasm binaries, making the process more intuitive and efficient.
-
-![Allow Image](images/cli.png)
-
-For a better understanding of echo-cli, [refer ](echo-cli/README.md)
-
-
-## Testing 
 
 ## License
 

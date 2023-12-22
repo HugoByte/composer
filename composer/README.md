@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Echo-Library is a library that enables you to define and create workflows and compile them into WebAssembly (WASM) files for execution.
+The Echo-Library plays a pivotal role for facilitating the compilation of configuration files into WebAssembly (WASM) files. It not only handles the technical intricacies of this process but also establishes a streamlined workflow for the execution of the compiled files. This library is designed to empower developers by providing a cohesive and efficient solution for translating configuration settings into executable WebAssembly code, ensuring a smooth and well-organized development experience.
 
 ## Key Features
 
