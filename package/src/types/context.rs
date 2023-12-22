@@ -1,11 +1,14 @@
-use std::path::PathBuf;
+use crate::{
+    errors::IOError,
+    types::{Parser, Result},
+};
+use composer_primitives::{types::BuildDirectory, Exception, OutputDirectory, SourceFiles};
 use echo_library::Composer;
-use composer_primitives::{types::BuildDirectory, OutputDirectory, SourceFiles, Exception};
-use crate::{types::{ Parser, Result}, errors::IOError};
+use std::path::PathBuf;
 
 pub(crate) struct Context {
     build_directory: Option<BuildDirectory>,
-    output_directory: Option<OutputDirectory>,
+    pub output_directory: Option<OutputDirectory>,
     source_files: Option<SourceFiles>,
     parser: Box<dyn Parser>,
     quiet: bool,

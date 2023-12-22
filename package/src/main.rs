@@ -19,7 +19,10 @@ fn set_panic_hook() {
                 std::thread::current().name().unwrap_or("<unnamed>"),
                 e
             );
-            eprintln!("stack backtrace: \n{:?}", std::backtrace::Backtrace::capture());
+            eprintln!(
+                "stack backtrace: \n{:?}",
+                std::backtrace::Backtrace::capture()
+            );
             eprintln!("error: internal composer error: unexpected panic\n");
             eprintln!("note: the composer unexpectedly panicked. this is a bug.\n");
             eprintln!(
@@ -54,6 +57,7 @@ pub fn run_with_args(cli: CLI) -> Result<()> {
     if !cli.quiet() {
         context.quiet();
     }
+
     match cli.command {
         Commands::Build { command } => command.execute(context)?,
         Commands::Create { command } => command.execute()?,
