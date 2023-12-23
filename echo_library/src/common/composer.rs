@@ -89,19 +89,16 @@ impl Composer {
                 .current_dir(temp_dir.join("boilerplate"))
                 .args(["target", "add", "wasm32-wasi"])
                 .status()?;
-                // .expect("adding wasm32-wasi rust toolchain command failed to start");
 
             Command::new("cargo")
                 .current_dir(temp_dir.join("boilerplate"))
                 .args(["build", "--release", "--target", "wasm32-wasi"])
                 .status()?;
-                // .expect("building wasm32 command failed to start");
         } else {
             Command::new("cargo")
                 .current_dir(temp_dir.join("boilerplate"))
                 .args(["build", "--release", "--target", "wasm32-wasi", "--quiet"])
                 .status()?;
-                // .expect("building wasm32 command failed to start");
         }
     Ok(())
     }
