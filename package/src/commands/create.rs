@@ -1,9 +1,9 @@
 use std::fs;
 
-use clap::{StructOpt, error};
+use clap::StructOpt;
 use composer_primitives::result;
 
-use crate::errors::{IOError, io_error};
+use crate::errors::io_error;
 
 #[derive(StructOpt, Debug)]
 pub struct Create {
