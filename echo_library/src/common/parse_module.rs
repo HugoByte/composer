@@ -961,17 +961,16 @@ fn get_add_edges_code(workflow: &Workflow, flow: &Vec<String>) -> Result<String,
 
             for dependent_task in dependent_task.depend_on.iter() {
                 if !set.contains(&dependent_task.task_name) {
-                    add_edges_code += &format!(
-                        "    ({}, {}),\n",
+                    add_edges_code = format!(
+                        "{add_edges_code}({}_index, {}_index),\n",
                         dependent_task.task_name.to_case(Case::Snake),
                         flow[index + 1].to_case(Case::Snake)
                     );
-
                     set.insert(dependent_task.task_name.clone());
                 }
             }
         } else {
-            return Err(Error::msg("Not found"));
+            return Err(Error::msg(" Error adding the edges "));
         }
     }
 
