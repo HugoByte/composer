@@ -78,12 +78,7 @@ impl Composer {
         }
     }
 
-    pub fn build(
-        &self,
-        verbose: bool,
-        temp_dir: &PathBuf,
-    )  -> Result<(),Error>{
-
+    pub fn build(&self, verbose: bool, temp_dir: &PathBuf) -> Result<(), Error> {
         if verbose {
             Command::new("rustup")
                 .current_dir(temp_dir.join("boilerplate"))
@@ -100,7 +95,7 @@ impl Composer {
                 .args(["build", "--release", "--target", "wasm32-wasi", "--quiet"])
                 .status()?;
         }
-    Ok(())
+        Ok(())
     }
 
     fn copy_boilerplate(
@@ -108,9 +103,8 @@ impl Composer {
         temp_dir: &PathBuf,
         types_rs: &str,
         workflow_name: String,
-        workflow: &Workflow, 
+        workflow: &Workflow,
     ) -> Result<PathBuf, Error> {
-       
         let temp_dir = temp_dir.join(&workflow_name);
         let curr = temp_dir.join("boilerplate");
 
@@ -164,7 +158,13 @@ impl Composer {
                     files.base().display(),
                     module
                 )))
-                .unwrap(),
+                .ok_or_else(|| {
+                    Error::msg(format!(
+                        "FileNotFound at {}/{}",
+                        files.base().display(),
+                        module
+                    ))
+                })?,
             &Dialect::Extended,
         )?;
 
@@ -252,7 +252,7 @@ impl Composer {
 
             let wasm_path = format!(
                 "{}/boilerplate/target/wasm32-wasi/release/boilerplate.wasm",
-                temp_dir.as_path().to_str().unwrap()
+                temp_dir.display().to_string()
             );
 
             fs::create_dir_all(out_path.join("output"))?;
