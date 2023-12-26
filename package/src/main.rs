@@ -6,7 +6,6 @@ use clap::Parser;
 use cli::*;
 use commands::*;
 use composer_primitives::{Result, Execute};
-use package::errors::IOError;
 use std::process::exit;
 use types::Context;
 

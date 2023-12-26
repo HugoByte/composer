@@ -1,6 +1,5 @@
 use crate::commands::Commands;
 use clap::StructOpt;
-use std::path::PathBuf;
 
 /// CLI Arguments entry point - includes global parameters and subcommands
 #[derive(StructOpt, Debug)]
