@@ -1,6 +1,6 @@
 # Composer Package
 
-Composer is a command-line tool that serves as a wrapper around the echo-library. Its primary functions include facilitating the creation of new packages, it plays a crucial role in managing dependencies. compiling user packages by generating WebAssembly (Wasm) files.
+Composer, a command-line utility, functions as a convenient wrapper for the echo-library. Its core capabilities revolve around streamlining the process of creating new packages and compiling user packages by producing WebAssembly (Wasm) files.
 
 ![Allow Push Notification](../images/composer-cli.png)
 
