@@ -1,7 +1,7 @@
 use crate::errors::IOError;
 use composer_primitives::{
     constant::{ENTRY_FILE, FILE_EXTENSION},
-    result, BuildDirectory, OutputDirectory, SourceFiles,
+    result, BuildDirectory, Exception, OutputDirectory, SourceFiles,
 };
 use echo_library::Composer;
 
@@ -20,7 +20,9 @@ impl Parser for Composer {
         build_directory: &BuildDirectory,
         output_directory: &OutputDirectory,
         quiet: bool,
-    ) {
-        self.build_directory(&build_directory.path, &output_directory.base(), quiet);
+    ) -> result::Result<()> {
+        self.build_directory(&build_directory.path, &output_directory.base(), quiet)
+            .map_err(|error| Box::new(IOError::Anyhow(error)) as Box<dyn Exception>)?;
+        Ok(())
     }
 }
