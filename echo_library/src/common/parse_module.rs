@@ -1280,7 +1280,7 @@ pub fn generate_cargo_toml_dependencies(workflow: &Workflow) -> String {
 
     let mut toml_dependencies = String::new();
     for (kind, dependency_string) in dependency_map.iter() {
-        if kinds.contains_key(&kind.to_string()) {
+        if kinds.contains(&kind.to_string()) {
             toml_dependencies.push_str(dependency_string);
         }
     }
@@ -1318,15 +1318,15 @@ pub fn add_polkadot_openwhisk(workflow: &Workflow) -> String {
 
     let mut toml_dependencies = String::new();
 
-    if kinds.contains_key("openwhisk") {
+    if kinds.contains("openwhisk") {
         toml_dependencies = format!("{}", get_openwhisk());
     }
 
-    if kinds.contains_key("polkadot") {
+    if kinds.contains("polkadot") {
         toml_dependencies = format!("{}", get_polkadot());
     }
 
-    if kinds.contains_key("openwhisk") && kinds.contains_key("polkadot") {
+    if kinds.contains("openwhisk") && kinds.contains("polkadot") {
         toml_dependencies = handle_multiple_kinds();
     }
 
@@ -1356,21 +1356,18 @@ pub fn get_struct_stake_ledger(workflow: &Workflow) -> String {
 
     let mut toml_dependencies = String::new();
 
-    if kinds.contains_key("polkadot") {
+    if kinds.contains("polkadot") {
         toml_dependencies = format!("{}", staking_ledger());
     }
 
     toml_dependencies
 }
 
-pub fn get_common_kind(workflow: &Workflow) -> HashMap<String, bool> {
-    let mut kinds = HashMap::new();
-
-    for task in workflow.tasks.values() {
-        let kind_lowercase = task.kind.to_lowercase();
-        kinds.entry(kind_lowercase).or_insert(true);
+pub fn get_common_kind(workflow: &Workflow) -> HashSet<String>{
+    let mut kinds = HashSet::new();
+    for task in workflow.tasks.values(){
+        kinds.insert(task.kind.to_lowercase());
     }
-
     kinds
 }
 
