@@ -31,7 +31,7 @@ impl Composer {
     /// # Example
     ///
     /// ```
-    /// use composer::Composer;
+    /// use echo_library::Composer;
     /// let mut composer = Composer::default();
     /// composer.add_config("config/path/config_file_name_here");
     /// ```
