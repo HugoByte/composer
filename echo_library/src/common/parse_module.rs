@@ -706,21 +706,20 @@ sp-runtime = { version = \"6.0.0\", default-features = false, git = \"https://gi
 }
 
 pub fn generate_cargo_toml_dependencies(workflow: &Workflow) -> String {
-    // 0th index-openwhisk, 1st index-polkadot
+    let mut dependency_map = HashMap::new();
+    dependency_map.insert("openwhisk", get_openwhisk_kind_dependencies());
+    dependency_map.insert("polkadot", get_polkadot_kind_dependencies());
+
     let kinds = get_common_kind(workflow);
+    if kinds.is_empty() {
+        return String::new();
+    }
 
     let mut toml_dependencies = String::new();
-
-    if kinds[0] {
-        toml_dependencies = format!("{}", get_openwhisk_kind_dependencies());
-    }
-
-    if kinds[1] {
-        toml_dependencies = format!("{}", get_polkadot_kind_dependencies());
-    }
-
-    if kinds[0] && kinds[1] {
-        toml_dependencies = handle_multiple_dependency();
+    for (kind, dependency_string) in dependency_map.iter() {
+        if kinds.contains(&kind.to_string()) {
+            toml_dependencies.push_str(dependency_string);
+        }
     }
 
     toml_dependencies
@@ -756,15 +755,15 @@ pub fn add_polkadot_openwhisk(workflow: &Workflow) -> String {
 
     let mut toml_dependencies = String::new();
 
-    if kinds[0] {
+    if kinds.contains("openwhisk") {
         toml_dependencies = format!("{}", get_openwhisk());
     }
 
-    if kinds[1] {
+    if kinds.contains("polkadot") {
         toml_dependencies = format!("{}", get_polkadot());
     }
 
-    if kinds[0] && kinds[1] {
+    if kinds.contains("openwhisk") && kinds.contains("polkadot") {
         toml_dependencies = handle_multiple_kinds();
     }
 
@@ -794,36 +793,18 @@ pub fn get_struct_stake_ledger(workflow: &Workflow) -> String {
 
     let mut toml_dependencies = String::new();
 
-    if kinds[1] {
+    if kinds.contains("polkadot") {
         toml_dependencies = format!("{}", staking_ledger());
     }
 
     toml_dependencies
 }
 
-pub fn get_common_kind(workflow: &Workflow) -> [bool; 2] {
-    let mut kinds = [false, false];
-
-    for task in workflow.tasks.values() {
-        match task.kind.to_lowercase().as_str() {
-            "openwhisk" => {
-                if !kinds[0] {
-                    kinds[0] = true
-                }
-            }
-            "polkadot" => {
-                if !kinds[1] {
-                    kinds[1] = true
-                }
-            }
-            _ => (),
-        }
-
-        if kinds[0] && kinds[1] {
-            break;
-        }
+pub fn get_common_kind(workflow: &Workflow) -> HashSet<String>{
+    let mut kinds = HashSet::new();
+    for task in workflow.tasks.values(){
+        kinds.insert(task.kind.to_lowercase());
     }
-
     kinds
 }
 
