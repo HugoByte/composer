@@ -1,0 +1,5 @@
+**/target
+**/*.lock
+**/*.vscode
+**/*.wasm
+**/temp*
