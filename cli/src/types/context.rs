@@ -20,7 +20,7 @@ impl Default for Context {
             build_directory: None,
             output_directory: None,
             source_files: None,
-            parser: Box::new(Composer::default()),
+            parser: Box::<Composer>::default(),
             quiet: false,
         }
     }
@@ -41,22 +41,41 @@ impl Context {
         build_directory: Option<PathBuf>,
         output_directory: Option<PathBuf>,
     ) -> Result<()> {
-        self.build_directory = Some(BuildDirectory::new(build_directory).map_err(|x| Box::new(IOError::Anyhow(x)) as  Box<dyn Exception>)?);
-        self.source_files = Some(SourceFiles::new(source).map_err(|err| Box::new(IOError::Anyhow(err)) as Box<dyn Exception>)?);
-        self.output_directory = Some(OutputDirectory::new(output_directory).map_err(|err| Box::new(IOError::Anyhow(err)) as Box<dyn Exception>)?);
+        self.build_directory = Some(
+            BuildDirectory::new(build_directory)
+                .map_err(|x| Box::new(IOError::Anyhow(x)) as Box<dyn Exception>)?,
+        );
+        self.source_files = Some(
+            SourceFiles::new(source)
+                .map_err(|err| Box::new(IOError::Anyhow(err)) as Box<dyn Exception>)?,
+        );
+        self.output_directory = Some(
+            OutputDirectory::new(output_directory)
+                .map_err(|err| Box::new(IOError::Anyhow(err)) as Box<dyn Exception>)?,
+        );
 
         Ok(())
     }
 
     pub fn parse(&self) -> Result<()> {
-        self.parser.parse(self.source_files.as_ref().ok_or_else(|| Box::new(IOError::Other("Build file is not initialised".to_string())) as  Box<dyn Exception>)?)?;
+        self.parser
+            .parse(self.source_files.as_ref().ok_or_else(|| {
+                Box::new(IOError::Other("Build file is not initialised".to_string()))
+                    as Box<dyn Exception>
+            })?)?;
         Ok(())
     }
 
-    pub fn build(&self) -> Result<()>{
+    pub fn build(&self) -> Result<()> {
         self.parser.build(
-            self.build_directory.as_ref().ok_or_else(|| Box::new(IOError::Other("Build file is not initialised".to_string())) as  Box<dyn Exception>)?,
-            self.output_directory.as_ref().ok_or_else(|| Box::new(IOError::Other("output file is not initialised".to_string())) as  Box<dyn Exception>)?,
+            self.build_directory.as_ref().ok_or_else(|| {
+                Box::new(IOError::Other("Build file is not initialised".to_string()))
+                    as Box<dyn Exception>
+            })?,
+            self.output_directory.as_ref().ok_or_else(|| {
+                Box::new(IOError::Other("output file is not initialised".to_string()))
+                    as Box<dyn Exception>
+            })?,
             self.quiet,
         )
     }
