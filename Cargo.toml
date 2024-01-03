@@ -5,4 +5,4 @@ repository = "https://github.com/hugobyte/aurras.git"
 version = "0.0.1"
 
 [workspace]
-members = ["composer", "echo-cli", "composer_primitives", "echo_library", "package"]
+members = ["cli","composer-primitives", "echo-library"]

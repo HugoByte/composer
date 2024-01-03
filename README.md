@@ -1,4 +1,4 @@
-# Composer-v2
+# Composer
 
 [![License: Apache-2.0](https://img.shields.io/github/license/icon-project/IBC-Integration.svg?style=flat-square)](https://www.apache.org/licenses/LICENSE-2.0)
 
@@ -17,10 +17,8 @@ The Composer is an integrated software package, encompassing both the Echo Libra
 - Clone the repository
   
   ```
-  git clone https://github.com/HugoByte/internal-research-and-sample-code.git
+  git clone https://github.com/HugoByte/composer.git
   ```
-
-- change the directory to `composer-dev`
 
 - Installing the build-libraries
   
@@ -36,21 +34,21 @@ The Composer is an integrated software package, encompassing both the Echo Libra
 - Installing the echo-library
 
   ```
-  cargo install --path package
+  cargo install --path ./cli
   ```
 
 - Run
   
   ```
-  composer
+  composer -V
   ```
 
-## Examples
+## Usage
 
-- Building the current package
+- Creating the new Package
   
   ```
-  composer build
+  composer create <package_name>
   ```
 
 - Validating the config file
@@ -59,11 +57,29 @@ The Composer is an integrated software package, encompassing both the Echo Libra
   composer validate
   ```
 
-- Creating the new Package
+
+- Building the current package
   
   ```
-  composer create <package_name>
+  composer build
   ```
+
+
+
+
+## Example
+
+- Validating the config file
+  
+    ```
+    composer validate ./example
+    ```
+
+- Build the config file
+
+    ```
+    composer build ./example -o ./example
+    ```
 
 ## License
 

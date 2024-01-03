@@ -8,10 +8,10 @@ use starlark::eval::ReturnFileLoader;
 
 use super::*;
 
-const COMMON: &str = include_str!("../../../composer-boilerplate/src/common.rs");
-const LIB: &str = include_str!("../../../composer-boilerplate/src/lib.rs");
-const TRAIT: &str = include_str!("../../../composer-boilerplate/src/traits.rs");
-const CARGO: &str = include_str!("../../../composer-boilerplate/Cargo.toml");
+const COMMON: &str = include_str!("../boilerplate/src/common.rs");
+const LIB: &str = include_str!("../boilerplate/src/lib.rs");
+const TRAIT: &str = include_str!("../boilerplate/src/traits.rs");
+const CARGO: &str = include_str!("../boilerplate/Cargo.toml");
 
 #[derive(Debug, ProvidesStaticType, Default)]
 pub struct Composer {

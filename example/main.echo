@@ -1,9 +1,10 @@
 attributes = {
-    "api_host": "http://127.0.0.1:8080",
+    "api_host": "https://65.20.70.146:31001",
     "auth_key": "23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",
     "insecure": "true",
     "namespace": "guest",
 }
+
 cartype = task(
     kind = "openwhisk",
     action_name = "cartype",
@@ -69,12 +70,12 @@ purchase = task(
     ],
     attributes = attributes,
     depend_on = [
-        depend(task_name = "modelsprice", cur_field = "model_price_list", prev_field = "model_price_list")
+        depend("modelsprice","model_price_list", "model_price_list")
     ]
 )
 
 workflows(
-    name = "mock_car_market_place",
+    name = "car_market_place",
     version = "0.0.1",
     tasks = [cartype, modelavail, modelprice, purchase]
 )
