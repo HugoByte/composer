@@ -2,6 +2,9 @@
 name = "composer-primitives"
 version = "0.0.1"
 edition = "2021"
+authors.workspace = true
+license = "Apache-2.0"
+description = "primitives types for composer"
 
 [dependencies]
 serde = "1.0"
