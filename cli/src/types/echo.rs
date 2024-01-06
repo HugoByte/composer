@@ -1,11 +1,4 @@
-use crate::errors::IOError;
-use composer_primitives::{
-    constant::{ENTRY_FILE, FILE_EXTENSION},
-    result, BuildDirectory, Exception, OutputDirectory, SourceFiles,
-};
-use echo_library::Composer;
-
-use super::Parser;
+use super::*;
 
 impl Parser for Composer {
     fn parse(&self, files: &SourceFiles) -> result::Result<()> {
