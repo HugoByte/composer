@@ -9,6 +9,7 @@ pub enum IOError {
     PathNotFound,
     Anyhow(Error),
     Other(String),
+    Std(std::io::Error),
 }
 
 pub fn io_error(err: std::io::Error) -> Box<dyn Exception> {
@@ -21,6 +22,7 @@ impl Exception for IOError {
             IOError::PathNotFound => 1,
             IOError::Other(_) => 2,
             IOError::Anyhow(_) => 3,
+            IOError::Std(_) => 4,
         }
     }
 }
@@ -29,26 +31,7 @@ impl From<std::io::Error> for IOError {
     fn from(value: std::io::Error) -> Self {
         match value.kind() {
             std::io::ErrorKind::NotFound => IOError::PathNotFound,
-            std::io::ErrorKind::PermissionDenied => todo!(),
-            std::io::ErrorKind::ConnectionRefused => todo!(),
-            std::io::ErrorKind::ConnectionReset => todo!(),
-            std::io::ErrorKind::ConnectionAborted => todo!(),
-            std::io::ErrorKind::NotConnected => todo!(),
-            std::io::ErrorKind::AddrInUse => todo!(),
-            std::io::ErrorKind::AddrNotAvailable => todo!(),
-            std::io::ErrorKind::BrokenPipe => todo!(),
-            std::io::ErrorKind::AlreadyExists => todo!(),
-            std::io::ErrorKind::WouldBlock => todo!(),
-            std::io::ErrorKind::InvalidInput => todo!(),
-            std::io::ErrorKind::InvalidData => todo!(),
-            std::io::ErrorKind::TimedOut => todo!(),
-            std::io::ErrorKind::WriteZero => todo!(),
-            std::io::ErrorKind::Interrupted => todo!(),
-            std::io::ErrorKind::Unsupported => todo!(),
-            std::io::ErrorKind::UnexpectedEof => todo!(),
-            std::io::ErrorKind::OutOfMemory => todo!(),
-            std::io::ErrorKind::Other => todo!(),
-            _ => IOError::Other("An unknown IO error occurred".to_string()),
+            _ => IOError::Std(value),
         }
     }
 }
@@ -57,8 +40,9 @@ impl Display for IOError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             IOError::PathNotFound => write!(f, "PathNotFound"),
-            IOError::Anyhow(error) => write!(f, "ErrorInComposer: {}", error),
-            IOError::Other(error) => write!(f, "Error: {}", error),
+            IOError::Anyhow(error) => write!(f, "{}", error),
+            IOError::Other(error) => write!(f, "{}", error),
+            IOError::Std(error) => write!(f, "{}", error),
         }
     }
 }

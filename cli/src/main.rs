@@ -45,7 +45,7 @@ pub fn handle_error<T>(res: Result<T>) -> T {
     match res {
         Ok(t) => t,
         Err(err) => {
-            eprintln!("{:?}", err);
+            eprintln!("\t\x1B[31m\x1b[1mError\x1b[0m: \x1B[34m{} \x1b[0m", err);
             exit(err.code());
         }
     }
