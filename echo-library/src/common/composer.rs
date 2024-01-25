@@ -1,5 +1,6 @@
-use anyhow::Ok;
+use anyhow::{anyhow, Ok};
 use composer_primitives::types::SourceFiles;
+use rayon::prelude::*;
 use starlark::environment::FrozenModule;
 use starlark::eval::ReturnFileLoader;
 use std::fs::OpenOptions;
@@ -79,7 +80,7 @@ impl Composer {
         }
     }
 
-    pub fn build(&self, verbose: bool, temp_dir: &Path) -> Result<(), Error> {
+    pub fn build(verbose: bool, temp_dir: &Path) -> Result<(), Error> {
         if verbose {
             Command::new("rustup")
                 .current_dir(temp_dir.join("boilerplate"))
@@ -100,9 +101,8 @@ impl Composer {
     }
 
     fn copy_boilerplate(
-        &self,
         temp_dir: &Path,
-        types_rs: &str,
+        types_rs: String,
         workflow_name: String,
         workflow: &Workflow,
     ) -> Result<PathBuf, Error> {
@@ -236,40 +236,77 @@ impl Composer {
         build_path: &Path,
         out_path: &Path,
         quiet: bool,
-    ) -> Result<(), Error> {
-        let composer_custom_types = self.custom_types.borrow();
+    ) -> anyhow::Result<(), Error> {
+        let composer_custom_types = self.custom_types.take();
 
-        for (workflow_index, workflow) in self.workflows.borrow().iter().enumerate() {
-            if workflow.tasks.is_empty() {
-                continue;
-            }
+        let workflows = self.workflows.take();
 
-            let workflow_name = format!("{}_{}", workflow.name, workflow.version);
-            let types_rs = generate_types_rs_file_code(
-                &self.workflows.borrow()[workflow_index],
-                &composer_custom_types,
-            )?;
-            let temp_dir =
-                self.copy_boilerplate(build_path, &types_rs, workflow_name.clone(), workflow)?;
+        let results: Vec<Result<(), Error>> = workflows
+            .par_iter()
+            .enumerate()
+            .map(|workflow: (usize, &Workflow)| {
+                if workflow.1.tasks.is_empty() {
+                    return Ok(());
+                }
 
-            self.build(quiet, &temp_dir)?;
+                let workflow_name = format!("{}_{}", workflow.1.name, workflow.1.version);
 
-            let wasm_path = format!(
-                "{}/boilerplate/target/wasm32-wasi/release/boilerplate.wasm",
-                temp_dir.display()
-            );
+                let types_rs =
+                    generate_types_rs_file_code(&workflows[workflow.0], &composer_custom_types)
+                        .map_err(|err| {
+                            anyhow!(
+                                "{}: Failed to generate types.rs file: {}",
+                                workflow.1.name,
+                                err
+                            )
+                        })?;
 
-            fs::create_dir_all(out_path.join("output"))?;
+                let temp_dir =
+                    Self::copy_boilerplate(build_path, types_rs, workflow_name.clone(), workflow.1)
+                        .map_err(|err| {
+                            anyhow!("{}: Failed to copy boilerplate: {}", workflow.1.name, err)
+                        })?;
 
-            fs::copy(
-                wasm_path,
-                &out_path
-                    .join("output")
-                    .join(format!("{workflow_name}.wasm")),
-            )?;
+                Self::build(quiet, &temp_dir)
+                    .map_err(|err| anyhow!("{}: Failed to build: {}", workflow.1.name, err))?;
 
-            fs::remove_dir_all(temp_dir)?;
+                let wasm_path = format!(
+                    "{}/boilerplate/target/wasm32-wasi/release/boilerplate.wasm",
+                    temp_dir.display()
+                );
+
+                fs::create_dir_all(out_path.join("output")).map_err(|err| {
+                    anyhow!(
+                        "{}: Failed to create output directory: {}",
+                        workflow.1.name,
+                        err
+                    )
+                })?;
+
+                fs::copy(
+                    wasm_path,
+                    out_path.join(format!("output/{workflow_name}.wasm")),
+                )
+                .map_err(|err| anyhow!("{}: Failed to copy wasm: {}", workflow.1.name, err))?;
+
+                fs::remove_dir_all(temp_dir).map_err(|err| {
+                    anyhow!("{}: Failed to remove temp dir: {}", workflow.1.name, err)
+                })?;
+
+                Ok(())
+            })
+            .filter(|result| result.is_err())
+            .collect::<Vec<_>>()
+            .into_iter()
+            .collect();
+
+        if !results.is_empty() {
+            return Err(Error::msg(format!(
+                "Failed to build the following workflows: {:?}",
+                results
+            )));
         }
+
         Ok(())
     }
 }
