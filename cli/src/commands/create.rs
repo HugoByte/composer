@@ -1,8 +1,4 @@
-use clap::StructOpt;
-use composer_primitives::result;
-use std::fs;
-
-use crate::errors::io_error;
+use super::*;
 
 #[derive(StructOpt, Debug)]
 pub struct Create {
@@ -40,7 +36,7 @@ workflows(
 
         fs::write(temp_path, content.as_bytes()).map_err(io_error)?;
         println!(
-            "\t\x1B[32m\x1b[1mCreated\x1b[0m: Workflow Package \x1B[34m\x1b[1m'{}' \x1b[0m",
+            "   \x1B[32m\x1b[1mCreated\x1b[0m: Workflow Package \x1B[34m\x1b[1m'{}' \x1b[0m",
             &self.package_name
         );
         Ok(())
