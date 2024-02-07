@@ -20,17 +20,6 @@ The Composer is an integrated software package, encompassing both the Echo Libra
   git clone https://github.com/HugoByte/composer.git
   ```
 
-- Installing the build-libraries
-  
-  ```
-  brew install llvm@11  
-  ```
-
-  ```
-  export CC=/opt/homebrew/Cellar/llvm@11/11.1.0_4/bin/clang-11 && export AR=/opt/homebrew/Cellar/llvm@11/11.1.0_4/bin/llvm-ar
-  ```
-  *Note: This is required only for polkadot*
-
 - Installing the echo-library
 
   ```
@@ -65,8 +54,6 @@ The Composer is an integrated software package, encompassing both the Echo Libra
   ```
 
 
-
-
 ## Example
 
 - Validating the config file
@@ -80,6 +67,20 @@ The Composer is an integrated software package, encompassing both the Echo Libra
     ```
     composer build ./example -o ./example
     ```
+
+## *Note*
+
+### *Installing the build-libraries [required only for polkadot]*
+
+```
+brew install llvm@11
+```
+
+```
+export CC=/opt/homebrew/Cellar/llvm@11/11.1.0_4/bin/clang-11 && export AR=/opt/homebrew/Cellar/llvm@11/11.1.0_4/bin/llvm-ar
+```
+
+
 
 ## License
 
