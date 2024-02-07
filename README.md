@@ -69,8 +69,11 @@ The Composer is an integrated software package, encompassing both the Echo Libra
     ```
 
 > [!NOTE]
-> To set up the build libraries, install `brew install llvm@11` and
->  `export CC=/opt/homebrew/Cellar/llvm@11/11.1.0_4/bin/clang-11 && export AR=/opt/homebrew/Cellar/llvm@11/11.1.0_4/bin/llvm-ar`. 
+> To set up the build libraries, install 
+> 1. `brew install llvm@11` and
+> 2. `export CC= /<path>/clang-11` [Setting env variables for compiler]
+> 3. `export AR= /<path>/llvm-ar`.  [Setting the env variables for archiever]
+>  
 > This step is necessary only if you are working with polkadot.
 
 
