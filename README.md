@@ -69,11 +69,11 @@ The Composer is an integrated software package, encompassing both the Echo Libra
     ```
 
 > [!NOTE]
-> To set up the build libraries, install 
-> 1. `brew install llvm@11` and
-> 2. `export CC= /<path>/clang-11` [Setting env variables for compiler]
-> 3. `export AR= /<path>/llvm-ar`.  [Setting the env variables for archiever]
->  
+> To work with polkadot you need to install the following build library and export it
+> 1. Install llvm@11 `brew install llvm@11` and
+> 2. Export clan-11 as CC `export CC= /<path>/clang-11` 
+> 3. Export llvm-ar as AR `export AR= /<path>/llvm-ar`.  
+> 
 > This step is necessary only if you are working with polkadot.
 
 
