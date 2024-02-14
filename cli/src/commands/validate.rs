@@ -1,6 +1,6 @@
 use super::*;
 /// Compile the config file.
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
 pub struct Validate {
     pub source: Option<PathBuf>,
 }

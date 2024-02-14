@@ -1,26 +1,27 @@
 use crate::commands::Commands;
-use clap::StructOpt;
+use clap::Parser;
 
 /// Cli Arguments entry point - includes global parameters and subcommands
-#[derive(StructOpt, Debug)]
-#[structopt(
-    name = "composer",
-    author = "The HugoByte Team <hello@hugobyte.com>",
-    version = "0.0.2"
-)]
+#[derive(Parser, Debug)]
+#[command(version, about = "Composer", long_about = None)]
+#[command(disable_version_flag = true)]
 pub struct Cli {
-    #[structopt(
+    #[arg(
         short,
         global = true,
         help = "Print additional information for debugging"
     )]
     pub debug: bool,
 
-    #[structopt(short, global = true, help = "Suppress CLI output")]
+    #[arg(short, global = true, help = "Suppress CLI output")]
     pub quiet: bool,
 
     #[structopt(subcommand)]
     pub command: Commands,
+
+    /// Print version
+    #[arg(short = 'v', short_alias = 'V', long, action = clap::builder::ArgAction::Version)]
+    version: (),
 }
 
 impl Cli {
