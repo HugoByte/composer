@@ -1,6 +1,7 @@
 use clap::Parser;
 
 use super::*;
+
 /// Compile and build program command.
 #[derive(Parser, Debug)]
 pub struct Build {

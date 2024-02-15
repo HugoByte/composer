@@ -17,19 +17,19 @@ use std::time::Instant;
 pub enum Commands {
     #[command(about = "Build the current package as a workflow")]
     Build {
-        #[structopt(flatten)]
+        #[command(flatten)]
         command: Build,
     },
 
     #[command(about = "Create a new package for echo")]
     Create {
-        #[structopt(flatten)]
+        #[command(flatten)]
         command: Create,
     },
 
     #[structopt(about = "Validate the configuration file")]
     Validate {
-        #[structopt(flatten)]
+        #[command(flatten)]
         command: Validate,
     },
 }
