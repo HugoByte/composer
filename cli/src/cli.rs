@@ -1,11 +1,12 @@
 use crate::commands::Commands;
 use clap::Parser;
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Cli Arguments entry point - includes global parameters and subcommands
 #[derive(Parser, Debug)]
 #[command(
-    version,
-    about = "Composer",
+    name = "composer",
+    version = VERSION,
     long_about = "Composer is a cli tool that empower streamlined cross-platform workflow creation, effortlessly translating configurable files into efficient WebAssembly (Wasm) format for enhanced development and operational efficiency."
 )]
 #[command(disable_version_flag = true)]
