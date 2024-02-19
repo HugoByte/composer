@@ -1,7 +1,7 @@
 [package]
 name = "package"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 
 
 [lib]
@@ -17,7 +17,6 @@ thiserror = "1.0"
 tempfile = "3.2.0"
 itertools = "0.10.5"
 walkdir = "2"
-starlark = { git = "https://github.com/facebookexperimental/starlark-rust.git", branch = "main" }
 bumpalo = "3.11.1"
 anyhow = "1.0.65"
 echo-library = { path =  "../echo-library"}
@@ -25,7 +24,7 @@ composer-primitives ="0.0.1"
 sys-info = "0.9.1"
 
 [dependencies.clap]
-version = "3.2"
+version = "4.5.0"
 features = [ "derive", "env" ]
 
 [profile.dev]

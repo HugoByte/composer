@@ -1,6 +1,8 @@
+use clap::Parser;
+
 use super::*;
 
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
 pub struct Create {
     pub package_name: String,
 }

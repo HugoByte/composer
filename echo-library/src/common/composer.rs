@@ -170,7 +170,8 @@ impl Composer {
                     ))
                 })?,
             &Dialect::Extended,
-        )?;
+        )
+        .map_err(|err| Error::msg(format!("Error parsing file: {}", err)))?;
 
         let mut loads = Vec::new();
 
@@ -186,21 +187,8 @@ impl Composer {
 
         // We build our globals by adding some functions we wrote
         let globals = GlobalsBuilder::extended_by(&[
-            StructType,
-            RecordType,
-            EnumType,
-            Map,
-            Filter,
-            Partial,
-            ExperimentalRegex,
-            Debug,
-            Print,
-            Pprint,
-            Breakpoint,
-            Json,
-            Typing,
-            Internal,
-            CallStack,
+            StructType, RecordType, EnumType, Map, Filter, Partial, Debug, Print, Pprint,
+            Breakpoint, Json, Typing, Internal, CallStack,
         ])
         .with(starlark_workflow_module)
         .with(starlark_datatype_module)
@@ -221,11 +209,15 @@ impl Composer {
         module.set("Bool", int);
 
         {
-            let mut eval = Evaluator::new(&module);
-            // We add a reference to our store
-            eval.set_loader(&loader);
-            eval.extra = Some(self);
-            eval.eval_module(ast, &globals)?;
+            let result = {
+                let mut eval = Evaluator::new(&module);
+                // We add a reference to our store
+                eval.set_loader(&loader);
+                eval.extra = Some(self);
+                eval.eval_module(ast, &globals)
+            };
+
+            result.map_err(|err| Error::msg(format!("Evaluation error: {}", err)))?;
         }
 
         Ok(module.freeze()?)
