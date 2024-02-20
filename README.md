@@ -29,7 +29,7 @@ The Composer is an integrated software package, encompassing both the Echo Libra
 - Run
   
   ```
-  composer -V
+  composer -v
   ```
 
 ## Usage
