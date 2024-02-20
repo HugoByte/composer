@@ -7,7 +7,6 @@ pub use parser::*;
 
 mod echo;
 use composer_primitives::Result;
-pub use echo::*;
 
 use crate::errors::IOError;
 use crate::types::Parser;
