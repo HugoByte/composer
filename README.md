@@ -56,17 +56,35 @@ The Composer is an integrated software package, encompassing both the Echo Libra
 
 ## Example
 
-- Validating the config file
-  
-    ```
-    composer validate ./example
-    ```
+1. Create a new Package
+   
+   ```
+   composer create test
+   ```
 
-- Build the config file
+2. Validate the created package, by changing the directory to created package `cd test`
+   
+   ```
+   composer validate
+   ```
 
-    ```
-    composer build ./example -o ./example
-    ```
+    ![Allow Push Notification](images/validate.png)
+
+    Here,
+
+    `[SOURCE]` - The path(relative path or absolute path) of the directory, where the package is located. 
+
+3. Build the package
+   
+   ```
+   composer build
+   ```
+    ![Allow Push Notification](images/build.png)
+
+    Here,
+
+    `[SOURCE]` - The path(relative path or absolute path) of the directory, where the package is located. 
+
 
 > [!NOTE]
 > To work with polkadot you need to install the following build library and export it
