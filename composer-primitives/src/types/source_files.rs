@@ -54,6 +54,17 @@ impl SourceFiles {
             })
             .collect::<HashSet<PathBuf>>();
 
+        if file_paths.is_empty() {
+            return Err(Error::msg("DirectoryIsEmpty"));
+        }
+
+        for file_path in &file_paths {
+            let file_content = fs::read_to_string(file_path).unwrap();
+            if file_content.trim().is_empty() {
+                return Err(Error::msg("FileIsEmpty"));
+            }
+        }
+
         Ok(SourceFiles {
             base,
             files: file_paths,
