@@ -520,7 +520,7 @@ sp-runtime = { version = \"6.0.0\", default-features = false, git = \"https://gi
 pub fn generate_cargo_toml_dependencies(workflow: &Workflow) -> String {
     let mut dependency_map = HashMap::new();
 
-    let hello_world_dependency = "hello_world_macro = {git= \"https://github.com/shanithkk/aurras\", branch = \"feature/composer-v2\", package = \"hello_world_macro\"}"
+    let hello_world_dependency = "hello_world_macro = {git= \"https://github.com/HugoByte/aurras.git\", branch = \"next\", package = \"hello_world_macro\"}"
     .to_string();
 
     dependency_map.insert("hello_world", hello_world_dependency);
