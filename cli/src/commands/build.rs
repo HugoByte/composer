@@ -7,8 +7,8 @@ use super::*;
 pub struct Build {
     #[arg(
         short,
-        long = "build_directory",
-        long_help = "This is an optional path, to generate a workflow package "
+        long,
+        help = "This is an optional path, to generate a workflow package "
     )]
     pub build_directory: Option<PathBuf>,
 
