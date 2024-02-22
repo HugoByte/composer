@@ -8,7 +8,7 @@ pub struct Build {
     #[arg(
         short,
         long = "build_directory",
-        long_help = " During the build process, an error is thrown if there are issues obtaining the package code; however, if no errors occur, the workflow package is generated, and the code is subsequently deleted [This is an optional path for the build directory] "
+        long_help = "This is an optional path, to generate a workflow package "
     )]
     pub build_directory: Option<PathBuf>,
 
