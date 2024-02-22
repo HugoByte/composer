@@ -83,7 +83,8 @@ The Composer is an integrated software package, encompassing both the Echo Libra
 
     Here,
 
-    `[SOURCE]` - The path(relative path or absolute path) of the directory, where the package is located. 
+    - `[SOURCE]` - The path(relative path or absolute path) of the directory, where the package is located. 
+    - `--build-directory` - This is an optional path for the build directory to generate a package code, If there are issues obtaining the package code during the build process, an error is thrown.
 
 
 > [!NOTE]
