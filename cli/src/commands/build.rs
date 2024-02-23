@@ -11,7 +11,7 @@ pub struct Build {
     #[arg(short, long, help = "Optional path to output workflow wasm")]
     pub output: Option<PathBuf>,
 
-    /// The path(relative path or absolute path) of the directory, where the package is located. 
+    /// The path(relative path or absolute path) of the directory, where the package is located. This is an optional path if you are in the current directory 
     pub source: Option<PathBuf>,
 }
 

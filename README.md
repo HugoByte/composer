@@ -62,6 +62,8 @@ The Composer is an integrated software package, encompassing both the Echo Libra
    composer create test
    ```
 
+    ![Allow Push Notification](images/create.png)
+
 2. Validate the created package, by changing the directory to created package `cd test`
    
    ```
@@ -70,20 +72,19 @@ The Composer is an integrated software package, encompassing both the Echo Libra
 
     ![Allow Push Notification](images/validate.png)
 
-    Here,
-
-    `[SOURCE]` - The path(relative path or absolute path) of the directory, where the package is located. 
-
 3. Build the package
    
    ```
    composer build
    ```
+
+4. Specifying build directory
+   
     ![Allow Push Notification](images/build.png)
 
     Here,
 
-    - `[SOURCE]` - The path(relative path or absolute path) of the directory, where the package is located. 
+    - `[SOURCE]` - The path(relative path or absolute path) of the directory, where the package is located. This is an optional path if you are in the current directory.
     - `--build-directory` - This is an optional path for the build directory to generate a package code, If there are issues obtaining the package code during the build process, an error is thrown.
 
 
