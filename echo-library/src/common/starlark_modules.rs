@@ -28,6 +28,12 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         operation: Option<Value>,
         depend_on: Option<Value>,
     ) -> anyhow::Result<Task> {
+        if kind == "openwhisk" || kind == "polkadot" {
+            if attributes.is_none() {
+                return Err(anyhow!("Attributes are mandatory for kind: openwhisk or polkadot"));
+            }
+        }
+        
         let mut input_arguments: Vec<Input> = serde_json::from_str(&input_arguments.to_json()?)
             .map_err(|err| anyhow!("Failed to parse input arguments: {}", err))?;
 
