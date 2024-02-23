@@ -2,6 +2,8 @@ use super::*;
 /// Compile the config file.
 #[derive(Parser, Debug)]
 pub struct Validate {
+
+    /// The path(relative path or absolute path) of the directory, where the package is located. 
     pub source: Option<PathBuf>,
 }
 

@@ -29,7 +29,7 @@ The Composer is an integrated software package, encompassing both the Echo Libra
 - Run
   
   ```
-  composer -V
+  composer -v
   ```
 
 ## Usage
@@ -56,17 +56,39 @@ The Composer is an integrated software package, encompassing both the Echo Libra
 
 ## Example
 
-- Validating the config file
-  
-    ```
-    composer validate ./example
-    ```
+1. Create a new Package
+   
+   ```
+   composer create test
+   ```
 
-- Build the config file
+    ![Allow Push Notification](images/create.png)
 
-    ```
-    composer build ./example -o ./example
-    ```
+2. Validate the created package, by changing the directory to created package `cd test`
+   
+   ```
+   composer validate
+   ```
+
+    ![Allow Push Notification](images/validate.png)
+
+3. Build the package
+   
+   ```
+   composer build
+   ```
+
+4. Specifying the build and ouput directories
+   
+    ![Allow Push Notification](images/build-and-output.png)
+
+    Here,
+
+    - `[SOURCE]` - The relative path or absolute path of the directory, where the package is located. This is an optional path if you are in the current directory.
+    - `--build-directory or -b` - This is an optional path for the build directory to generate rust packages. this flag will useful for debugging the generated rust package.
+
+    - `--output or -o` - This is an optional path for the storing the genrated wasm files, by default an output directory will be generated at the current working directory.
+
 
 > [!NOTE]
 > To work with polkadot you need to install the following build library and export it

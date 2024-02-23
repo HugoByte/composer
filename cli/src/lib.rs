@@ -1,7 +1,5 @@
 #![allow(dead_code)]
 
-pub use echo_library::*;
-
 #[path = "./errors/mod.rs"]
 pub mod errors;
 
