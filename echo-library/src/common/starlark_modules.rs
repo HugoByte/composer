@@ -131,10 +131,40 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
     fn argument(
         name: String,
         input_type: Value,
-        default_value: Option<String>,
+        default_value: Option<Value>,
     ) -> anyhow::Result<Input> {
         let input_type: RustType = serde_json::from_str(&input_type.to_json()?)
             .map_err(|err| anyhow!("Failed to parse input arguments: {}", err))?;
+
+        let default_value: Option<String> = match default_value {
+            Some(value) => {
+                let value_str = value
+                    .to_json()
+                    .map_err(|err| anyhow!("Failed to parse default value: {}", err))?;
+
+                if input_type == RustType::Int
+                    || input_type == RustType::Float
+                    || input_type == RustType::Boolean
+                    || input_type == RustType::Uint
+                {
+                    if value_str.contains("\"") {
+                        return Err(anyhow!("Value cannot contain special characters"));
+                    } else {
+                        println!("{}", value_str);
+                    }
+                } else if input_type == RustType::String {
+                    if !value_str.contains("\"") {
+                        return Err(anyhow!("Value must be in String type"));
+                    } else {
+                        println!("{}", value_str);
+                    }
+                }
+
+                Some(value_str)
+            }
+
+            None => Default::default(),
+        };
 
         Ok(Input {
             name,
