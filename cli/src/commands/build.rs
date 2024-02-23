@@ -5,7 +5,11 @@ use super::*;
 /// Compile and build program command.
 #[derive(Parser, Debug)]
 pub struct Build {
-    #[arg(short, long, help = "Optional path for the build directory")]
+    #[arg(
+        short,
+        long,
+        help = "This is an optional path, to generate a workflow package "
+    )]
     pub build_directory: Option<PathBuf>,
 
     #[arg(short, long, help = "Optional path to output workflow wasm")]
