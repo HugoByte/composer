@@ -18,7 +18,7 @@ pub struct Cli {
     )]
     pub debug: bool,
 
-    #[arg(short, global = true, help = "Suppress CLI output")]
+    #[arg(short, long, global = true, help = "Suppress CLI output")]
     pub quiet: bool,
 
     #[command(subcommand)]
