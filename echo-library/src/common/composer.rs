@@ -220,6 +220,9 @@ impl Composer {
             result.map_err(|err| Error::msg(format!("Evaluation error: {}", err)))?;
         }
 
+        if self.workflows.borrow().is_empty(){
+            return Err(Error::msg("Empty workflow detected!!!"));
+        }
         Ok(module.freeze()?)
     }
 
