@@ -53,6 +53,7 @@ pub fn get_attributes(attributes: &HashMap<String, String>) -> String {
     format!("[{}]", build_string.join(","))
 }
 
+
 fn get_default_value_functions_code(workflow: &Workflow) -> String {
     let mut default_value_functions = String::new();
 
@@ -664,6 +665,7 @@ pub fn main(args: Value) -> Result<Value, String> {
 
         let output = get_attributes(&attributes);
         assert_eq!(output, "[Key:\"value\"]");
+      
     }
 
     #[test]
