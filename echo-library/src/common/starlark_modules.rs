@@ -136,45 +136,46 @@ pub fn starlark_workflow_module(builder: &mut GlobalsBuilder) {
         let input_type: RustType = serde_json::from_str(&input_type.to_json()?)
             .map_err(|err| anyhow!("Failed to parse input arguments: {}", err))?;
 
-            let default_value: Option<String> = match default_value {
-                Some(value) => {
-                    let value_str = value.to_json()
-                        .map_err(|err| anyhow!("Failed to parse default value: {}", err))?;
-            
-                    match input_type {
-                        RustType::String => {
-                            if !value_str.contains("\"") {
-                                return Err(anyhow!("Value must be in String type"));
-                            }
+        let default_value: Option<String> = match default_value {
+            Some(value) => {
+                let value_str = value
+                    .to_json()
+                    .map_err(|err| anyhow!("Failed to parse default value: {}", err))?;
+
+                match input_type {
+                    RustType::String => {
+                        if !value_str.contains("\"") {
+                            return Err(anyhow!("Value must be in String type"));
                         }
-                        RustType::Int => {
-                            if value_str.parse::<i32>().is_err() {
-                                return Err(anyhow!("Value must be an integer"));
-                            }
-                        }
-                        RustType::Float => {
-                            if value_str.parse::<f32>().is_err() {
-                                return Err(anyhow!("Value must be a float"));
-                            }
-                        }
-                        RustType::Uint => {
-                            if value_str.parse::<u32>().is_err() {
-                                return Err(anyhow!("Value must be a positive integer"));
-                            }
-                        }
-                        RustType::Boolean => {
-                            if value_str != "true" && value_str != "false" {
-                                return Err(anyhow!("Value must be either true or false"));
-                            }
-                        }
-                
-                        _ => return Err(anyhow!("Unsupported input type for default value")),
                     }
-            
-                    Some(value_str)
+                    RustType::Int => {
+                        if value_str.parse::<i32>().is_err() {
+                            return Err(anyhow!("Value must be an integer"));
+                        }
+                    }
+                    RustType::Float => {
+                        if value_str.parse::<f32>().is_err() {
+                            return Err(anyhow!("Value must be a float"));
+                        }
+                    }
+                    RustType::Uint => {
+                        if value_str.parse::<u32>().is_err() {
+                            return Err(anyhow!("Value must be a positive integer"));
+                        }
+                    }
+                    RustType::Boolean => {
+                        if value_str != "true" && value_str != "false" {
+                            return Err(anyhow!("Value must be either true or false"));
+                        }
+                    }
+
+                    _ => return Err(anyhow!("Unsupported input type for default value")),
                 }
-                None => Default::default(),
-            };
+
+                Some(value_str)
+            }
+            None => Default::default(),
+        };
 
         Ok(Input {
             name,
