@@ -10,7 +10,7 @@ macro_rules! make_input_struct {
         [$($der:ident),*]
 ) => {
         #[derive($($der),*)]
-            pub struct $x { 
+            pub struct $x {
             $(
                 $(#[serde(default=$default_derive)])?
                 $visibility  $element: $ty
@@ -42,6 +42,11 @@ macro_rules! make_main_struct {
             pub fn output(&self) -> Value {
                 self.$output_field.clone()
             }
+
+            pub fn set_result_output(&mut self, inp: Value) {
+                self.$output_field = inp
+            }
+
         }
     }
 }
@@ -61,7 +66,7 @@ macro_rules! impl_new {
                         ..Default::default()
                     },
                     ..Default::default()
-                }      
+                }
             }
         }
     };
@@ -79,7 +84,7 @@ macro_rules! impl_new {
                         ..Default::default()
                     },
                     ..Default::default()
-                }      
+                }
             }
         }
     }
@@ -106,29 +111,27 @@ macro_rules! impl_setter {
 macro_rules! impl_map_setter {
     (
         $name:ty,
-        $element:ident : $key:expr,  
+        $element:ident : $key:expr,
         $typ_name : ty,
         $out:expr
     ) => {
         impl $name {
             pub fn setter(&mut self, val: Value) {
-                
-                    let value = val.get($key).unwrap();
-                    let value = serde_json::from_value::<Vec<$typ_name>>(value.clone()).unwrap();
-                    let mut map: HashMap<_, _> = value
-                        .iter()
-                        .map(|x| {
-                            self.input.$element = x.to_owned() as $typ_name;
-                            self.run();
-                            (x.to_owned(), self.output.get($out).unwrap().to_owned())
-                        })
-                        .collect();
-                    self.mapout = to_value(map).unwrap();
-                
+                let value = val.get($key).unwrap();
+                let value = serde_json::from_value::<Vec<$typ_name>>(value.clone()).unwrap();
+                let mut map: HashMap<_, _> = value
+                    .iter()
+                    .map(|x| {
+                        self.input.$element = x.to_owned() as $typ_name;
+                        self.run();
+                        (x.to_owned(), self.output.get($out).unwrap().to_owned())
+                    })
+                    .collect();
+                self.mapout = to_value(map).unwrap();
             }
         }
-    }
-    }
+    };
+}
 
 #[macro_export]
 macro_rules! impl_concat_setter {
@@ -136,18 +139,17 @@ macro_rules! impl_concat_setter {
         $name:ty,
         $input:ident
     ) => {
-        impl $name{
+        impl $name {
             pub fn setter(&mut self, val: Value) {
-                
-                    let val: Vec<Value> = serde_json::from_value(val).unwrap();
-                    let res = join_hashmap(
-                        serde_json::from_value(val[0].to_owned()).unwrap(),
-                        serde_json::from_value(val[1].to_owned()).unwrap(),
-                    );
-                    self.input.$input = res;
+                let val: Vec<Value> = serde_json::from_value(val).unwrap();
+                let res = join_hashmap(
+                    serde_json::from_value(val[0].to_owned()).unwrap(),
+                    serde_json::from_value(val[1].to_owned()).unwrap(),
+                );
+                self.input.$input = res;
             }
         }
-    }
+    };
 }
 
 #[allow(unused)]
@@ -176,4 +178,3 @@ macro_rules! impl_combine_setter {
         }
     }
 }
-

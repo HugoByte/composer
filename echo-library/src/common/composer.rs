@@ -13,6 +13,7 @@ const COMMON: &str = include_str!("../boilerplate/src/common.rs");
 const LIB: &str = include_str!("../boilerplate/src/lib.rs");
 const TRAIT: &str = include_str!("../boilerplate/src/traits.rs");
 const MACROS: &str = include_str!("../boilerplate/src/macros.rs");
+const STATE_MANAGER: &str =  include_str!("../boilerplate/src/state_manager.rs");
 const CARGO: &str = include_str!("../boilerplate/Cargo.toml");
 
 #[derive(Debug, ProvidesStaticType, Default)]
@@ -135,6 +136,9 @@ impl Composer {
 
         let temp_path = src_curr.as_path().join("macros.rs");
         std::fs::write(temp_path, MACROS)?;
+
+        let temp_path = src_curr.as_path().join("state_manager.rs");
+        std::fs::write(temp_path, STATE_MANAGER)?;
 
         let cargo_path = curr.join("Cargo.toml");
         std::fs::write(cargo_path.clone(), CARGO)?;

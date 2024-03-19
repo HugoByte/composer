@@ -29,6 +29,8 @@ use workflow_macro::Flow;
 extern crate alloc;
 use codec::{Decode, Encode};
 use core::alloc::Layout;
+mod state_manager;
+use state_manager::*;
 
 #[no_mangle]
 pub fn _start(ptr: *mut u8, length: i32) {
