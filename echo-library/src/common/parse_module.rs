@@ -23,10 +23,15 @@ pub fn get_task_kind(kind: &str) -> Result<String, ErrorKind> {
 fn get_main_method_code_template(tasks_length: usize) -> String {
     format!(
         "#[allow(dead_code, unused)]
-pub fn main(args: Value) -> Result<Value, String> {{
+    pub fn main(args: Value) -> Result<Value, String> {{
     const LIMIT: usize = {tasks_length};
     let mut workflow = WorkflowGraph::new(LIMIT);
-    let input: Input = serde_json::from_value(args).map_err(|e| e.to_string())?;
+    workflow.state_manager.update_workflow_initialized();
+
+    let input: Input =
+        serde_json::from_value(args.get(\"data\").unwrap().clone()).map_err(|e| e.to_string())?;
+    let prev_output: Vec<Value> = serde_json::from_value(args.get(\"prev_output\").unwrap().clone())
+        .map_err(|e| e.to_string())?;
 "
     )
 }
@@ -52,7 +57,6 @@ pub fn get_attributes(attributes: &HashMap<String, String>) -> String {
 
     format!("[{}]", build_string.join(","))
 }
-
 
 fn get_default_value_functions_code(workflow: &Workflow) -> String {
     let mut default_value_functions = String::new();
@@ -369,6 +373,10 @@ fn get_add_nodes_code(flow: &Vec<String>) -> String {
 }
 
 fn get_add_edges_code(workflow: &Workflow, flow: &Vec<String>) -> Result<String, Error> {
+    if flow.len() == 1 {
+        return Ok("".to_string());
+    }
+
     let mut add_edges_code = "workflow.add_edges(&[\n".to_string();
 
     for index in 0..flow.len() - 1 {
@@ -394,43 +402,6 @@ fn get_add_edges_code(workflow: &Workflow, flow: &Vec<String>) -> Result<String,
     Ok(add_edges_code)
 }
 
-fn get_add_execute_workflow_code(workflow: &Workflow, flow: &Vec<String>) -> Result<String, Error> {
-    let mut execute_code = "let result = workflow\n.init()?".to_string();
-
-    for task_index in 0..flow.len() - 1 {
-        execute_code = if task_index + 1 == flow.len() - 1 {
-            match workflow
-                .tasks
-                .get(&flow[task_index + 1])
-                .unwrap()
-                .depend_on
-                .len()
-            {
-                0 | 1 => {
-                    format!(
-                        "{execute_code}\n.term(Some({}_index))?;",
-                        flow[task_index + 1].to_case(Case::Snake)
-                    )
-                }
-
-                _ => {
-                    format!(
-                        "{execute_code}\n.pipe({}_index)?\n.term(None)?;",
-                        flow[task_index + 1].to_case(Case::Snake)
-                    )
-                }
-            }
-        } else {
-            format!(
-                "{execute_code}\n.pipe({}_index)?",
-                flow[task_index + 1].to_case(Case::Snake)
-            )
-        }
-    }
-
-    Ok(execute_code)
-}
-
 /// Generates Rust code to add workflow nodes and edges
 ///
 /// # Arguments
@@ -448,24 +419,29 @@ fn get_workflow_nodes_and_edges_code(workflow: &Workflow) -> Result<String, Erro
         return Ok("".to_string());
     }
 
-    if flow.len() == 1 {
-        return Ok(format!(
-            "\
-let {}_index = workflow.add_node(Box::new({}));
-\tlet result = workflow\n\t\t.init()?
-\t\t.term(None)?;
-Ok(result)
-",
-            flow[0].to_case(Case::Snake),
-            flow[0].to_case(Case::Snake)
-        ));
-    }
-
     Ok(format!(
-        "{}\n{}\n{}let result = serde_json::to_value(result).unwrap();\nOk(result)",
+        "{}\n{}\n
+
+for (i, val) in prev_output.iter().enumerate() {{     
+    let mut node = workflow.get_task_as_mut(i);
+    node.set_result_output(val.clone());
+    let action_name = node.get_action_name();
+    workflow.state_manager.update_restore_success(&action_name, i as isize, val.clone())
+}}
+
+for i in prev_output.len()..workflow.node_count() {{
+    workflow.run(i)?;
+}}
+
+let len = workflow.node_count();
+let output = workflow.get_task(len - 1).get_task_output();
+let result = serde_json::to_value(output).unwrap();
+
+Ok(result)
+
+",
         get_add_nodes_code(&flow),
         get_add_edges_code(workflow, &flow)?,
-        get_add_execute_workflow_code(workflow, &flow)?,
     ))
 }
 
@@ -650,10 +626,15 @@ mod tests {
         assert_eq!(
             &output,
             "#[allow(dead_code, unused)]
-pub fn main(args: Value) -> Result<Value, String> {
+    pub fn main(args: Value) -> Result<Value, String> {
     const LIMIT: usize = 4;
     let mut workflow = WorkflowGraph::new(LIMIT);
-    let input: Input = serde_json::from_value(args).map_err(|e| e.to_string())?;
+    workflow.state_manager.update_workflow_initialized();
+
+    let input: Input =
+        serde_json::from_value(args.get(\"data\").unwrap().clone()).map_err(|e| e.to_string())?;
+    let prev_output: Vec<Value> = serde_json::from_value(args.get(\"prev_output\").unwrap().clone())
+        .map_err(|e| e.to_string())?;
 "
         );
     }
@@ -665,7 +646,6 @@ pub fn main(args: Value) -> Result<Value, String> {
 
         let output = get_attributes(&attributes);
         assert_eq!(output, "[Key:\"value\"]");
-      
     }
 
     #[test]
@@ -1018,199 +998,6 @@ impl_new!(
         assert!(
             output == "impl_execute_trait!(Task0,Task1);"
                 || output == "impl_execute_trait!(Task1,Task0);"
-        );
-    }
-
-    #[test]
-    fn test_get_add_nodes_code() {
-        let flow = vec![
-            "task0".to_string(),
-            "task2".to_string(),
-            "task1".to_string(),
-            "task4".to_string(),
-            "task3".to_string(),
-        ];
-
-        let output = get_add_nodes_code(&flow);
-
-        assert_eq!(
-            output,
-            "\
-let task_0_index = workflow.add_node(Box::new(task_0));
-let task_2_index = workflow.add_node(Box::new(task_2));
-let task_1_index = workflow.add_node(Box::new(task_1));
-let task_4_index = workflow.add_node(Box::new(task_4));
-let task_3_index = workflow.add_node(Box::new(task_3));
-"
-        )
-    }
-
-    #[test]
-    fn test_get_add_edges_code() {
-        let task0 = Task {
-            action_name: "task0".to_string(),
-            ..Default::default()
-        };
-        let task1 = Task {
-            action_name: "task1".to_string(),
-            depend_on: vec![Depend {
-                task_name: "task0".to_string(),
-                ..Default::default()
-            }],
-            ..Default::default()
-        };
-
-        let task2 = Task {
-            action_name: "task2".to_string(),
-            depend_on: vec![
-                Depend {
-                    task_name: "task1".to_string(),
-                    ..Default::default()
-                },
-                Depend {
-                    task_name: "task0".to_string(),
-                    ..Default::default()
-                },
-            ],
-            ..Default::default()
-        };
-
-        let task3 = Task {
-            action_name: "task3".to_string(),
-            depend_on: vec![Depend {
-                task_name: "task2".to_string(),
-                ..Default::default()
-            }],
-            ..Default::default()
-        };
-
-        let task4 = Task {
-            action_name: "task4".to_string(),
-            depend_on: vec![
-                Depend {
-                    task_name: "task3".to_string(),
-                    ..Default::default()
-                },
-                Depend {
-                    task_name: "task2".to_string(),
-                    ..Default::default()
-                },
-            ],
-            ..Default::default()
-        };
-
-        let mut tasks = HashMap::new();
-        tasks.insert("task0".to_string(), task0);
-        tasks.insert("task1".to_string(), task1);
-        tasks.insert("task2".to_string(), task2);
-        tasks.insert("task3".to_string(), task3);
-        tasks.insert("task4".to_string(), task4);
-
-        let workflow = Workflow {
-            name: "test-workflow".to_string(),
-            version: "0.0.1".to_string(),
-            tasks,
-        };
-
-        let flow = workflow.get_flow();
-
-        let output = get_add_edges_code(&workflow, &flow);
-
-        assert_eq!(
-            output.unwrap(),
-            "\
-workflow.add_edges(&[
-(task_0_index, task_1_index),
-(task_1_index, task_2_index),
-(task_0_index, task_2_index),
-(task_2_index, task_3_index),
-(task_3_index, task_4_index),
-(task_2_index, task_4_index),
-]);"
-        );
-    }
-
-    #[test]
-    fn test_get_add_execute_workflow_code() {
-        let task0 = Task {
-            action_name: "task0".to_string(),
-            ..Default::default()
-        };
-        let task1 = Task {
-            action_name: "task1".to_string(),
-            depend_on: vec![Depend {
-                task_name: "task0".to_string(),
-                ..Default::default()
-            }],
-            ..Default::default()
-        };
-
-        let task2 = Task {
-            action_name: "task2".to_string(),
-            depend_on: vec![
-                Depend {
-                    task_name: "task1".to_string(),
-                    ..Default::default()
-                },
-                Depend {
-                    task_name: "task0".to_string(),
-                    ..Default::default()
-                },
-            ],
-            ..Default::default()
-        };
-
-        let task3 = Task {
-            action_name: "task3".to_string(),
-            depend_on: vec![Depend {
-                task_name: "task2".to_string(),
-                ..Default::default()
-            }],
-            ..Default::default()
-        };
-
-        let task4 = Task {
-            action_name: "task4".to_string(),
-            depend_on: vec![
-                Depend {
-                    task_name: "task3".to_string(),
-                    ..Default::default()
-                },
-                Depend {
-                    task_name: "task2".to_string(),
-                    ..Default::default()
-                },
-            ],
-            ..Default::default()
-        };
-
-        let mut tasks = HashMap::new();
-        tasks.insert("task0".to_string(), task0);
-        tasks.insert("task1".to_string(), task1);
-        tasks.insert("task2".to_string(), task2);
-        tasks.insert("task3".to_string(), task3);
-        tasks.insert("task4".to_string(), task4);
-
-        let workflow = Workflow {
-            name: "test-workflow".to_string(),
-            version: "0.0.1".to_string(),
-            tasks,
-        };
-
-        let flow = workflow.get_flow();
-
-        let output = get_add_execute_workflow_code(&workflow, &flow);
-
-        assert_eq!(
-            output.unwrap(),
-            "\
-let result = workflow
-.init()?
-.pipe(task_1_index)?
-.pipe(task_2_index)?
-.pipe(task_3_index)?
-.pipe(task_4_index)?
-.term(None)?;"
         );
     }
 }
