@@ -8,7 +8,7 @@ pub struct Build {
     #[arg(
         short,
         long,
-        help = "Optional Rust package generation, path is created solely in case of build failure"
+        help = "Optional Rust package generation path is created solely in case of build failure"
     )]
     pub build_dir: Option<PathBuf>,
 
