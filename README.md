@@ -64,7 +64,7 @@ The Composer is an integrated software package, encompassing both the Echo Libra
 
     ![Allow Push Notification](images/create.png)
 
-2. Validate the created package, by changing the directory to created package `cd test`
+2. Validate the created package, by changing the directory to the created package `cd` test`
    
    ```
    composer validate
@@ -78,16 +78,16 @@ The Composer is an integrated software package, encompassing both the Echo Libra
    composer build
    ```
 
-4. Specifying the build and ouput directories
+4. Specifying the build and output directories
    
     ![Allow Push Notification](images/build-and-output.png)
 
     Here,
 
     - `[SOURCE]` - The relative path or absolute path of the directory, where the package is located. This is an optional path if you are in the current directory.
-    - `--build-directory or -b` - This is an optional path for the build directory to generate rust packages. this flag will useful for debugging the generated rust package.
+    - `--build-directory or -b` - This is an optional path for the build directory to generate rust packages. this flag will be useful for debugging the generated rust package.
 
-    - `--output or -o` - This is an optional path for the storing the genrated wasm files, by default an output directory will be generated at the current working directory.
+    - `--output or -o` - This is an optional path for storing the generated wasm files, by default an output directory will be generated at the current working directory.
 
 
 > [!NOTE]
