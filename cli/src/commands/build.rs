@@ -8,9 +8,9 @@ pub struct Build {
     #[arg(
         short,
         long,
-        help = "This is an optional path, to generate a workflow package "
+        help = "Optional Rust package generation path is created solely in case of build failure"
     )]
-    pub build_directory: Option<PathBuf>,
+    pub build_dir: Option<PathBuf>,
 
     #[arg(short, long, help = "Optional path to output workflow wasm")]
     pub output: Option<PathBuf>,
@@ -25,7 +25,7 @@ impl Execute<Context> for Build {
 
     fn execute(self, mut context: Context) -> Result<Self::Output> {
         let start = Instant::now();
-        context.init(self.source, self.build_directory, self.output)?;
+        context.init(self.source, self.build_dir, self.output)?;
         context.parse()?;
         context.build()?;
         let end = Instant::now();
