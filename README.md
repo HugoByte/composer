@@ -85,7 +85,7 @@ The Composer is an integrated software package, encompassing both the Echo Libra
     Here,
 
     - `[SOURCE]` - The relative path or absolute path of the directory, where the package is located. This is an optional path if you are in the current directory.
-    - `--build-directory or -b` - This is an optional path for the build directory to generate rust packages. this flag will be useful for debugging the generated rust package.
+    - `--build-dir or -b` - This is an optional path for the build directory to generate rust packages. this flag will be useful for debugging the generated rust package.
 
     - `--output or -o` - This is an optional path for storing the generated wasm files, by default an output directory will be generated at the current working directory.
 
